@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, List, Union, Tuple
+from pathlib import Path
 
 import numpy as np
 
@@ -171,6 +172,7 @@ class ExperimentalData:
     # Vial list (ordered)
     # -------------------------
     vials: List[VialData] = field(default_factory=list)
+
 
 def is_missing_scalar(x: object) -> bool:
     """
@@ -365,3 +367,314 @@ def segment_indices_by_swap(swap_flags: np.ndarray) -> List[Tuple[int, int]]:
 
     return segments
 
+def build_vial_from_slice(
+    *,
+    number: int,
+    a: int,
+    b: int,
+    time_all: np.ndarray,
+    mass_all: Optional[np.ndarray],
+    ret_signal_all: np.ndarray,
+    ret_signal_name: str,
+    ret_signal_units: str,
+    swap_all: Optional[np.ndarray] = None,
+    pressure_all: Optional[np.ndarray] = None,
+    ret_temp_all: Optional[np.ndarray] = None,
+    perm_temp_all: Optional[np.ndarray] = None,
+    perm_signal_all: Optional[np.ndarray] = None,
+    perm_signal_name: Optional[str] = None,
+    perm_signal_units: Optional[str] = None,
+) -> VialData:
+    """
+    Create and populate a VialData object by slicing time-aligned experiment arrays [a:b].
+
+    What this function does:
+        - Takes full-experiment arrays (time, mass, conductivity, etc.)
+        - Takes a segment [a:b] that represents one vial (from segment_indices_by_swap)
+        - Creates a VialData container and fills its fields with the sliced arrays
+        - Stores signal names/units explicitly to prevent ambiguity later
+
+    What this function does NOT do:
+        - It does not read files
+        - It does not validate the experiment
+        - It does not convert conductivity to concentration
+        - It does not drop NaNs in continuous signals (it preserves them)
+
+    Inputs:
+        number:
+            Vial index (1-based).
+
+        a, b:
+            Slice bounds in Python style [a:b] (end is exclusive).
+
+        time_all:
+            Full experiment time array (1D).
+
+        mass_all:
+            Full experiment mass array (1D) aligned with time_all, or None if unavailable.
+
+        ret_signal_all:
+            Full experiment retentate signal array (1D) aligned with time_all.
+            For Excel, this is retentate conductivity (uS/cm), stored honestly.
+
+        ret_signal_name / ret_signal_units:
+            Labels for retentate_signal (e.g., "retentate_cond_uS_cm", "uS/cm").
+
+        swap_all:
+            Full experiment swap flag array (1D) aligned with time_all (optional).
+            If provided, a slice is stored in the vial as provenance/debug info.
+
+        pressure_all, ret_temp_all, perm_temp_all:
+            Optional full-experiment arrays aligned with time_all.
+
+        perm_signal_all:
+            Optional permeate signal array aligned with time_all (e.g., permeate conductivity).
+            If provided, perm_signal_name/units should also be provided.
+
+    Output:
+        VialData:
+            A populated vial container whose array fields have length (b - a).
+    """
+
+    # Create an empty vial container (VialData is intentionally "light").
+    v = VialData()
+
+    # Store the vial index immediately (helps debugging if something fails later).
+    v.number = number
+
+    # -------------------------
+    # Slice the required arrays
+    # -------------------------
+
+    # Time is always required for a vial (it is the alignment axis).
+    v.time_s = time_all[a:b]
+
+    # Retentate signal is required (conductivity for Excel; label honestly via name/units).
+    v.retentate_signal = ret_signal_all[a:b]
+    v.retentate_signal_name = ret_signal_name
+    v.retentate_signal_units = ret_signal_units
+
+    # -------------------------
+    # Slice optional arrays only if they exist
+    # -------------------------
+
+    # Mass is optional in some datasets (so only slice if present).
+    if mass_all is not None:
+        v.mass_g = mass_all[a:b]
+
+    # Swap flag slice is optional, but useful for provenance and debugging segmentation.
+    if swap_all is not None:
+        v.vial_swap_flag = swap_all[a:b]
+
+    # Optional operating-condition signals aligned with time.
+    if pressure_all is not None:
+        v.pressure_psi = pressure_all[a:b]
+
+    if ret_temp_all is not None:
+        v.retentate_temp_C = ret_temp_all[a:b]
+
+    if perm_temp_all is not None:
+        v.permeate_temp_C = perm_temp_all[a:b]
+
+    # Optional permeate signal (e.g., permeate conductivity).
+    if perm_signal_all is not None:
+        v.permeate_signal = perm_signal_all[a:b]
+        v.permeate_signal_name = perm_signal_name
+        v.permeate_signal_units = perm_signal_units
+
+    # Return the populated vial container.
+    return v
+
+def validate_experiment(exp: ExperimentalData) -> Tuple[bool, List[Tuple[str, str]]]:
+    """
+    Validate basic structural integrity of a loaded experiment and FLAG issues (no exceptions).
+
+    Philosophy:
+        - Does NOT modify exp.
+        - Does NOT raise exceptions.
+        - Reports problems using (severity, message) tuples.
+
+    Severity meanings:
+        FATAL:
+            The experiment is structurally unusable; downstream code is likely to fail.
+        REQUIRED:
+            Likely needed for Pyomo / estimation later, but may be missing at ingestion time.
+
+    Inputs:
+        exp:
+            ExperimentalData object produced by a loader.
+
+    Outputs:
+        (ok_fatal, issues)
+            ok_fatal:
+                True if no FATAL issues were found, else False.
+            issues:
+                List of (severity, message) tuples.
+    """
+
+    # Collect all issues found during validation (we try to report everything, not just first failure).
+    issues: List[Tuple[str, str]] = []
+
+    # Tracks whether any FATAL errors were found.
+    ok_fatal = True
+
+    # -------------------------------------------------------------------------
+    # 1) FATAL: must have at least one vial
+    # -------------------------------------------------------------------------
+    if exp.vials is None or len(exp.vials) == 0:
+        issues.append(("FATAL", "No vials found (exp.vials is empty)."))
+        return False, issues  # no further checks possible
+
+    # -------------------------------------------------------------------------
+    # 2) FATAL: each vial must have time and retentate signal, aligned in length
+    # -------------------------------------------------------------------------
+    for v in exp.vials:
+        # Vial must have a time vector
+        if v.time_s is None or len(v.time_s) == 0:
+            issues.append(("FATAL", f"Vial {v.number}: missing/empty time_s."))
+            ok_fatal = False
+
+        # Vial must have a retentate signal (conductivity stored honestly)
+        if v.retentate_signal is None or len(v.retentate_signal) == 0:
+            issues.append(("FATAL", f"Vial {v.number}: missing/empty retentate_signal."))
+            ok_fatal = False
+
+        # If both exist, they must match in length (alignment requirement)
+        if (v.time_s is not None) and (v.retentate_signal is not None):
+            if len(v.time_s) != len(v.retentate_signal):
+                issues.append(("FATAL", f"Vial {v.number}: time_s and retentate_signal lengths differ."))
+                ok_fatal = False
+
+        # Optional structural check: time should not go backwards
+        # This is often required by ODE solvers and interpolation routines.
+        if v.time_s is not None and len(v.time_s) > 1:
+            if np.any(np.diff(v.time_s) < 0):
+                issues.append(("FATAL", f"Vial {v.number}: time_s is not monotonic non-decreasing."))
+                ok_fatal = False
+
+    # -------------------------------------------------------------------------
+    # 3) REQUIRED (flag only): experiment-level operating conditions
+    # -------------------------------------------------------------------------
+    if is_missing_scalar(exp.delP_bar):
+        issues.append(("REQUIRED", "Missing exp.delP_bar (pressure)."))
+
+    if is_missing_scalar(exp.Temp_K):
+        issues.append(("REQUIRED", "Missing exp.Temp_K (temperature)."))
+
+    if is_missing_scalar(exp.Am_cm2):
+        issues.append(("REQUIRED", "Missing exp.Am_cm2 (membrane area)."))
+
+    # -------------------------------------------------------------------------
+    # 4) REQUIRED (flag only): theta0 must be numeric if provided
+    # -------------------------------------------------------------------------
+    # Per spec, theta0 is always numeric when present (None means not provided).
+    if exp.theta0 is not None:
+        try:
+            _ = np.asarray(exp.theta0, dtype=float)
+        except Exception:
+            issues.append(("REQUIRED", "exp.theta0 exists but is not numeric/castable to float array."))
+
+    return ok_fatal, issues
+
+def detect_source_type(file_path: Path) -> Optional[SourceType]:
+    """
+    Detect the data source type from a file extension.
+
+    Why this exists:
+        load_experiment(...) needs a simple, reliable way to decide whether the input
+        should be routed to the XLSX loader or the MAT loader.
+
+    Inputs:
+        file_path:
+            A pathlib.Path object pointing to the input file.
+
+    Output:
+        SourceType.XLSX if the extension is .xlsx or .xls
+        SourceType.MAT  if the extension is .mat
+        None             if the extension is unsupported/unknown
+    """
+
+    # Normalize the extension to lowercase so ".XLSX" works the same as ".xlsx".
+    suffix = file_path.suffix.lower()
+
+    # Excel inputs (one workbook, one experiment per sheet in your convention).
+    if suffix in [".xlsx", ".xls"]:
+        return SourceType.XLSX
+
+    # MATLAB structured inputs (legacy .mat experiment struct).
+    if suffix == ".mat":
+        return SourceType.MAT
+
+    # Any other extension is not supported by this loader entrypoint.
+    return None
+
+
+def load_experiment(path: str, selector: object) -> Tuple[ExperimentalData, Tuple[bool, List[Tuple[str, str]]]]:
+    """
+    File-agnostic entrypoint: load ONE experiment from either XLSX or MAT.
+
+    This is the function you call from "main code" (or from tests) without caring
+    about file format.
+
+    Inputs:
+        path:
+            Path to the input file. Supported extensions:
+                - .xlsx/.xls : Excel workbook
+                - .mat       : MATLAB file
+
+        selector:
+            Identifies WHICH experiment to load from the file:
+                - XLSX:
+                    sheet name (str) OR sheet index (int)
+                    (because one workbook can contain multiple experiments)
+                - MAT:
+                    struct key (str) OR None
+                    (None means "use default key", e.g., 'data_stru')
+
+    Outputs:
+        (exp, validation)
+
+        exp:
+            An ExperimentalData object populated by the appropriate loader.
+
+        validation:
+            A tuple (ok_fatal, issues) returned by validate_experiment(exp)
+            where:
+                ok_fatal: False means the experiment is structurally unusable
+                issues:   list of (severity, message) flags
+    """
+
+    # Convert the input string path into a Path object for robust extension handling.
+    file_path = Path(path)
+
+    # Determine whether this is an Excel workbook or a MATLAB .mat file.
+    kind = detect_source_type(file_path)
+
+    # If we cannot determine a supported type, fail fast with a clear message.
+    # (This is not "data missing"; it is an unsupported file format.)
+    if kind is None:
+        raise ValueError(
+            f"Unsupported file type '{file_path.suffix}'. "
+            f"Expected one of: .xlsx, .xls, .mat"
+        )
+
+    # Route to the correct loader based on file type.
+    # NOTE: load_from_xlsx and load_from_mat are format-specific loaders you will implement next.
+    if kind == SourceType.XLSX:
+        # For Excel: selector identifies which SHEET corresponds to the experiment.
+        exp = load_from_xlsx(file_path, sheet_selector=selector)
+
+    elif kind == SourceType.MAT:
+        # For MAT: selector identifies the STRUCT KEY (or None for default).
+        exp = load_from_mat(file_path, struct_key=selector)
+
+    else:
+        # This should not occur because detect_source_type only returns XLSX/MAT/None,
+        # but keeping it makes the logic robust if the enum grows later.
+        raise ValueError(f"Unhandled SourceType: {kind}")
+
+    # Run validation as the last step (read-only; does not mutate exp).
+    validation = validate_experiment(exp)
+
+    # Return the loaded experiment and its validation report.
+    return exp, validation
