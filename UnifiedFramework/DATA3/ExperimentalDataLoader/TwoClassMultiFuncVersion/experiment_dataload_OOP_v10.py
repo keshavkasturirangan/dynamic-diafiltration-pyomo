@@ -1092,154 +1092,202 @@ def parse_time_series_table(sheet: object) -> pd.DataFrame:
     # Return the parsed time-series table (as a DataFrame).
     return data
 
-
-
-def find_vial_row(vial_table: object, vial_number: int) -> Optional[dict]:
+def parse_time_series_table(sheet: object) -> pd.DataFrame:
     """
-    Find and return the assay-table row corresponding to a given vial number.
+    Parse and return the time-series table from an Excel sheet handle.
 
-    Why this exists:
-        parse_vial_data_table(...) returns a per-vial assay table, but Excel layouts vary.
-        Depending on the sheet, the vial identifier may appear as:
-            - a numeric column named "Vial" or "Vial Number" with values 1,2,3,...
-            - a string label like "Vial 3" (often in the first column)
-            - (rarely) a label elsewhere in the row
+    What this function does:
+        - Reads the entire sheet (or enough of it) as raw cells (no header).
+        - Locates the row that contains the true column headers for the time-series table.
+        - Constructs a DataFrame whose columns are those headers.
+        - Returns only the rows below that header row (i.e., the actual data).
 
-        This helper centralizes the logic to locate the correct row for vial_number.
+    What this function does NOT do:
+        - It does not validate units or values.
+        - It does not convert conductivity to concentration.
+        - It does not segment into vials.
+        - It does not drop NaNs in continuous signals (NaNs are preserved).
+
+    Inputs:
+        sheet:
+            The object returned by read_excel_sheet(...).
+            In our implementation, this is a dict-like "sheet handle" containing:
+                - "excel_file": pandas.ExcelFile
+                - "sheet_name": str
+                - "path": Path
+
+    Output:
+        pd.DataFrame:
+            A DataFrame representing the time-series table.
+            It must contain (at minimum) these required columns:
+                - "Time (s)"
+                - "Mass (g)"
+                - "Vial Swap"
+                - "Retentate Cond @ Temp (uS/cm)"
+
+    Raises:
+        ValueError:
+            If the header row cannot be found or required columns are missing.
+        TypeError:
+            If the input 'sheet' is not in the expected handle format.
+    """
+
+    # -------------------------------------------------------------------------
+    # 0) Defensive: ensure sheet is the handle we expect (from read_excel_sheet)
+    # -------------------------------------------------------------------------
+    if not isinstance(sheet, dict):
+        raise TypeError(
+            "parse_time_series_table expected 'sheet' to be a dict-like sheet handle "
+            "(from read_excel_sheet)."
+        )
+
+    # Pull out the information needed to read the sheet again using pandas.
+    xls = sheet.get("excel_file", None)      # pandas.ExcelFile object
+    sheet_name = sheet.get("sheet_name", None)
+
+    if xls is None or sheet_name is None:
+        raise TypeError(
+            "Sheet handle is missing required keys. Expected keys: "
+            "'excel_file' and 'sheet_name'."
+        )
+
+    # -------------------------------------------------------------------------
+    # 1) Read the entire sheet as raw cells (no header)
+    # -------------------------------------------------------------------------
+    # header=None means pandas will label columns as 0,1,2,... and keep all rows raw.
+    # dtype=object preserves mixed types (numbers + strings), which is necessary
+    # for locating the header row reliably.
+    raw = pd.read_excel(xls, sheet_name=sheet_name, header=None, dtype=object)
+
+    # -------------------------------------------------------------------------
+    # 2) Define the required columns that identify the time-series table
+    # -------------------------------------------------------------------------
+    # These are the minimum columns we need to proceed with vial construction.
+    required_cols = {
+        "Time (s)",
+        "Mass (g)",
+        "Vial Swap",
+        "Retentate Cond @ Temp (uS/cm)",
+    }
+
+    # -------------------------------------------------------------------------
+    # 3) Find the header row by scanning for the required column names
+    # -------------------------------------------------------------------------
+    # Excel sheets often have metadata rows above the actual table.
+    # So we search for a row where the set of string cells contains our required names.
+    header_row_idx: Optional[int] = None
+
+    # Scan the first N rows. 200 is conservative and still fast for typical sheets.
+    scan_limit = min(len(raw), 200)
+
+    for i in range(scan_limit):
+        # Extract the row as a Python list
+        row = raw.iloc[i].tolist()
+
+        # Normalize cells:
+        #   - Keep only non-null entries
+        #   - Convert to stripped strings
+        # This makes matching robust to extra spaces and non-string types.
+        normalized = set()
+        for cell in row:
+            if cell is None or (isinstance(cell, float) and np.isnan(cell)):
+                continue
+            # Convert to string and strip whitespace.
+            s = str(cell).strip()
+            if s != "":
+                normalized.add(s)
+
+        # If all required column names are present in this row, we found the header.
+        if required_cols.issubset(normalized):
+            header_row_idx = i
+            break
+
+    # If we never found a header row, we cannot parse the time-series table.
+    if header_row_idx is None:
+        raise ValueError(
+            f"Could not locate time-series header row in sheet '{sheet_name}'. "
+            f"Expected to find required columns: {sorted(required_cols)}"
+        )
+
+    # -------------------------------------------------------------------------
+    # 4) Build the time-series DataFrame using that header row
+    # -------------------------------------------------------------------------
+    # The header row defines the column names.
+    header_values = raw.iloc[header_row_idx].tolist()
+
+    # Convert header values to cleaned strings (column names).
+    # Empty/NaN headers become "Unnamed: <index>" to keep column positions stable.
+    columns: List[str] = []
+    for j, h in enumerate(header_values):
+        if h is None or (isinstance(h, float) and np.isnan(h)) or str(h).strip() == "":
+            columns.append(f"Unnamed: {j}")
+        else:
+            columns.append(str(h).strip())
+
+    # Data begins immediately after the header row.
+    data = raw.iloc[header_row_idx + 1 :].copy()
+
+    # Assign the columns.
+    data.columns = columns
+
+    # -------------------------------------------------------------------------
+    # 5) Drop rows that are completely empty (common at bottom of Excel sheets)
+    # -------------------------------------------------------------------------
+    data = data.dropna(how="all")
+
+    # -------------------------------------------------------------------------
+    # 6) Final: ensure required columns exist exactly as expected
+    # -------------------------------------------------------------------------
+    missing = [c for c in required_cols if c not in data.columns]
+    if missing:
+        raise ValueError(
+            f"Time-series table found in sheet '{sheet_name}', but missing required columns: {missing}. "
+            f"Available columns: {list(data.columns)}"
+        )
+
+    # Return the parsed time-series table (as a DataFrame).
+    return data
+
+
+
+def find_vial_row(vial_table: object, vial_number: int) -> Optional[object]:
+    """
+    Return the row corresponding to a given vial number from the vial assay table.
 
     Inputs:
         vial_table:
-            Table returned by parse_vial_data_table(...).
-            In practice, this is typically a pandas DataFrame.
+            Table returned by parse_vial_data_table(...)
 
         vial_number:
-            1-based vial index (1, 2, 3, ...).
+            1-based vial index.
 
     Output:
-        dict or None:
-            - If found: return the row as a dict {column_name: value}
-            - If not found: return None
-
-        Returning dict is intentional because upstream uses:
-            assay_row.get("ICP Salt 1 (mg/L)", None)
+        object or None:
+            A dict-like row (recommended) so you can call row.get("colname", None).
+            If the vial is not found, return None.
     """
-
-    # If the assay table does not exist, we cannot find any row.
-    if vial_table is None:
-        return None
-
-    # -------------------------------------------------------------------------
-    # Case 1: pandas DataFrame-like input (most common)
-    # -------------------------------------------------------------------------
-    if hasattr(vial_table, "columns") and hasattr(vial_table, "iterrows"):
-        df = vial_table
-
-        # -------------------------
-        # Strategy A: explicit numeric vial column
-        # -------------------------
-        # Try common column names where the vial index might be stored directly.
-        candidate_cols = ["Vial", "Vial Number", "Vial#", "Vial_ID", "Vial ID"]
-
-        for col in candidate_cols:
-            if col in df.columns:
-                # Convert that column to numeric; non-numeric entries become NaN.
-                series = pd.to_numeric(df[col], errors="coerce")
-
-                # Find rows where the numeric value equals vial_number.
-                match_idx = series[series == vial_number].index
-
-                # If any match exists, return the first match as a dict.
-                if len(match_idx) > 0:
-                    return df.loc[match_idx[0]].to_dict()
-
-        # -------------------------
-        # Strategy B: "Vial X" label in the first column
-        # -------------------------
-        # Many assay tables have a first column containing text labels like "Vial 1".
-        if len(df.columns) > 0:
-            first_col = df.columns[0]
-
-            # Normalize expected target strings for matching.
-            target1 = f"vial {vial_number}"   # "vial 3"
-            target2 = f"vial{vial_number}"    # "vial3"
-
-            for _, row in df.iterrows():
-                cell = row.get(first_col, None)
-
-                # Skip missing cells
-                if cell is None or (isinstance(cell, float) and np.isnan(cell)):
-                    continue
-
-                # Normalize to lowercase text for robust matching.
-                s = str(cell).strip().lower()
-
-                # Match both "vial 3" and "vial3"
-                if s == target1 or s.replace(" ", "") == target2:
-                    return row.to_dict()
-
-        # -------------------------
-        # Strategy C: last resort, scan entire row for "Vial X"
-        # -------------------------
-        # This is more expensive but catches odd layouts.
-        token1 = f"vial {vial_number}"
-        token2 = f"vial{vial_number}"
-
-        for _, row in df.iterrows():
-            for cell in row.values:
-                if cell is None or (isinstance(cell, float) and np.isnan(cell)):
-                    continue
-                s = str(cell).strip().lower()
-                if s == token1 or s == token2:
-                    return row.to_dict()
-
-        # Nothing matched.
-        return None
-
-    # -------------------------------------------------------------------------
-    # Case 2: list-of-dicts fallback (supports alternative implementations)
-    # -------------------------------------------------------------------------
-    if isinstance(vial_table, list):
-        for row in vial_table:
-            if not isinstance(row, dict):
-                continue
-
-            # Try numeric vial identifier keys.
-            for key in ["Vial", "Vial Number", "number", "vial_number"]:
-                if key in row:
-                    try:
-                        if int(row[key]) == vial_number:
-                            return row
-                    except Exception:
-                        pass
-
-            # Try matching "Vial X" label in any string value.
-            token1 = f"vial {vial_number}"
-            token2 = f"vial{vial_number}"
-
-            for val in row.values():
-                if isinstance(val, str):
-                    s = val.strip().lower()
-                    if s == token1 or s == token2:
-                        return row
-
-        return None
-
-    # Unknown table format -> conservative default.
-    return None
+    raise NotImplementedError
 
 
 def get_sheet_name(sheet: object) -> Optional[str]:
     """
-    Extract the sheet name from the sheet object, if available.
+    Extract the sheet name from the sheet handle, if available.
 
-    Input:
+    Why this exists:
+        read_excel_sheet(...) returns a lightweight dict-like "sheet handle" that already
+        contains the resolved sheet name. This helper keeps load_from_xlsx(...) readable
+        and keeps provenance handling in one place.
+
+    Inputs:
         sheet:
-            Output of read_excel_sheet(...)
+            Dict-like sheet handle returned by read_excel_sheet(...)
 
     Output:
         str or None:
-            Sheet name if it can be inferred; otherwise None.
+            The resolved Excel sheet name if present, otherwise None.
     """
+    if isinstance(sheet, dict):
+        return sheet.get("sheet_name", None)
     return None
 
 

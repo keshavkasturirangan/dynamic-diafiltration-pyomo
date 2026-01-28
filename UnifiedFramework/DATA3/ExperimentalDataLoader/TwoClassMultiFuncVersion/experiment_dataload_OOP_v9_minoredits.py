@@ -20,7 +20,7 @@ import numpy as np
 class SourceType(str, Enum):
     """
     Enumerates supported experiment data sources.
-
+    This li
     Values:
         XLSX: Excel workbook input (.xlsx)
         MAT:  MATLAB file input (.mat)
@@ -936,6 +936,7 @@ def read_excel_sheet(xlsx_path: Path, sheet_selector: object) -> dict:
         "path": xlsx_path,
     }
 
+
 def parse_time_series_table(sheet: object) -> pd.DataFrame:
     """
     Parse and return the time-series table from an Excel sheet handle.
@@ -1094,152 +1095,44 @@ def parse_time_series_table(sheet: object) -> pd.DataFrame:
 
 
 
-def find_vial_row(vial_table: object, vial_number: int) -> Optional[dict]:
+def find_vial_row(vial_table: object, vial_number: int) -> Optional[object]:
     """
-    Find and return the assay-table row corresponding to a given vial number.
-
-    Why this exists:
-        parse_vial_data_table(...) returns a per-vial assay table, but Excel layouts vary.
-        Depending on the sheet, the vial identifier may appear as:
-            - a numeric column named "Vial" or "Vial Number" with values 1,2,3,...
-            - a string label like "Vial 3" (often in the first column)
-            - (rarely) a label elsewhere in the row
-
-        This helper centralizes the logic to locate the correct row for vial_number.
+    Return the row corresponding to a given vial number from the vial assay table.
 
     Inputs:
         vial_table:
-            Table returned by parse_vial_data_table(...).
-            In practice, this is typically a pandas DataFrame.
+            Table returned by parse_vial_data_table(...)
 
         vial_number:
-            1-based vial index (1, 2, 3, ...).
+            1-based vial index.
 
     Output:
-        dict or None:
-            - If found: return the row as a dict {column_name: value}
-            - If not found: return None
-
-        Returning dict is intentional because upstream uses:
-            assay_row.get("ICP Salt 1 (mg/L)", None)
+        object or None:
+            A dict-like row (recommended) so you can call row.get("colname", None).
+            If the vial is not found, return None.
     """
-
-    # If the assay table does not exist, we cannot find any row.
-    if vial_table is None:
-        return None
-
-    # -------------------------------------------------------------------------
-    # Case 1: pandas DataFrame-like input (most common)
-    # -------------------------------------------------------------------------
-    if hasattr(vial_table, "columns") and hasattr(vial_table, "iterrows"):
-        df = vial_table
-
-        # -------------------------
-        # Strategy A: explicit numeric vial column
-        # -------------------------
-        # Try common column names where the vial index might be stored directly.
-        candidate_cols = ["Vial", "Vial Number", "Vial#", "Vial_ID", "Vial ID"]
-
-        for col in candidate_cols:
-            if col in df.columns:
-                # Convert that column to numeric; non-numeric entries become NaN.
-                series = pd.to_numeric(df[col], errors="coerce")
-
-                # Find rows where the numeric value equals vial_number.
-                match_idx = series[series == vial_number].index
-
-                # If any match exists, return the first match as a dict.
-                if len(match_idx) > 0:
-                    return df.loc[match_idx[0]].to_dict()
-
-        # -------------------------
-        # Strategy B: "Vial X" label in the first column
-        # -------------------------
-        # Many assay tables have a first column containing text labels like "Vial 1".
-        if len(df.columns) > 0:
-            first_col = df.columns[0]
-
-            # Normalize expected target strings for matching.
-            target1 = f"vial {vial_number}"   # "vial 3"
-            target2 = f"vial{vial_number}"    # "vial3"
-
-            for _, row in df.iterrows():
-                cell = row.get(first_col, None)
-
-                # Skip missing cells
-                if cell is None or (isinstance(cell, float) and np.isnan(cell)):
-                    continue
-
-                # Normalize to lowercase text for robust matching.
-                s = str(cell).strip().lower()
-
-                # Match both "vial 3" and "vial3"
-                if s == target1 or s.replace(" ", "") == target2:
-                    return row.to_dict()
-
-        # -------------------------
-        # Strategy C: last resort, scan entire row for "Vial X"
-        # -------------------------
-        # This is more expensive but catches odd layouts.
-        token1 = f"vial {vial_number}"
-        token2 = f"vial{vial_number}"
-
-        for _, row in df.iterrows():
-            for cell in row.values:
-                if cell is None or (isinstance(cell, float) and np.isnan(cell)):
-                    continue
-                s = str(cell).strip().lower()
-                if s == token1 or s == token2:
-                    return row.to_dict()
-
-        # Nothing matched.
-        return None
-
-    # -------------------------------------------------------------------------
-    # Case 2: list-of-dicts fallback (supports alternative implementations)
-    # -------------------------------------------------------------------------
-    if isinstance(vial_table, list):
-        for row in vial_table:
-            if not isinstance(row, dict):
-                continue
-
-            # Try numeric vial identifier keys.
-            for key in ["Vial", "Vial Number", "number", "vial_number"]:
-                if key in row:
-                    try:
-                        if int(row[key]) == vial_number:
-                            return row
-                    except Exception:
-                        pass
-
-            # Try matching "Vial X" label in any string value.
-            token1 = f"vial {vial_number}"
-            token2 = f"vial{vial_number}"
-
-            for val in row.values():
-                if isinstance(val, str):
-                    s = val.strip().lower()
-                    if s == token1 or s == token2:
-                        return row
-
-        return None
-
-    # Unknown table format -> conservative default.
-    return None
+    raise NotImplementedError
 
 
 def get_sheet_name(sheet: object) -> Optional[str]:
     """
-    Extract the sheet name from the sheet object, if available.
+    Extract the sheet name from the sheet handle, if available.
 
-    Input:
+    Why this exists:
+        read_excel_sheet(...) returns a lightweight dict-like "sheet handle" that already
+        contains the resolved sheet name. This helper keeps load_from_xlsx(...) readable
+        and keeps provenance handling in one place.
+
+    Inputs:
         sheet:
-            Output of read_excel_sheet(...)
+            Dict-like sheet handle returned by read_excel_sheet(...)
 
     Output:
         str or None:
-            Sheet name if it can be inferred; otherwise None.
+            The resolved Excel sheet name if present, otherwise None.
     """
+    if isinstance(sheet, dict):
+        return sheet.get("sheet_name", None)
     return None
 
 
