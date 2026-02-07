@@ -11,7 +11,7 @@ Diafiltration process model construction (Pyomo) — OOP-style pseudocode.
 
 Goal:
     Replace the legacy dict-based `model_construct_inter(data_stru, ...)` with a
-    clear, class-field-based workflow that consumes `ExperimentalData` + options
+    class-based workflow that consumes `ExperimentalData`
     and returns a Pyomo ConcreteModel.
 
 Design rules (matching your loader work):
@@ -87,7 +87,7 @@ class ParameterGuess:
     """
     Stores initial guesses / fixed values for parameters used by the model.
 
-    Design choice (per review):
+    Design choice:
         Build parameter objects as Vars by default.
         In SIMULATION mode, we fix those Vars to supplied values after creation.
 
@@ -153,35 +153,45 @@ def compute_avg_velocity_cm_s(*, rpm: float = RPM_DEFAULT, diameter_cm: float = 
     return v_cm_s
 
 
-def select_diffusivity_from_components(component_names: Any, *, diffusivity_dict: Dict[str, float] = DIFFUSIVITY_CM2_S) -> float:
+def select_diffusivity_from_components(
+    *,
+    component_names: Optional[Sequence[str]],
+    diffusivity_dict: Dict[str, float] = DIFFUSIVITY_CM2_S,
+) -> float:
     """
-    Selects a diffusion coefficient D based on solute identity.
+    Select a diffusion coefficient D [cm^2/s] using component names and a diffusivity mapping.
 
     Inputs:
         component_names:
-            Could be a string or list of strings. Legacy checks 'K' substring.
+            Sequence of component/species names (e.g., ["K+"]).
+            If None/empty, the lookup cannot proceed.
+        diffusivity_dict:
+            Mapping: component name -> diffusion coefficient [cm^2/s].
 
-    Returns:
-        D_cm2_s: float
+    Output:
+        D_cm2_s:
+            Diffusion coefficient [cm^2/s] for the first matching component in component_names.
 
     Raises:
-        NotImplementedError if unknown solute identity.
+        ValueError:
+            If component_names is None/empty.
+        KeyError:
+            If no component name matches the keys in diffusivity_dict.
     """
+    if not component_names:
+        raise ValueError("component_names is missing/empty; cannot select diffusivity D.")
 
-    # Prefer dictionary lookup when possible (extensible beyond the legacy K+ case).
-    if isinstance(component_names, str):
-        if component_names in diffusivity_dict:
-            return float(diffusivity_dict[component_names])
-        # Legacy fallback: if name contains 'K' -> assume K+
-        if "K" in component_names and "K+" in diffusivity_dict:
-            return float(diffusivity_dict["K+"])
-    else:
-        # If a list/sequence is given, return the first match.
-        for name in component_names:
-            if name in diffusivity_dict:
-                return float(diffusivity_dict[name])
+    # Return the first match in the mapping (supports multi-component lists).
+    for name in component_names:
+        if name in diffusivity_dict:
+            return float(diffusivity_dict[name])
 
-    raise NotImplementedError("Diffusivity selection not implemented for these components.")
+    # No matches: raise a helpful error that lists the available keys.
+    raise KeyError(
+        f"No matching diffusivity for components={list(component_names)}. "
+        f"Known diffusivities: {sorted(diffusivity_dict.keys())}"
+    )
+
 
 
 def compute_mass_transfer_k(*, v_cm_s: float, D_cm2_s: float, nu_cm2_s: float = NU_CM2_PER_S, diameter_cm: float = STIRRED_CELL_DIAMETER_CM) -> float:
@@ -275,7 +285,9 @@ def build_diafiltration_model(
         rpm=RPM_DEFAULT,
         diameter_cm=STIRRED_CELL_DIAMETER_CM,
     )
-    D_cm2_s = select_diffusivity_from_components(exp.component_names)
+    D_cm2_s = select_diffusivity_from_components(
+        component_names=exp.component_names,
+    )
     # Compute the mass-transfer coefficient used in cIn (concentration polarization) relation.
     k_mass = compute_mass_transfer_k(
         v_cm_s=v_cm_s,
@@ -287,7 +299,7 @@ def build_diafiltration_model(
     # -------------------------------------------------------------------------
     # C) Time bookkeeping (per-vial ti/tf) and scaled time domain tau ∈ [0, Tauf]
     # -------------------------------------------------------------------------
-    ti_s, tf_s, t_delay_s = compute_vial_time_bounds(exp)
+    ti_s, tf_s, t_delay_s = exp.get_vial_switch_times()  # per-vial ti/tf and common delay shift
 
     # Scaled time is always [0, Tauf] where legacy uses Tauf=1.
     Tauf = float(time_scaled_end)
@@ -527,10 +539,10 @@ def attach_intermediate_variables(m: "ConcreteModel", options: ModelOptions) -> 
     m.Jw = Var(m.n_vial, m.tau)
     m.Js = Var(m.n_vial, m.tau)
 
-    # if options.B_form == BForm.CONVECTION:
-    m.Js_exp = Var(m.n_vial, m.tau, bounds=(1.0 + 1e-6, 1e4))
-    # elif options.B_form == "K":
-        # m.Js_exp = Var(m.n_vial, m.tau)
+    if options.B_form == BForm.CONVECTION:
+        m.Js_exp = Var(m.n_vial, m.tau, bounds=(1.0 + 1e-6, 1e4))
+    elif options.B_form == "K":
+        m.Js_exp = Var(m.n_vial, m.tau)
 
 
 def attach_derivatives(m: "ConcreteModel", options: ModelOptions) -> None:
@@ -755,10 +767,38 @@ class ExperimentalData:
     vials: Any  # expected: ordered list where each vial has time_s array
 
     def get_vial_switch_times(self) -> Tuple[np.ndarray, np.ndarray, float]:
-        """Return (ti_s, tf_s, t_delay_s) using the legacy definition."""
+        """Compute per-vial (ti, tf) arrays and a shared delay shift.
+
+        Why this is a method:
+            This computation uses *only* fields already stored on ExperimentalData
+            (namely the ordered list of vials and their time_s arrays), so keeping
+            it here makes call sites read naturally:
+                ti_s, tf_s, t_delay_s = exp.get_vial_switch_times()
+
+        Legacy-compatible definition:
+            - t_delay_s is defined as the first timestamp in vial 1.
+            - ti_s[i] = vials[i].time_s[0]  - t_delay_s
+            - tf_s[i] = vials[i].time_s[-1] - t_delay_s
+
+        Returns:
+            ti_s: shifted vial start times [s], shape (N_vial,)
+            tf_s: shifted vial end times [s], shape (N_vial,)
+            t_delay_s: delay shift applied to all vials [s]
+        """
+        # Defensive: this method is only meaningful if vials exist and each vial has time.
+        if not self.vials:
+            raise ValueError("ExperimentalData.vials is empty; cannot compute vial switch times.")
+
+        if self.vials[0].time_s is None or len(self.vials[0].time_s) == 0:
+            raise ValueError("Vial 1 has missing/empty time_s; cannot compute t_delay_s.")
+
+        # Legacy delay shift: align all vials relative to the first timestamp in vial 1.
         t_delay_s = float(self.vials[0].time_s[0])
+
+        # Per-vial initial/final times shifted by t_delay_s.
         ti_s = np.array([float(v.time_s[0]) - t_delay_s for v in self.vials], dtype=float)
         tf_s = np.array([float(v.time_s[-1]) - t_delay_s for v in self.vials], dtype=float)
+
         return ti_s, tf_s, t_delay_s
 
 class ConcreteModel:

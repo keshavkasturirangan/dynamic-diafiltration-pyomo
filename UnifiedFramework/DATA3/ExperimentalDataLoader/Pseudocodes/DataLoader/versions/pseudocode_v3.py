@@ -25,9 +25,12 @@ Design choices:
     3) Validation flags are issued without crashing; missing values remain None.
 
 Notes:
-    This is pseudocode: functions like read_excel_sheet(), read_mat_file(), 
-    parse_time_series_table() represent format-specific I/O/parsing steps you 
-    will implement with pandas/openpyxl/scipy.io later.
+    1) This is pseudocode: functions like read_excel_sheet(), read_mat_file(), 
+       parse_time_series_table() represent format-specific I/O/parsing steps 
+       you will implement with pandas/openpyxl/scipy.io later.
+    2) The loader keeps ExperimentalData/VialData "data-only".
+       Process-model code may wrap/extend ExperimentalData with convenience methods
+       (e.g., vial time bounds) without changing loader responsibilities.
 """
 
 from __future__ import annotations
