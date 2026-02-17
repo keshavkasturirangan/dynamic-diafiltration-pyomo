@@ -733,6 +733,18 @@ def load_experiment_easy(
     *,
     specs: Optional[Dict[str, object]] = None,
     initial_guess_db: Optional[Dict[Tuple[str, ...], Dict[str, object]]] = None,
+    # ---------------------------------------------------------------------
+    # Conductivity -> concentration conversion (XLSX only)
+    # ---------------------------------------------------------------------
+    convert_to_concentration: bool = False,
+    concentration_units: str = "mM",
+    conductivity_model: str = "auto",
+    conductivity_model_params: Optional[Dict[str, object]] = None,
+    n_cations: Optional[int] = None,
+    temp_K: Optional[float] = None,
+    # ---------------------------------------------------------------------
+    # Optional quick plotting
+    # ---------------------------------------------------------------------
     plot: bool = False,
     plot_kind: str = "retentate_signal",
 ) -> Tuple[ExperimentalData, Tuple[bool, List[Tuple[str, str]]]]:
@@ -823,6 +835,45 @@ def load_experiment_easy(
                 validation = (ok_fatal, issues)
 
     # -------------------------------------------------------------------------
+    # 3) Optional conductivity -> concentration conversion (XLSX only)
+    # -------------------------------------------------------------------------
+    # Important design rule (per our pseudocode + your requirement):
+    #   - We store conductivity *honestly* as the measured signal (uS/cm).
+    #   - We convert to concentration only when explicitly requested, and only
+    #     for XLSX sources (MAT already contains concentration from legacy workflows).
+    if convert_to_concentration:
+        try:
+            if exp.source == SourceType.XLSX:
+                # If the user explicitly provides number of cations, honor the rule:
+                #   1-2 cations -> variant Shedlovsky
+                #   >=3 cations -> MSA
+                # This avoids relying on salt-name parsing when the user already knows.
+                chosen_model = conductivity_model
+                if str(conductivity_model).lower() == "auto" and n_cations is not None:
+                    chosen_model = "variant_shedlovsky" if int(n_cations) <= 2 else "msa"
+
+                apply_conductivity_to_concentration(
+                    exp,
+                    output_units=concentration_units,
+                    model=chosen_model,
+                    model_params=conductivity_model_params,
+                    temp_K=temp_K,
+                )
+            else:
+                # MAT inputs: should already have concentrations; no conversion needed.
+                ok_fatal, issues = validation
+                issues.append((
+                    "INFO",
+                    "convert_to_concentration=True ignored for MAT input (MAT is expected to already contain concentrations).",
+                ))
+                validation = (ok_fatal, issues)
+        except Exception as e:
+            # Conversion failures should not crash loading; they should surface as warnings.
+            ok_fatal, issues = validation
+            issues.append(("WARNING", f"Conductivity->concentration conversion failed: {e!r}"))
+            validation = (ok_fatal, issues)
+
+    # -------------------------------------------------------------------------
     # 3) Optional quick look plot (for sanity checks during development)
     # -------------------------------------------------------------------------
     if plot:
@@ -868,6 +919,165 @@ def _count_cations_from_salts(component_names: Optional[List[str]]) -> int:
         cations.add(m.group(1) if m else name.strip())
 
     return len(cations)
+
+
+# -----------------------------------------------------------------------------
+# Conductivity -> concentration: variant Shedlovsky parameter auto-fill helpers
+# -----------------------------------------------------------------------------
+# Motivation:
+#   conductivity_paper.py expects certain electrolyte-specific parameters (e.g., z_1, z_2, a, lambda_0).
+#   For XLSX experiments, users often know the salts but not these numeric constants.
+#   We therefore provide a small built-in lookup for common ions + a basic formula parser,
+#   and we *only* fill in parameters that are missing (user-provided values always win).
+#
+# IMPORTANT:
+#   - This does NOT modify conductivity_paper.py.
+#   - This is a convenience layer for XLSX workflows.
+#   - If the salt formula is unknown, we raise a ValueError with a clear message.
+
+# Ionic charges (z) for common ions encountered in this project.
+# Extend this mapping as you encounter new salts.
+ION_CHARGE = {
+    "Na": +1,
+    "K": +1,
+    "Li": +1,
+    "NH4": +1,
+    "Mg": +2,
+    "Ca": +2,
+    "Cl": -1,
+    "NO3": -1,
+    "SO4": -2,
+}
+
+# Limiting ionic molar conductivities at infinite dilution, ~25°C
+# Units: S·cm^2/mol  (standard electrochemistry convention)
+# NOTE: Values are typical literature values; override via user params if needed.
+ION_LAMBDA0_S_CM2_MOL = {
+    "Na": 50.1,
+    "K": 73.5,
+    "Li": 38.7,
+    "NH4": 73.5,  # close to K+; update if you have a better value
+    "Mg": 106.1,
+    "Ca": 119.0,
+    "Cl": 76.3,
+    "NO3": 71.4,
+    "SO4": 160.0,  # sulfate is often reported around this magnitude; update if needed
+}
+
+# Default closest-approach distance for Shedlovsky-type correlations.
+# Units: cm  (4 Å = 4e-8 cm)
+DEFAULT_A_CM = 4e-8
+
+
+def _parse_simple_salt_formula(salt: str) -> tuple[str, int, str, int]:
+    """Parse a simple binary salt formula like 'NaCl' or 'MgCl2'.
+
+    Inputs:
+        salt:
+            String chemical formula (no spaces). Supported examples:
+                - 'NaCl'   -> (Na, 1, Cl, 1)
+                - 'MgCl2'  -> (Mg, 1, Cl, 2)
+                - 'Na2SO4' -> (Na, 2, SO4, 1)
+
+    Output:
+        (cation, nu_c, anion, nu_a):
+            cation: cation symbol (e.g., 'Na')
+            nu_c:   cation stoichiometric coefficient (e.g., 2 for Na2SO4)
+            anion:  anion symbol (e.g., 'SO4')
+            nu_a:   anion stoichiometric coefficient (e.g., 1 for Na2SO4)
+
+    Raises:
+        ValueError:
+            If the formula cannot be parsed by this simple parser.
+    """
+    import re
+
+    s = (salt or "").strip()
+    if not s:
+        raise ValueError("Empty salt formula.")
+
+    # Very small parser:
+    #   - Find a leading cation token (letters/numbers), then the rest is anion token.
+    #   - Supports multi-character ions like 'SO4' or 'NH4' if provided as-is.
+
+    # Sort known ions by length so we match 'NH4' before 'N', 'SO4' before 'S', etc.
+    known_ions = sorted(ION_CHARGE.keys(), key=len, reverse=True)
+
+    cation = None
+    for ion in known_ions:
+        if s.startswith(ion) and ION_CHARGE[ion] > 0:
+            cation = ion
+            break
+    if cation is None:
+        raise ValueError(f"Could not identify cation in salt '{salt}'.")
+
+    rest = s[len(cation):]
+    m = re.match(r"^(\d+)?(.*)$", rest)
+    if not m:
+        raise ValueError(f"Could not parse stoichiometry after cation in salt '{salt}'.")
+    nu_c_str, rest2 = m.group(1), m.group(2)
+    nu_c = int(nu_c_str) if nu_c_str else 1
+
+    anion = None
+    for ion in known_ions:
+        if rest2.startswith(ion) and ION_CHARGE[ion] < 0:
+            anion = ion
+            break
+    if anion is None:
+        raise ValueError(f"Could not identify anion in salt '{salt}'.")
+
+    rest3 = rest2[len(anion):]
+    m2 = re.match(r"^(\d+)?$", rest3)
+    if not m2:
+        raise ValueError(f"Could not parse anion stoichiometry in salt '{salt}'.")
+    nu_a_str = m2.group(1)
+    nu_a = int(nu_a_str) if nu_a_str else 1
+
+    return cation, nu_c, anion, nu_a
+
+
+def _autofill_variant_shedlovsky_params(model_params: dict, *, salt_name: str) -> dict:
+    """Fill missing variant-Shedlovsky parameters in-place (returns the same dict)."""
+    # Parse the formula (cation/anions + stoichiometry).
+    cat, nu_cat, an, nu_an = _parse_simple_salt_formula(salt_name)
+
+    # Charges for the electrolyte (z_1, z_2 in conductivity_paper naming).
+    z_cat = ION_CHARGE.get(cat, None)
+    z_an = ION_CHARGE.get(an, None)
+    if z_cat is None or z_an is None:
+        raise ValueError(f"Missing ion charge for '{cat}' or '{an}'. Add it to ION_CHARGE.")
+
+    # 1) Fill z_1, z_2 if missing.
+    model_params.setdefault("z_1", float(z_cat))  # cation charge
+    model_params.setdefault("z_2", float(z_an))  # anion charge (negative)
+
+    # 2) Fill ionic limiting conductivities if missing.
+    if "lambda_0_cation" not in model_params:
+        if cat not in ION_LAMBDA0_S_CM2_MOL:
+            raise ValueError(
+                f"Missing lambda_0_cation for ion '{cat}'. Provide it in params or extend ION_LAMBDA0_S_CM2_MOL."
+            )
+        model_params["lambda_0_cation"] = float(ION_LAMBDA0_S_CM2_MOL[cat])
+
+    if "lambda_0_anion" not in model_params:
+        if an not in ION_LAMBDA0_S_CM2_MOL:
+            raise ValueError(
+                f"Missing lambda_0_anion for ion '{an}'. Provide it in params or extend ION_LAMBDA0_S_CM2_MOL."
+            )
+        model_params["lambda_0_anion"] = float(ION_LAMBDA0_S_CM2_MOL[an])
+
+    # 3) Fill lambda_0 (electrolyte limiting equivalent conductivity) if missing.
+    eq_per_mol = float(nu_cat * abs(z_cat))
+    if eq_per_mol <= 0:
+        raise ValueError(f"Invalid equivalents per mole for salt '{salt_name}'.")
+
+    lam0 = (nu_cat * float(model_params["lambda_0_cation"]) + nu_an * float(model_params["lambda_0_anion"])) / eq_per_mol
+    model_params.setdefault("lambda_0", float(lam0))
+
+    # 4) Fill a (closest-approach distance) if missing.
+    model_params.setdefault("a", float(DEFAULT_A_CM))
+
+    return model_params
 
 
 def _invert_monotone_1d(
@@ -963,7 +1173,35 @@ def _conductivity_to_concentration_series(
             Concentration series aligned with input.
     """
     # IMPORTANT: keep conductivity_paper.py intact; we just import and call it.
-    import conductivity_paper as cp
+    # ---------------------------------------------------------------------
+    # Import the paper-code implementation WITHOUT modifying it.
+    #
+    # Preferred: normal import (conductivity_paper.py is on PYTHONPATH).
+    # Fallback: load conductivity_paper.py from the same directory as this file.
+    # This makes the unified loader robust to "runfile" and ad-hoc scripts.
+    # ---------------------------------------------------------------------
+    try:
+        import conductivity_paper as cp  # type: ignore
+    except ModuleNotFoundError:
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+
+        here = Path(__file__).resolve().parent
+        paper_path = here / "conductivity_paper.py"
+        if not paper_path.exists():
+            raise  # re-raise the original ModuleNotFoundError
+
+        spec = importlib.util.spec_from_loader(
+            "conductivity_paper",
+            SourceFileLoader("conductivity_paper", str(paper_path)),
+        )
+        if spec is None or spec.loader is None:
+            raise ModuleNotFoundError(
+                "Failed to dynamically load conductivity_paper.py from the local directory."
+            )
+
+        cp = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(cp)  # type: ignore
 
     cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
     cond_mS_cm = cond_uS_cm / 1000.0  # uS/cm -> mS/cm (conductivity_paper uses mS/cm outputs)
@@ -1559,6 +1797,17 @@ def load_from_xlsx(xlsx_path: Path, sheet_selector: object, *, initial_guess_db:
             if ks.startswith("salt"):
                 if v is not None and str(v).strip() != "":
                     salts.append(str(v).strip())
+
+
+    # If metadata blocks did not specify salts, fall back to the sheet-level convention:
+    #   - Cell E1 contains a free-text description that includes salt formulas.
+    # This makes the loader robust even if the metadata table (J/K) shifts around.
+    if not salts:
+        try:
+            e1 = get_excel_cell_value(sheet, "E1")          # raw free-text (may be None)
+            salts = extract_salt_formulas(e1)              # e.g., ["NaCl"], ["LaCl3","NaCl"]
+        except Exception:
+            salts = []
 
     if salts:
         exp.component_names = salts
@@ -2409,6 +2658,210 @@ def table_has_column(table: object, colname: str) -> bool:
     # Being conservative here is safer than guessing.
     return False
 
+def get_excel_cell_value(sheet: dict, cell_ref: str) -> object:
+    """
+    Read a single Excel cell value from the resolved sheet.
+
+    Why this exists:
+        Your Excel workbooks store some experiment metadata in fixed cells
+        (e.g., salts used in the experiment are in cell E1 per your convention).
+        We keep this as a tiny helper so the loader stays readable.
+
+    Inputs:
+        sheet:
+            Dict-like sheet handle returned by read_excel_sheet(...).
+            Must contain:
+                - "path": Path to workbook
+                - "sheet_name": resolved sheet name (str)
+
+        cell_ref:
+            Excel A1-style cell reference, e.g. "E1".
+
+    Output:
+        object:
+            The raw cell value (string/float/etc.) or None if empty.
+
+    Notes:
+        Implementation uses pandas with header=None to avoid making any assumptions
+        about table headers elsewhere in the sheet.
+    """
+    if not isinstance(sheet, dict):
+        raise TypeError("get_excel_cell_value expects a sheet handle dict from read_excel_sheet().")
+
+    path = sheet.get("path", None)
+    sheet_name = sheet.get("sheet_name", None)
+    if path is None or sheet_name is None:
+        raise TypeError("Sheet handle missing required keys: 'path' and 'sheet_name'.")
+
+    # Parse the cell reference (e.g., 'E1' -> col_letter='E', row_number=1)
+    m = re.fullmatch(r"([A-Za-z]+)(\d+)", cell_ref.strip())
+    if m is None:
+        raise ValueError(f"Invalid cell reference: {cell_ref!r}. Expected like 'E1'.")
+    col_letter = m.group(1).upper()
+    row_number = int(m.group(2))
+
+    # Read exactly one cell range: the requested column, and the requested row.
+    # - usecols selects the Excel column by letter
+    # - skiprows jumps to the row-1 (0-based)
+    # - nrows=1 reads exactly one row
+    df = pd.read_excel(
+        path,
+        sheet_name=sheet_name,
+        header=None,
+        usecols=col_letter,
+        skiprows=row_number - 1,
+        nrows=1,
+        dtype=object,
+    )
+
+    if df.empty:
+        return None
+
+    # df will have one row, one column (index 0, column col_letter or 0 depending on pandas)
+    val = df.iloc[0, 0]
+    if val is None:
+        return None
+    if isinstance(val, float) and np.isnan(val):
+        return None
+    return val
+
+
+def extract_salt_formulas(text: object) -> List[str]:
+    """
+    Best-effort extraction of salt formulas from a free-text string.
+
+    Your XLSX sheets store the salt information in cell E1 as phrases like:
+        "Feed: 1 mM NaCl, Diafiltrate: 50 mM NaCl, 350RPM"
+        "... 0.2mM LaCl3 and 50mM NaCl ..."
+
+    Inputs:
+        text:
+            Free-text description (often a string). None returns [].
+
+    Output:
+        List[str]:
+            Unique salt formulas (order preserved) such as ["NaCl"], ["LaCl3", "NaCl"], etc.
+
+    Notes:
+        This is intentionally conservative:
+            - We only match common electrolyte patterns (cation+anion with optional stoichiometry).
+            - If your project later includes new ions, extend the regex or add a mapping table.
+    """
+    if text is None:
+        return []
+
+    s = str(text)
+
+    # Regex: common cations + common anions with optional digits (e.g., CaCl2, Na2SO4, LaCl3)
+    # You can extend the cation/anion sets as your dataset grows.
+    cations = r"Na|K|Li|Ca|Mg|La|Al|Zn|Fe|Cu|Ni|Co|Mn|Sr|Ba"
+    anions = r"Cl|Br|I|NO3|SO4|CO3|HCO3|PO4"
+    pattern = re.compile(rf"\b(?:{cations})\d*(?:{anions})\d*\b")
+
+    found = pattern.findall(s)
+
+    # De-duplicate while preserving order
+    out: List[str] = []
+    for f in found:
+        if f not in out:
+            out.append(f)
+    return out
+
+
+def infer_ion_params_from_salt(salt: str) -> Dict[str, float]:
+    """
+    Infer minimal variant Shedlovsky parameters from a salt formula.
+
+    This is a pragmatic bridge:
+        - conductivity_paper.variant_shedlovsky(...) requires (lambda_0, a, z_1, z_2).
+        - For many experiments, the salt formula implies z_1 and z_2 (ionic charges).
+        - lambda_0 and a are ion-specific; we provide a small defaults table that you can extend.
+
+    Inputs:
+        salt:
+            A salt formula string like "NaCl" or "CaCl2" or "LaCl3".
+
+    Output:
+        Dict[str, float]:
+            Keys: lambda_0, a, z_1, z_2
+
+    Raises:
+        ValueError if the salt cannot be parsed or constants are unavailable.
+    """
+    # ---- 1) Parse formula into (cation, anion) and infer charges for common salts ----
+    # For now we handle typical salts in your XLSX sheets (NaCl, CaCl2, LaCl3, Na2SO4, MgSO4).
+    # Extend this mapping as needed.
+    salt = str(salt).strip()
+
+    # Known charge map (z for ions)
+    ion_charge = {
+        "Na": 1, "K": 1, "Li": 1,
+        "Ca": 2, "Mg": 2, "Sr": 2, "Ba": 2,
+        "La": 3, "Al": 3,
+        # Add more cations if needed
+        "Cl": -1, "Br": -1, "I": -1,
+        "NO3": -1,
+        "SO4": -2,
+        "CO3": -2,
+        "HCO3": -1,
+        "PO4": -3,
+    }
+
+    # Extract cation token (letters) at start, then remainder as anion token (letters)
+    m = re.fullmatch(r"([A-Z][a-z]?)(\d*)([A-Z][A-Za-z0-9]*?)\d*", salt)
+    if m is None:
+        raise ValueError(f"Cannot parse salt formula: {salt!r}")
+
+    cat = m.group(1)
+    anion_part = m.group(3)
+
+    # Normalize multi-letter anions that appear in your work (SO4, NO3, CO3, PO4)
+    # If anion_part starts with S and contains O4 -> SO4, etc.
+    if anion_part.startswith("SO4") or "SO4" in anion_part:
+        an = "SO4"
+    elif anion_part.startswith("NO3") or "NO3" in anion_part:
+        an = "NO3"
+    elif anion_part.startswith("CO3") or "CO3" in anion_part:
+        an = "CO3"
+    elif anion_part.startswith("PO4") or "PO4" in anion_part:
+        an = "PO4"
+    else:
+        # Single halides
+        an = anion_part[:2] if anion_part[:2] in ["Cl", "Br"] else anion_part[:1]
+
+    if cat not in ion_charge or an not in ion_charge:
+        raise ValueError(f"No charge constants for ions in salt {salt!r}: cat={cat!r}, anion={an!r}.")
+
+    z_1 = float(ion_charge[cat])
+    z_2 = float(ion_charge[an])
+
+    # ---- 2) Provide pragmatic defaults for lambda_0 and a ----
+    # These are model-specific constants; you should replace/extend these with values
+    # recovered from the MAT-library inference step if available.
+    #
+    # For now we keep a small defaults table so the workflow runs.
+    shedlovsky_defaults = {
+        # Keys are salts; values are (lambda_0, a)
+        "NaCl": (50.0, 1.0),
+        "KCl": (50.0, 1.0),
+        "LiCl": (50.0, 1.0),
+        "CaCl2": (50.0, 1.0),
+        "MgCl2": (50.0, 1.0),
+        "LaCl3": (50.0, 1.0),
+        "Na2SO4": (50.0, 1.0),
+        "MgSO4": (50.0, 1.0),
+    }
+
+    if salt not in shedlovsky_defaults:
+        raise ValueError(
+            f"Missing Shedlovsky defaults for salt {salt!r}. " 
+            f"Extend infer_ion_params_from_salt() or provide conductivity_model_params explicitly."
+        )
+
+    lambda_0, a = shedlovsky_defaults[salt]
+    return {"lambda_0": float(lambda_0), "a": float(a), "z_1": float(z_1), "z_2": float(z_2)}
+
+
 def parse_vial_data_table(sheet: object) -> Optional[pd.DataFrame]:
     """
     Parse and return the per-vial assay table from an Excel sheet handle (if present).
@@ -2681,6 +3134,16 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
         exp.component_names = None
 
     exp.num_components = cfg.get("nc", None)
+
+    # If 'namec' was not available, try to infer salt formulas from the legacy filename.
+    # This is best-effort and only used to make downstream interfaces consistent.
+    if exp.component_names is None:
+        inferred = extract_salt_formulas(exp.filename)
+        if inferred:
+            exp.component_names = inferred
+            if exp.num_components is None:
+                exp.num_components = len(inferred)
+
 
     # Initial guesses / priors used in parameter estimation / MBDoE workflows
     exp.Lp0 = cfg.get("Lp0", None)

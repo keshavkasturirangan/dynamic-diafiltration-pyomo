@@ -733,6 +733,18 @@ def load_experiment_easy(
     *,
     specs: Optional[Dict[str, object]] = None,
     initial_guess_db: Optional[Dict[Tuple[str, ...], Dict[str, object]]] = None,
+    # ---------------------------------------------------------------------
+    # Conductivity -> concentration conversion (XLSX only)
+    # ---------------------------------------------------------------------
+    convert_to_concentration: bool = False,
+    concentration_units: str = "mM",
+    conductivity_model: str = "auto",
+    conductivity_model_params: Optional[Dict[str, object]] = None,
+    n_cations: Optional[int] = None,
+    temp_K: Optional[float] = None,
+    # ---------------------------------------------------------------------
+    # Optional quick plotting
+    # ---------------------------------------------------------------------
     plot: bool = False,
     plot_kind: str = "retentate_signal",
 ) -> Tuple[ExperimentalData, Tuple[bool, List[Tuple[str, str]]]]:
@@ -821,6 +833,45 @@ def load_experiment_easy(
                 ok_fatal, issues = validation
                 issues.append(("WARNING", f"specs override ignored: ExperimentalData has no field '{k}'."))
                 validation = (ok_fatal, issues)
+
+    # -------------------------------------------------------------------------
+    # 3) Optional conductivity -> concentration conversion (XLSX only)
+    # -------------------------------------------------------------------------
+    # Important design rule (per our pseudocode + your requirement):
+    #   - We store conductivity *honestly* as the measured signal (uS/cm).
+    #   - We convert to concentration only when explicitly requested, and only
+    #     for XLSX sources (MAT already contains concentration from legacy workflows).
+    if convert_to_concentration:
+        try:
+            if exp.source == SourceType.XLSX:
+                # If the user explicitly provides number of cations, honor the rule:
+                #   1-2 cations -> variant Shedlovsky
+                #   >=3 cations -> MSA
+                # This avoids relying on salt-name parsing when the user already knows.
+                chosen_model = conductivity_model
+                if str(conductivity_model).lower() == "auto" and n_cations is not None:
+                    chosen_model = "variant_shedlovsky" if int(n_cations) <= 2 else "msa"
+
+                apply_conductivity_to_concentration(
+                    exp,
+                    output_units=concentration_units,
+                    model=chosen_model,
+                    model_params=conductivity_model_params,
+                    temp_K=temp_K,
+                )
+            else:
+                # MAT inputs: should already have concentrations; no conversion needed.
+                ok_fatal, issues = validation
+                issues.append((
+                    "INFO",
+                    "convert_to_concentration=True ignored for MAT input (MAT is expected to already contain concentrations).",
+                ))
+                validation = (ok_fatal, issues)
+        except Exception as e:
+            # Conversion failures should not crash loading; they should surface as warnings.
+            ok_fatal, issues = validation
+            issues.append(("WARNING", f"Conductivity->concentration conversion failed: {e!r}"))
+            validation = (ok_fatal, issues)
 
     # -------------------------------------------------------------------------
     # 3) Optional quick look plot (for sanity checks during development)
@@ -963,7 +1014,35 @@ def _conductivity_to_concentration_series(
             Concentration series aligned with input.
     """
     # IMPORTANT: keep conductivity_paper.py intact; we just import and call it.
-    import conductivity_paper as cp
+    # ---------------------------------------------------------------------
+    # Import the paper-code implementation WITHOUT modifying it.
+    #
+    # Preferred: normal import (conductivity_paper.py is on PYTHONPATH).
+    # Fallback: load conductivity_paper.py from the same directory as this file.
+    # This makes the unified loader robust to "runfile" and ad-hoc scripts.
+    # ---------------------------------------------------------------------
+    try:
+        import conductivity_paper as cp  # type: ignore
+    except ModuleNotFoundError:
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+
+        here = Path(__file__).resolve().parent
+        paper_path = here / "conductivity_paper.py"
+        if not paper_path.exists():
+            raise  # re-raise the original ModuleNotFoundError
+
+        spec = importlib.util.spec_from_loader(
+            "conductivity_paper",
+            SourceFileLoader("conductivity_paper", str(paper_path)),
+        )
+        if spec is None or spec.loader is None:
+            raise ModuleNotFoundError(
+                "Failed to dynamically load conductivity_paper.py from the local directory."
+            )
+
+        cp = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(cp)  # type: ignore
 
     cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
     cond_mS_cm = cond_uS_cm / 1000.0  # uS/cm -> mS/cm (conductivity_paper uses mS/cm outputs)

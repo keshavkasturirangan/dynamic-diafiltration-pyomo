@@ -1,4 +1,5 @@
-from experiment_dataload_OOP_v14_simpler import load_experiment_easy
+# from experiment_dataload_OOP_v14_simpler import load_experiment_easy
+from experiment_dataload_OOP_v17_conductivity import load_experiment_easy
 
 # =============================================================================
 # To load a .XLSX file
@@ -16,7 +17,7 @@ exp, (ok, issues) = load_experiment_easy(
     specs=specs,
     plot=True,
     plot_kind="signals",        # "signals" plot retentate_signal and (if present) permeate_signal
-                                # "retentate_signal" plots only retentate
+    )                            # "retentate_signal" plots only retentate
                                 # "permeate_signal" plots only permeate
                                 # optionally "mass" plots mass
 

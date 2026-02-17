@@ -733,6 +733,10 @@ def load_experiment_easy(
     *,
     specs: Optional[Dict[str, object]] = None,
     initial_guess_db: Optional[Dict[Tuple[str, ...], Dict[str, object]]] = None,
+    convert_to_concentration: bool = False,
+    concentration_units: str = "mM",
+    conductivity_model: str = "auto",
+    conductivity_model_params: Optional[Dict[str, object]] = None,
     plot: bool = False,
     plot_kind: str = "retentate_signal",
 ) -> Tuple[ExperimentalData, Tuple[bool, List[Tuple[str, str]]]]:
@@ -821,6 +825,26 @@ def load_experiment_easy(
                 ok_fatal, issues = validation
                 issues.append(("WARNING", f"specs override ignored: ExperimentalData has no field '{k}'."))
                 validation = (ok_fatal, issues)
+
+    # -------------------------------------------------------------------------
+    # 2b) Optional: convert conductivity -> concentration (XLSX only)
+    # -------------------------------------------------------------------------
+    # For MAT inputs, concentration is expected to already exist in the legacy fields
+    # (or can be validated separately). We therefore ONLY run conversion for XLSX.
+    if convert_to_concentration and exp.source == SourceType.XLSX:
+        try:
+            apply_conductivity_to_concentration(
+                exp,
+                output_units=concentration_units,
+                model=conductivity_model,
+                model_params=conductivity_model_params,
+                temp_K=exp.Temp_K,   # uses exp.Temp_K unless you override it earlier via specs
+            )
+        except Exception as e:
+            # Conversion should not prevent loading; record and continue.
+            ok_fatal, issues = validation
+            issues.append(("WARNING", f"Conductivity->concentration conversion failed: {e!r}"))
+            validation = (ok_fatal, issues)
 
     # -------------------------------------------------------------------------
     # 3) Optional quick look plot (for sanity checks during development)
@@ -963,7 +987,35 @@ def _conductivity_to_concentration_series(
             Concentration series aligned with input.
     """
     # IMPORTANT: keep conductivity_paper.py intact; we just import and call it.
-    import conductivity_paper as cp
+    # ---------------------------------------------------------------------
+    # Import the paper-code implementation WITHOUT modifying it.
+    #
+    # Preferred: normal import (conductivity_paper.py is on PYTHONPATH).
+    # Fallback: load conductivity_paper.py from the same directory as this file.
+    # This makes the unified loader robust to "runfile" and ad-hoc scripts.
+    # ---------------------------------------------------------------------
+    try:
+        import conductivity_paper as cp  # type: ignore
+    except ModuleNotFoundError:
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+
+        here = Path(__file__).resolve().parent
+        paper_path = here / "conductivity_paper.py"
+        if not paper_path.exists():
+            raise  # re-raise the original ModuleNotFoundError
+
+        spec = importlib.util.spec_from_loader(
+            "conductivity_paper",
+            SourceFileLoader("conductivity_paper", str(paper_path)),
+        )
+        if spec is None or spec.loader is None:
+            raise ModuleNotFoundError(
+                "Failed to dynamically load conductivity_paper.py from the local directory."
+            )
+
+        cp = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(cp)  # type: ignore
 
     cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
     cond_mS_cm = cond_uS_cm / 1000.0  # uS/cm -> mS/cm (conductivity_paper uses mS/cm outputs)

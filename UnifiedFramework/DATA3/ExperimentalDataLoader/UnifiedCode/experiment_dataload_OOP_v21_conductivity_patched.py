@@ -733,6 +733,18 @@ def load_experiment_easy(
     *,
     specs: Optional[Dict[str, object]] = None,
     initial_guess_db: Optional[Dict[Tuple[str, ...], Dict[str, object]]] = None,
+    # ---------------------------------------------------------------------
+    # Conductivity -> concentration conversion (XLSX only)
+    # ---------------------------------------------------------------------
+    convert_to_concentration: bool = False,
+    concentration_units: str = "mM",
+    conductivity_model: str = "auto",
+    conductivity_model_params: Optional[Dict[str, object]] = None,
+    n_cations: Optional[int] = None,
+    temp_K: Optional[float] = None,
+    # ---------------------------------------------------------------------
+    # Optional quick plotting
+    # ---------------------------------------------------------------------
     plot: bool = False,
     plot_kind: str = "retentate_signal",
 ) -> Tuple[ExperimentalData, Tuple[bool, List[Tuple[str, str]]]]:
@@ -823,6 +835,45 @@ def load_experiment_easy(
                 validation = (ok_fatal, issues)
 
     # -------------------------------------------------------------------------
+    # 3) Optional conductivity -> concentration conversion (XLSX only)
+    # -------------------------------------------------------------------------
+    # Important design rule (per our pseudocode + your requirement):
+    #   - We store conductivity *honestly* as the measured signal (uS/cm).
+    #   - We convert to concentration only when explicitly requested, and only
+    #     for XLSX sources (MAT already contains concentration from legacy workflows).
+    if convert_to_concentration:
+        try:
+            if exp.source == SourceType.XLSX:
+                # If the user explicitly provides number of cations, honor the rule:
+                #   1-2 cations -> variant Shedlovsky
+                #   >=3 cations -> MSA
+                # This avoids relying on salt-name parsing when the user already knows.
+                chosen_model = conductivity_model
+                if str(conductivity_model).lower() == "auto" and n_cations is not None:
+                    chosen_model = "variant_shedlovsky" if int(n_cations) <= 2 else "msa"
+
+                apply_conductivity_to_concentration(
+                    exp,
+                    output_units=concentration_units,
+                    model=chosen_model,
+                    model_params=conductivity_model_params,
+                    temp_K=temp_K,
+                )
+            else:
+                # MAT inputs: should already have concentrations; no conversion needed.
+                ok_fatal, issues = validation
+                issues.append((
+                    "INFO",
+                    "convert_to_concentration=True ignored for MAT input (MAT is expected to already contain concentrations).",
+                ))
+                validation = (ok_fatal, issues)
+        except Exception as e:
+            # Conversion failures should not crash loading; they should surface as warnings.
+            ok_fatal, issues = validation
+            issues.append(("WARNING", f"Conductivity->concentration conversion failed: {e!r}"))
+            validation = (ok_fatal, issues)
+
+    # -------------------------------------------------------------------------
     # 3) Optional quick look plot (for sanity checks during development)
     # -------------------------------------------------------------------------
     if plot:
@@ -870,201 +921,278 @@ def _count_cations_from_salts(component_names: Optional[List[str]]) -> int:
     return len(cations)
 
 
+# -----------------------------------------------------------------------------
+# Conductivity -> concentration: variant Shedlovsky parameter auto-fill helpers
+# -----------------------------------------------------------------------------
+# Motivation:
+#   conductivity_paper.py expects certain electrolyte-specific parameters (e.g., z_1, z_2, a, lambda_0).
+#   For XLSX experiments, users often know the salts but not these numeric constants.
+#   We therefore provide a small built-in lookup for common ions + a basic formula parser,
+#   and we *only* fill in parameters that are missing (user-provided values always win).
+#
+# IMPORTANT:
+#   - This does NOT modify conductivity_paper.py.
+#   - This is a convenience layer for XLSX workflows.
+#   - If the salt formula is unknown, we raise a ValueError with a clear message.
+
+# Ionic charges (z) for common ions encountered in this project.
+# Extend this mapping as you encounter new salts.
+ION_CHARGE = {
+    "Na": +1,
+    "K": +1,
+    "Li": +1,
+    "NH4": +1,
+    "Mg": +2,
+    "Ca": +2,
+    "Cl": -1,
+    "NO3": -1,
+    "SO4": -2,
+}
+
+# Limiting ionic molar conductivities at infinite dilution, ~25°C
+# Units: S·cm^2/mol  (standard electrochemistry convention)
+# NOTE: Values are typical literature values; override via user params if needed.
+ION_LAMBDA0_S_CM2_MOL = {
+    "Na": 50.1,
+    "K": 73.5,
+    "Li": 38.7,
+    "NH4": 73.5,  # close to K+; update if you have a better value
+    "Mg": 106.1,
+    "Ca": 119.0,
+    "Cl": 76.3,
+    "NO3": 71.4,
+    "SO4": 160.0,  # sulfate is often reported around this magnitude; update if needed
+}
+
+# # Default closest-approach distance for Shedlovsky-type correlations.
+# # Units: cm  (4 Å = 4e-8 cm)
+# DEFAULT_A_CM = 4e-8
+# Conservative default closest-approach distance used by the conductivity paper model [cm]
+DEFAULT_A_CM: float = 1e-8
+
+
+def _parse_simple_salt_formula(salt: str) -> tuple[str, int, str, int]:
+    """Parse a simple binary salt formula like 'NaCl' or 'MgCl2'.
+
+    Inputs:
+        salt:
+            String chemical formula (no spaces). Supported examples:
+                - 'NaCl'   -> (Na, 1, Cl, 1)
+                - 'MgCl2'  -> (Mg, 1, Cl, 2)
+                - 'Na2SO4' -> (Na, 2, SO4, 1)
+
+    Output:
+        (cation, nu_c, anion, nu_a):
+            cation: cation symbol (e.g., 'Na')
+            nu_c:   cation stoichiometric coefficient (e.g., 2 for Na2SO4)
+            anion:  anion symbol (e.g., 'SO4')
+            nu_a:   anion stoichiometric coefficient (e.g., 1 for Na2SO4)
+
+    Raises:
+        ValueError:
+            If the formula cannot be parsed by this simple parser.
+    """
+    import re
+
+    s = (salt or "").strip()
+    if not s:
+        raise ValueError("Empty salt formula.")
+
+    # Very small parser:
+    #   - Find a leading cation token (letters/numbers), then the rest is anion token.
+    #   - Supports multi-character ions like 'SO4' or 'NH4' if provided as-is.
+
+    # Sort known ions by length so we match 'NH4' before 'N', 'SO4' before 'S', etc.
+    known_ions = sorted(ION_CHARGE.keys(), key=len, reverse=True)
+
+    cation = None
+    for ion in known_ions:
+        if s.startswith(ion) and ION_CHARGE[ion] > 0:
+            cation = ion
+            break
+    if cation is None:
+        raise ValueError(f"Could not identify cation in salt '{salt}'.")
+
+    rest = s[len(cation):]
+    m = re.match(r"^(\d+)?(.*)$", rest)
+    if not m:
+        raise ValueError(f"Could not parse stoichiometry after cation in salt '{salt}'.")
+    nu_c_str, rest2 = m.group(1), m.group(2)
+    nu_c = int(nu_c_str) if nu_c_str else 1
+
+    anion = None
+    for ion in known_ions:
+        if rest2.startswith(ion) and ION_CHARGE[ion] < 0:
+            anion = ion
+            break
+    if anion is None:
+        raise ValueError(f"Could not identify anion in salt '{salt}'.")
+
+    rest3 = rest2[len(anion):]
+    m2 = re.match(r"^(\d+)?$", rest3)
+    if not m2:
+        raise ValueError(f"Could not parse anion stoichiometry in salt '{salt}'.")
+    nu_a_str = m2.group(1)
+    nu_a = int(nu_a_str) if nu_a_str else 1
+
+    return cation, nu_c, anion, nu_a
+
+
+def _autofill_variant_shedlovsky_params(model_params: dict, *, salt_name: str) -> dict:
+    """Fill missing variant-Shedlovsky parameters in-place (returns the same dict)."""
+    # Parse the formula (cation/anions + stoichiometry).
+    cat, nu_cat, an, nu_an = _parse_simple_salt_formula(salt_name)
+
+    # Charges for the electrolyte (z_1, z_2 in conductivity_paper naming).
+    z_cat = ION_CHARGE.get(cat, None)
+    z_an = ION_CHARGE.get(an, None)
+    if z_cat is None or z_an is None:
+        raise ValueError(f"Missing ion charge for '{cat}' or '{an}'. Add it to ION_CHARGE.")
+
+    # 1) Fill z_1, z_2 if missing (treat None as missing too)
+    if model_params.get("z_1") is None:
+        model_params["z_1"] = float(z_cat)  # cation charge
+    if model_params.get("z_2") is None:
+        model_params["z_2"] = float(z_an)   # anion charge (negative)
+
+    # 2) Fill ionic limiting conductivities if missing.
+    if "lambda_0_cation" not in model_params:
+        if cat not in ION_LAMBDA0_S_CM2_MOL:
+            raise ValueError(
+                f"Missing lambda_0_cation for ion '{cat}'. Provide it in params or extend ION_LAMBDA0_S_CM2_MOL."
+            )
+        model_params["lambda_0_cation"] = float(ION_LAMBDA0_S_CM2_MOL[cat])
+
+    if "lambda_0_anion" not in model_params:
+        if an not in ION_LAMBDA0_S_CM2_MOL:
+            raise ValueError(
+                f"Missing lambda_0_anion for ion '{an}'. Provide it in params or extend ION_LAMBDA0_S_CM2_MOL."
+            )
+        model_params["lambda_0_anion"] = float(ION_LAMBDA0_S_CM2_MOL[an])
+
+    # 3) Fill lambda_0 (electrolyte limiting equivalent conductivity) if missing.
+    eq_per_mol = float(nu_cat * abs(z_cat))
+    if eq_per_mol <= 0:
+        raise ValueError(f"Invalid equivalents per mole for salt '{salt_name}'.")
+
+    lam0 = (nu_cat * float(model_params["lambda_0_cation"]) + nu_an * float(model_params["lambda_0_anion"])) / eq_per_mol
+    # 2) Fill ionic limiting conductances if missing (treat None as missing too)
+    if model_params.get("lambda_0_cation") is None:
+        model_params["lambda_0_cation"] = float(lam_cat)
+    if model_params.get("lambda_0_anion") is None:
+        model_params["lambda_0_anion"] = float(lam_an)
+
+    # 3) Fill overall limiting molar conductivity (lambda_0) with the priority order:
+    #    (i)  user-provided lambda_0
+    #    (ii) user-provided lambda_0_cation + lambda_0_anion
+    #    (iii) inferred from salt library (lam0)
+    if model_params.get("lambda_0") is None:
+        lam_c = model_params.get("lambda_0_cation")
+        lam_a = model_params.get("lambda_0_anion")
+        if lam_c is not None and lam_a is not None:
+            model_params["lambda_0"] = float(lam_c) + float(lam_a)
+        else:
+            model_params["lambda_0"] = float(lam0)
+
+    # 4) Fill a (closest-approach distance) if missing
+    if model_params.get("a") is None:
+        model_params["a"] = float(DEFAULT_A_CM)
+
+    return model_params
+
+
 def _invert_monotone_1d(
     *,
     fwd_func,
     y_target: float,
     x_lo: float,
     x_hi: float,
-    tol: float = 1e-8,
-    max_iter: int = 100,
+    tol: float = 1e-6,
+    max_iter: int = 200,
 ) -> float:
     """
-    Generic monotone 1D inversion by bisection.
+    Robust 1D inversion helper: find x such that fwd_func(x) ~= y_target.
 
-    Inputs:
-        fwd_func:
-            Callable x -> y (must be monotone on [x_lo, x_hi]).
-        y_target:
-            Target y value to invert.
-        x_lo, x_hi:
-            Search bounds for x.
-        tol:
-            Absolute tolerance on y.
-        max_iter:
-            Max bisection iterations.
+    Despite the name, this routine does NOT assume strict monotonicity.
 
-    Output:
-        float:
-            x such that fwd_func(x) ~= y_target.
-
-    Why this exists:
-        conductivity_paper.py provides FORWARD models (conc -> conductivity).
-        We keep that file intact and invert forward models here.
+    Strategy:
+        - Define g(x) = fwd_func(x) - y_target
+        - Search for a sign-change bracket [a,b] by scanning a grid over [x_lo, x_hi]
+        - If no bracket found, expand x_hi progressively and try again
+        - Once bracketed, solve with Brent (if SciPy available), else bisection fallback
     """
-    if y_target is None or (isinstance(y_target, float) and np.isnan(y_target)):
-        return float("nan")
+    import math
 
-    y_lo = fwd_func(x_lo)
-    y_hi = fwd_func(x_hi)
+    def g(x: float) -> float:
+        return float(fwd_func(float(x)) - y_target)
 
-    # Ensure target is bracketed
-    if (y_target < min(y_lo, y_hi)) or (y_target > max(y_lo, y_hi)):
-        raise ValueError(
-            f"Target y={y_target} not bracketed on [{x_lo}, {x_hi}] "
-            f"(y_lo={y_lo}, y_hi={y_hi}). Check units or widen bounds."
+    # Progressive expansions of the upper bound (kept conservative)
+    expand_factors = [1.0, 2.0, 5.0, 10.0]
+    last_report = None
+
+    for fac in expand_factors:
+        lo = float(x_lo)
+        hi = float(x_hi) * fac
+
+        # Mixed linear/log grid to find brackets robustly
+        eps = max(1e-12, lo + 1e-12)
+        log_pts = [eps * (hi / eps) ** (i / 59) for i in range(60)]
+        lin_pts = [lo + (hi - lo) * (i / 59) for i in range(60)]
+        grid = sorted(set([*log_pts, *lin_pts, hi]))
+
+        vals = []
+        for x in grid:
+            try:
+                gx = g(x)
+            except Exception:
+                continue
+            if math.isnan(gx) or math.isinf(gx):
+                continue
+            vals.append((x, gx))
+
+        if len(vals) < 2:
+            last_report = f"Too few valid forward evaluations on [{lo}, {hi}]."
+            continue
+
+        # Find first sign change
+        for (x1, g1), (x2, g2) in zip(vals[:-1], vals[1:]):
+            if g1 == 0.0:
+                return float(x1)
+            if g2 == 0.0:
+                return float(x2)
+            if (g1 < 0 < g2) or (g1 > 0 > g2):
+                a, b = float(x1), float(x2)
+
+                # Root solve within bracket
+                try:
+                    from scipy.optimize import brentq  # type: ignore
+                    return float(brentq(g, a, b, xtol=tol, maxiter=max_iter))
+                except Exception:
+                    # Bisection fallback
+                    left, right = a, b
+                    gl, gr = g(left), g(right)
+                    for _ in range(max_iter):
+                        mid = 0.5 * (left + right)
+                        gm = g(mid)
+                        if abs(right - left) <= tol:
+                            return float(mid)
+                        if (gl < 0 < gm) or (gl > 0 > gm):
+                            right, gr = mid, gm
+                        else:
+                            left, gl = mid, gm
+                    return float(0.5 * (left + right))
+
+        g_values = [gv for _, gv in vals]
+        last_report = (
+            f"No bracket found on [{lo}, {hi}]. "
+            f"g_min={min(g_values):.6g}, g_max={max(g_values):.6g} (target y={y_target})."
         )
 
-    a, b = x_lo, x_hi
-    fa, fb = y_lo, y_hi
-
-    for _ in range(max_iter):
-        c = 0.5 * (a + b)
-        fc = fwd_func(c)
-
-        if abs(fc - y_target) <= tol:
-            return c
-
-        # Keep the half-interval that contains y_target (monotone assumption)
-        if (fa <= y_target <= fc) or (fa >= y_target >= fc):
-            b, fb = c, fc
-        else:
-            a, fa = c, fc
-
-    return 0.5 * (a + b)
-
-
-def _conductivity_to_concentration_series(
-    *,
-    cond_uS_cm: np.ndarray,
-    temp_K: float,
-    model: str,
-    model_params: Dict[str, object],
-    output_units: str = "mM",
-) -> np.ndarray:
-    """
-    Convert conductivity time-series [uS/cm] -> concentration series (mM or M).
-
-    Inputs:
-        cond_uS_cm:
-            Conductivity series in uS/cm (what your XLSX sensors provide).
-        temp_K:
-            Temperature [K].
-        model:
-            "variant_shedlovsky" or "msa".
-        model_params:
-            Dict of parameters passed into conductivity_paper.py forward models.
-            (We do NOT modify conductivity_paper.py; we only call it.)
-        output_units:
-            "mM" or "M".
-
-    Output:
-        np.ndarray:
-            Concentration series aligned with input.
-    """
-    # IMPORTANT: keep conductivity_paper.py intact; we just import and call it.
-    import conductivity_paper as cp
-
-    cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
-    cond_mS_cm = cond_uS_cm / 1000.0  # uS/cm -> mS/cm (conductivity_paper uses mS/cm outputs)
-
-    conc_out = np.full_like(cond_mS_cm, fill_value=np.nan, dtype=float)
-
-    # --------------------------
-    # Variant Shedlovsky inversion
-    # --------------------------
-    if model.lower() in ["variant_shedlovsky", "shedlovsky"]:
-        required = [
-            "epsilon", "eta", "lambda_0", "a", "z_1", "z_2",
-            "lambda_0_cation", "lambda_0_anion",
-        ]
-        missing = [k for k in required if k not in model_params]
-        if missing:
-            raise ValueError(f"Missing variant Shedlovsky params: {missing}")
-
-        epsilon = float(model_params["epsilon"])
-        eta = float(model_params["eta"])
-        lambda_0 = float(model_params["lambda_0"])
-        a = float(model_params["a"])
-        z_1 = int(model_params["z_1"])
-        z_2 = int(model_params["z_2"])
-        lambda_0_cation = float(model_params["lambda_0_cation"])
-        lambda_0_anion = float(model_params["lambda_0_anion"])
-
-        # Forward: conc_M -> cond_mS_cm (scalar)
-        def fwd(conc_M: float) -> float:
-            return float(
-                cp.variant_shedlovsky(
-                    [conc_M], temp_K,
-                    epsilon, eta, lambda_0, a, z_1, z_2,
-                    lambda_0_cation, lambda_0_anion,
-                )[0]
-            )
-
-        # Invert each point (bounds in M)
-        for i, y in enumerate(cond_mS_cm):
-            if np.isnan(y):
-                continue
-            conc_M = _invert_monotone_1d(fwd_func=fwd, y_target=float(y), x_lo=0.0, x_hi=6.0)
-            conc_out[i] = conc_M
-
-        # Convert units if needed
-        if output_units.lower() in ["mm", "mmol/l", "mmolar", "mm"]:
-            conc_out = conc_out * 1000.0  # M -> mM
-
-        return conc_out
-
-    # --------------------------
-    # MSA inversion
-    # --------------------------
-    if model.lower() in ["msa", "mean_spherical_approximation"]:
-        required = ["valency", "diameters", "diff_coeff", "eta", "epsilon", "lambda_0"]
-        missing = [k for k in required if k not in model_params]
-        if missing:
-            raise ValueError(f"Missing MSA params: {missing}")
-
-        valency = list(model_params["valency"])
-        diameters = list(model_params["diameters"])
-        diff_coeff = list(model_params["diff_coeff"])
-        eta = float(model_params["eta"])
-        epsilon = float(model_params["epsilon"])
-        lambda_0 = list(model_params["lambda_0"])
-
-        # How many salts to treat in the MSA call (msa_transport supports up to 3 args)
-        n_salts = int(model_params.get("n_salts", 1))
-        if n_salts < 1 or n_salts > 3:
-            raise ValueError("MSA wrapper currently supports 1–3 salts (msa_transport signature).")
-
-        # Optional: distribute total concentration across salts using fixed ratios
-        salt_ratios = model_params.get("salt_ratios", None)
-        if salt_ratios is None:
-            salt_ratios = [1.0] * n_salts
-        salt_ratios = np.asarray(salt_ratios, dtype=float)
-        salt_ratios = salt_ratios / np.sum(salt_ratios)
-
-        # Forward: total_mM -> cond_mS_cm
-        def fwd(total_mM: float) -> float:
-            salts = [float(total_mM * r) for r in salt_ratios]
-            if n_salts == 1:
-                return float(cp.msa_transport(valency, diameters, diff_coeff, temp_K, eta, epsilon, lambda_0, salts[0])[0])
-            if n_salts == 2:
-                return float(cp.msa_transport(valency, diameters, diff_coeff, temp_K, eta, epsilon, lambda_0, salts[0], salts[1])[0])
-            return float(cp.msa_transport(valency, diameters, diff_coeff, temp_K, eta, epsilon, lambda_0, salts[0], salts[1], salts[2])[0])
-
-        # Invert each point (bounds in mM)
-        for i, y in enumerate(cond_mS_cm):
-            if np.isnan(y):
-                continue
-            total_mM = _invert_monotone_1d(fwd_func=fwd, y_target=float(y), x_lo=0.0, x_hi=6000.0)
-            conc_out[i] = total_mM
-
-        # Convert units if needed
-        if output_units.lower() in ["m", "mol/l", "molar"]:
-            conc_out = conc_out / 1000.0  # mM -> M
-
-        return conc_out
-
-    raise ValueError(f"Unknown conductivity->concentration model: {model}")
+    raise ValueError(
+        "Target y not bracketed in conductivity inversion. "
+        + (last_report or "")
+        + " Check units/parameters (e.g., lambda_0, a, z) or widen bounds."
+    )
 
 
 def apply_conductivity_to_concentration(
@@ -1100,6 +1228,16 @@ def apply_conductivity_to_concentration(
     """
     if model_params is None:
         model_params = {}
+
+    # ---------------------------------------------------------------------
+    # Best-effort salt identifier for conductivity models
+    # ---------------------------------------------------------------------
+    # The XLSX loader attempts to populate exp.component_names from the sheet (e.g., cell E1).
+    # Variant Shedlovsky requires salt identity to infer (lambda_0, a, z_1, z_2) when the user
+    # does not provide them explicitly.
+    primary_salt: Optional[str] = None
+    if exp.component_names and len(exp.component_names) > 0:
+        primary_salt = str(exp.component_names[0]).strip()  # use the first salt as the "primary" one
 
     # Choose temperature
     T_K = float(temp_K) if temp_K is not None else (float(exp.Temp_K) if exp.Temp_K is not None else None)
@@ -1142,6 +1280,7 @@ def apply_conductivity_to_concentration(
             model=chosen,
             model_params=model_params,
             output_units=output_units,
+            salt_name=primary_salt,  # enables Shedlovsky parameter inference when missing
         )
 
         # Store into the correct vial fields
@@ -1560,6 +1699,18 @@ def load_from_xlsx(xlsx_path: Path, sheet_selector: object, *, initial_guess_db:
                 if v is not None and str(v).strip() != "":
                     salts.append(str(v).strip())
 
+
+    # If metadata blocks did not specify salts, fall back to the sheet-level convention:
+    #   - Cell E1 contains a free-text description that includes salt formulas.
+    # This makes the loader robust even if the metadata table (J/K) shifts around.
+    if not salts:
+        try:
+            e1 = get_excel_cell_value(sheet, "E1")          # raw free-text (may be None)
+            salts = extract_salt_formulas(e1)              # e.g., ["NaCl"], ["LaCl3","NaCl"]
+        except Exception:
+            salts = []
+
+    primary_salt = salts[0] if salts else None  # best-effort: first salt drives Shedlovsky inference
     if salts:
         exp.component_names = salts
         exp.num_components = len(salts)
@@ -2409,6 +2560,323 @@ def table_has_column(table: object, colname: str) -> bool:
     # Being conservative here is safer than guessing.
     return False
 
+def get_excel_cell_value(sheet: dict, cell_ref: str) -> object:
+    """
+    Read a single Excel cell value from the resolved sheet.
+
+    Why this exists:
+        Your Excel workbooks store some experiment metadata in fixed cells
+        (e.g., salts used in the experiment are in cell E1 per your convention).
+        We keep this as a tiny helper so the loader stays readable.
+
+    Inputs:
+        sheet:
+            Dict-like sheet handle returned by read_excel_sheet(...).
+            Must contain:
+                - "path": Path to workbook
+                - "sheet_name": resolved sheet name (str)
+
+        cell_ref:
+            Excel A1-style cell reference, e.g. "E1".
+
+    Output:
+        object:
+            The raw cell value (string/float/etc.) or None if empty.
+
+    Notes:
+        Implementation uses pandas with header=None to avoid making any assumptions
+        about table headers elsewhere in the sheet.
+    """
+    if not isinstance(sheet, dict):
+        raise TypeError("get_excel_cell_value expects a sheet handle dict from read_excel_sheet().")
+
+    path = sheet.get("path", None)
+    sheet_name = sheet.get("sheet_name", None)
+    if path is None or sheet_name is None:
+        raise TypeError("Sheet handle missing required keys: 'path' and 'sheet_name'.")
+
+    # Parse the cell reference (e.g., 'E1' -> col_letter='E', row_number=1)
+    m = re.fullmatch(r"([A-Za-z]+)(\d+)", cell_ref.strip())
+    if m is None:
+        raise ValueError(f"Invalid cell reference: {cell_ref!r}. Expected like 'E1'.")
+    col_letter = m.group(1).upper()
+    row_number = int(m.group(2))
+
+    # Read exactly one cell range: the requested column, and the requested row.
+    # - usecols selects the Excel column by letter
+    # - skiprows jumps to the row-1 (0-based)
+    # - nrows=1 reads exactly one row
+    df = pd.read_excel(
+        path,
+        sheet_name=sheet_name,
+        header=None,
+        usecols=col_letter,
+        skiprows=row_number - 1,
+        nrows=1,
+        dtype=object,
+    )
+
+    if df.empty:
+        return None
+
+    # df will have one row, one column (index 0, column col_letter or 0 depending on pandas)
+    val = df.iloc[0, 0]
+    if val is None:
+        return None
+    if isinstance(val, float) and np.isnan(val):
+        return None
+    return val
+
+
+def extract_salt_formulas(text: object) -> List[str]:
+    """
+    Best-effort extraction of salt formulas from a free-text string.
+
+    Your XLSX sheets store the salt information in cell E1 as phrases like:
+        "Feed: 1 mM NaCl, Diafiltrate: 50 mM NaCl, 350RPM"
+        "... 0.2mM LaCl3 and 50mM NaCl ..."
+
+    Inputs:
+        text:
+            Free-text description (often a string). None returns [].
+
+    Output:
+        List[str]:
+            Unique salt formulas (order preserved) such as ["NaCl"], ["LaCl3", "NaCl"], etc.
+
+    Notes:
+        This is intentionally conservative:
+            - We only match common electrolyte patterns (cation+anion with optional stoichiometry).
+            - If your project later includes new ions, extend the regex or add a mapping table.
+    """
+    if text is None:
+        return []
+
+    s = str(text)
+
+    # Regex: common cations + common anions with optional digits (e.g., CaCl2, Na2SO4, LaCl3)
+    # You can extend the cation/anion sets as your dataset grows.
+    cations = r"Na|K|Li|Ca|Mg|La|Al|Zn|Fe|Cu|Ni|Co|Mn|Sr|Ba"
+    anions = r"Cl|Br|I|NO3|SO4|CO3|HCO3|PO4"
+    pattern = re.compile(rf"\b(?:{cations})\d*(?:{anions})\d*\b")
+
+    found = pattern.findall(s)
+
+    # De-duplicate while preserving order
+    out: List[str] = []
+    for f in found:
+        if f not in out:
+            out.append(f)
+    return out
+
+
+def _conductivity_to_concentration_series(
+    *,
+    cond_uS_cm: np.ndarray,
+    temp_K: float,
+    model: str,
+    model_params: Dict[str, object],
+    output_units: str = "mM",
+    salt_name: Optional[str] = None,
+) -> np.ndarray:
+    """
+    Convert conductivity time-series [uS/cm] -> concentration series (mM or M).
+
+    Inputs:
+        cond_uS_cm:
+            Conductivity series in uS/cm (from XLSX sensors).
+        temp_K:
+            Temperature [K].
+        model:
+            "variant_shedlovsky" or "msa".
+        model_params:
+            Dict of parameters passed into conductivity_paper.py.
+        output_units:
+            "mM" or "M".
+        salt_name:
+            Optional salt identity (e.g. "NaCl").
+            Used ONLY for parameter autofill if missing.
+
+    Output:
+        np.ndarray:
+            Concentration series aligned with input conductivity.
+    """
+
+    # ------------------------------------------------------------
+    # 1) Import conductivity_paper WITHOUT modifying it
+    # ------------------------------------------------------------
+    try:
+        import conductivity_paper as cp
+    except ModuleNotFoundError:
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+
+        here = Path(__file__).resolve().parent
+        paper_path = here / "conductivity_paper.py"
+
+        spec = importlib.util.spec_from_loader(
+            "conductivity_paper",
+            SourceFileLoader("conductivity_paper", str(paper_path)),
+        )
+        cp = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cp)
+
+    # ------------------------------------------------------------
+    # 2) Convert units: uS/cm -> mS/cm
+    # ------------------------------------------------------------
+    cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
+    cond_mS_cm = cond_uS_cm / 1000.0
+
+    conc_out = np.full_like(cond_mS_cm, fill_value=np.nan, dtype=float)
+
+    model = model.lower()
+
+    # ============================================================
+    # VARIANT SHEDLOVSKY
+    # ============================================================
+    if model in ["variant_shedlovsky", "shedlovsky"]:
+
+        # --------------------------------------------------------
+        # Robust + honest parameter priority order
+        # --------------------------------------------------------
+
+        # Make local copy so we never mutate caller dict
+        mp = dict(model_params)
+
+        # If salt_name available -> attempt autofill
+        if salt_name is not None:
+            mp = _autofill_variant_shedlovsky_params(mp, salt_name=salt_name)
+
+        # Required parameters (must exist AND not be None)
+        required = ["epsilon", "eta", "a", "z_1", "z_2", "lambda_0_cation", "lambda_0_anion"] # We require ionic pieces; lambda_0 itself is optional because we can compute it.
+
+        missing = [k for k in required if mp.get(k) is None]
+        if missing:
+            raise ValueError(
+                f"Missing variant Shedlovsky params: {missing}. "
+                f"Provide explicitly or ensure salt_name inference works."
+            )
+
+        # Optional ionic lambdas (only needed if conductivity_paper requires them)
+        if mp.get("lambda_0_cation") is None or mp.get("lambda_0_anion") is None:
+            raise ValueError(
+                "lambda_0_cation and lambda_0_anion are required for Shedlovsky model."
+            )
+
+        epsilon = float(mp["epsilon"])
+        eta = float(mp["eta"])
+        # Priority order for lambda_0 (limiting conductivity parameter):
+            #   1) If provided explicitly, use it.
+            #   2) Else compute lambda_0 = lambda_0_cation + lambda_0_anion
+        if "lambda_0" in model_params and model_params["lambda_0"] is not None:
+            lambda_0 = float(model_params["lambda_0"])
+        else:
+            lambda_0 = float(model_params["lambda_0_cation"]) + float(model_params["lambda_0_anion"])
+
+        a = float(mp["a"])
+        z_1 = int(mp["z_1"])
+        z_2 = int(mp["z_2"])
+        lambda_0_cation = float(mp["lambda_0_cation"])
+        lambda_0_anion = float(mp["lambda_0_anion"])
+
+        # Forward mapping: conc_M -> conductivity
+        def fwd(conc_M: float) -> float:
+            return float(
+                cp.variant_shedlovsky(
+                    [conc_M], temp_K,
+                    epsilon, eta, lambda_0, a, z_1, z_2,
+                    lambda_0_cation, lambda_0_anion,
+                )[0]
+            )
+
+        # Invert each time point
+        for i, y in enumerate(cond_mS_cm):
+            if np.isnan(y):
+                continue
+            conc_M = _invert_monotone_1d(
+                fwd_func=fwd,
+                y_target=float(y),
+                x_lo=0.0,
+                x_hi=6.0,
+            )
+            conc_out[i] = conc_M
+
+        # Unit conversion
+        if output_units.lower() in ["mm", "mmol/l", "mmolar", "mm"]:
+            conc_out *= 1000.0  # M -> mM
+
+        return conc_out
+
+    # ============================================================
+    # MSA MODEL
+    # ============================================================
+    if model in ["msa", "mean_spherical_approximation"]:
+
+        required = ["valency", "diameters", "diff_coeff", "eta", "epsilon", "lambda_0"]
+        missing = [k for k in required if model_params.get(k) is None]
+        if missing:
+            raise ValueError(f"Missing MSA params: {missing}")
+
+        valency = list(model_params["valency"])
+        diameters = list(model_params["diameters"])
+        diff_coeff = list(model_params["diff_coeff"])
+        eta = float(model_params["eta"])
+        epsilon = float(model_params["epsilon"])
+        lambda_0 = list(model_params["lambda_0"])
+
+        n_salts = int(model_params.get("n_salts", 1))
+        if n_salts < 1 or n_salts > 3:
+            raise ValueError("MSA wrapper supports 1–3 salts.")
+
+        salt_ratios = model_params.get("salt_ratios", None)
+        if salt_ratios is None:
+            salt_ratios = [1.0] * n_salts
+
+        salt_ratios = np.asarray(salt_ratios, dtype=float)
+        salt_ratios /= np.sum(salt_ratios)
+
+        def fwd(total_mM: float) -> float:
+            salts = [float(total_mM * r) for r in salt_ratios]
+
+            if n_salts == 1:
+                return float(
+                    cp.msa_transport(valency, diameters, diff_coeff,
+                                     temp_K, eta, epsilon, lambda_0,
+                                     salts[0])[0]
+                )
+            if n_salts == 2:
+                return float(
+                    cp.msa_transport(valency, diameters, diff_coeff,
+                                     temp_K, eta, epsilon, lambda_0,
+                                     salts[0], salts[1])[0]
+                )
+
+            return float(
+                cp.msa_transport(valency, diameters, diff_coeff,
+                                 temp_K, eta, epsilon, lambda_0,
+                                 salts[0], salts[1], salts[2])[0]
+            )
+
+        for i, y in enumerate(cond_mS_cm):
+            if np.isnan(y):
+                continue
+            total_mM = _invert_monotone_1d(
+                fwd_func=fwd,
+                y_target=float(y),
+                x_lo=0.0,
+                x_hi=6000.0,
+            )
+            conc_out[i] = total_mM
+
+        if output_units.lower() in ["m", "mol/l", "molar"]:
+            conc_out /= 1000.0  # mM -> M
+
+        return conc_out
+
+    raise ValueError(f"Unknown conductivity->concentration model: {model}")
+
+
+
 def parse_vial_data_table(sheet: object) -> Optional[pd.DataFrame]:
     """
     Parse and return the per-vial assay table from an Excel sheet handle (if present).
@@ -2681,6 +3149,16 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
         exp.component_names = None
 
     exp.num_components = cfg.get("nc", None)
+
+    # If 'namec' was not available, try to infer salt formulas from the legacy filename.
+    # This is best-effort and only used to make downstream interfaces consistent.
+    if exp.component_names is None:
+        inferred = extract_salt_formulas(exp.filename)
+        if inferred:
+            exp.component_names = inferred
+            if exp.num_components is None:
+                exp.num_components = len(inferred)
+
 
     # Initial guesses / priors used in parameter estimation / MBDoE workflows
     exp.Lp0 = cfg.get("Lp0", None)

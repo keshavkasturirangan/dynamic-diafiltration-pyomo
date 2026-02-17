@@ -1,11 +1,8 @@
+# =========================================================================== #
+# =========================================================================== #
+# =========================================================================== #
 
-
-
-# =============================================================================
-# =============================================================================
-# =============================================================================
-
-from process_model_v15 import (
+from experiment_dataload_OOP_v17_conductivity import (
     load_experiment_easy, build_diafiltration_model,
     ModelOptions, ParameterGuess, ExperimentMode, RunMode, BForm
 )
@@ -23,19 +20,32 @@ specs = {
     "Temp_K": 298.15,     # temperature [K] (override only if you know it's correct)
 }
 
-exp, (ok, issues) = load_experiment_easy(
-    "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/ExperimentalDataFiles/NF270_MC2.xlsx",
-    selector="05.07.24_NaCl",   # sheet name (string) OR selector=0 for first sheet
-    specs=specs,
-    plot=True,
-    # NOTE:
-    #   Your current plot_experiment implementation recognizes specific kinds
-    #   like "retentate_signal", "permeate_signal", and "mass".
-    #   "signals" is NOT currently implemented in the loader, so we call a
-    #   supported plot kind here.
-    plot_kind="mass",
-)
+model_params = {
+    # common
+    "temp_K": 298.15,
 
+    # Shedlovsky parameters (example placeholders — must be set consistently with the paper code)
+    "epsilon": 78.3,
+    "eta": 0.0089,             # (watch units; must match conductivity_paper.py)
+    "lambda_0": 1.0,
+    "a": 4e-8,
+    "z_1": 1,
+    "z_2": -1,
+    "lambda_0_cation": 50.0,
+    "lambda_0_anion": 50.0,
+}
+
+exp, (ok, issues) = load_experiment_easy(
+    "NF270_MC2.xlsx",
+    selector="Experiment_3",
+    specs={"mode": "Lag", "Temp_K": 298.15},
+    convert_to_concentration=True,
+    conductivity_model_params=model_params,
+    n_cations=1,          # or 2 => Shedlovsky; >=3 => MSA
+    conc_units="mM",
+    plot=True,
+    plot_kind="retentate_signal",
+)
 options = ModelOptions(mode=ExperimentMode.LAG, run_mode=RunMode.ESTIMATION, B_form=BForm.SINGLE)
 
 guess = ParameterGuess(

@@ -963,7 +963,40 @@ def _conductivity_to_concentration_series(
             Concentration series aligned with input.
     """
     # IMPORTANT: keep conductivity_paper.py intact; we just import and call it.
-    import conductivity_paper as cp
+    # ---------------------------------------------------------------------
+    # Import the paper-code implementation WITHOUT modifying it.
+    #
+    # Preferred: normal import (conductivity_paper.py is on PYTHONPATH).
+    # Fallback: load conductivity_paper.py from the same directory as this file.
+    # This makes the unified loader robust to "runfile" and ad-hoc scripts.
+    # ---------------------------------------------------------------------
+
+    import os, sys
+    print("CWD:", os.getcwd())
+    print("First sys.path entries:", sys.path[:3])
+
+    try:
+        import conductivity_paper as cp  # type: ignore
+    except ModuleNotFoundError:
+        import importlib.util
+        from importlib.machinery import SourceFileLoader
+
+        here = Path(__file__).resolve().parent
+        paper_path = here / "conductivity_paper.py"
+        if not paper_path.exists():
+            raise  # re-raise the original ModuleNotFoundError
+
+        spec = importlib.util.spec_from_loader(
+            "conductivity_paper",
+            SourceFileLoader("conductivity_paper", str(paper_path)),
+        )
+        if spec is None or spec.loader is None:
+            raise ModuleNotFoundError(
+                "Failed to dynamically load conductivity_paper.py from the local directory."
+            )
+
+        cp = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(cp)  # type: ignore
 
     cond_uS_cm = np.asarray(cond_uS_cm, dtype=float).reshape(-1)
     cond_mS_cm = cond_uS_cm / 1000.0  # uS/cm -> mS/cm (conductivity_paper uses mS/cm outputs)
