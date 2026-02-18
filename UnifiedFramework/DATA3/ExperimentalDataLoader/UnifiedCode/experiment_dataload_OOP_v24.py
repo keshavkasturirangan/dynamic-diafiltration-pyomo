@@ -4773,9 +4773,13 @@ def model_construct_for_parmest_v24(
     objective here. ParmEst will construct FirstStageCost/SecondStageCost and
     Total_Cost_Objective internally from model suffixes.
     """
+    # Build the continuous-time process model (transport + thermo relations).
     m = model_construct_inter_v24(exp=exp, options=options, guess=guess)
+    # Discretize the DAE model so ParmEst/DoE can solve an NLP.
     apply_discretization(m, nfe=options.nfe, scheme=options.fd_scheme)
+    # Attach measured outputs, errors, unknown parameter labels, and design inputs.
     label_parmest_and_doe_suffixes(m, exp, options)
+    # Return labeled/discretized model without a custom objective; ParmEst injects SSE objective.
     return m
 
 
@@ -4792,6 +4796,7 @@ def build_experiment_list_v24(
     options: ModelOptions,
     guess: Optional[ParameterGuess] = None,
 ) -> List[DiafiltrationExperimentV24]:
+    # Convert raw ExperimentalData list into ParmEst-compatible experiment wrappers.
     return [DiafiltrationExperimentV24(exp=e, options=options, guess=guess) for e in experiments]
 
 
@@ -4807,7 +4812,9 @@ def estimate_parameters_with_parmest_v24(
     tee: bool = False,
 ) -> Dict[str, object]:
     """ParmEst run aligned with Pyomo 6.9.5 API (theta_est + cov_est)."""
+    # Build experiment wrapper list expected by pyomo.contrib.parmest.Estimator.
     exp_list = build_experiment_list_v24(experiments, options, guess)
+    # Use built-in SSE_weighted objective to unlock standard covariance workflows.
     estimator = Estimator(
         exp_list,
         obj_function="SSE_weighted",
@@ -4816,9 +4823,12 @@ def estimate_parameters_with_parmest_v24(
     )
 
     try:
+        # Solve the parameter estimation problem with chosen solver (ef_ipopt by default).
         out = estimator.theta_est(solver=solver)
+        # Store raw estimator return and estimator handle for downstream use.
         result: Dict[str, object] = {"raw": out, "estimator": estimator}
     except RuntimeError as err:
+        # Compatibility fallback: some environments lack ef_ipopt but have ipopt.
         if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
             result = _estimate_parameters_ipopt_fallback(
                 experiments=experiments,
@@ -4835,30 +4845,37 @@ def estimate_parameters_with_parmest_v24(
         raise
 
     if isinstance(out, tuple):
+        # theta_est typically returns (objective, theta, ...)
         if len(out) >= 1:
             result["objective"] = out[0]
         if len(out) >= 2:
+            # Add physical sigma to output when sigma_logit transform is used.
             result["theta"] = _augment_theta_with_sigma(out[1], options=options)
         if len(out) >= 3:
             result["returned_values"] = out[2]
 
     if calc_cov:
+        # Try covariance methods from most direct to more specialized.
         cov_attempts = [
             ("finite_difference", {"solver": "ipopt", "step": 1e-4}),
             ("reduced_hessian", {"solver": "ipopt"}),
             ("automatic_differentiation_kaug", {"solver": "ipopt"}),
         ]
+        # Collect method-level errors if all methods fail.
         cov_errs: List[str] = []
         for method, kwargs in cov_attempts:
             try:
+                # Use temporary ipopt.opt to raise iteration budget and improve robustness.
                 with _temporary_ipopt_opt():
                     cov = estimator.cov_est(method=method, **kwargs)
+                # Save first successful covariance estimate and method.
                 result["covariance"] = cov
                 result["covariance_method"] = method
                 break
             except Exception as err:
                 cov_errs.append(f"{method}: {type(err).__name__}: {err}")
         if "covariance" not in result:
+            # Return actionable diagnostics when covariance fails completely.
             result["covariance_warning"] = (
                 "Covariance not computed. Parameter estimates were obtained with "
                 "ParmEst built-in SSE_weighted, but covariance solves failed for all methods. "
@@ -4866,6 +4883,7 @@ def estimate_parameters_with_parmest_v24(
                 f"failed perturbed NLP solves. Attempts: {' | '.join(cov_errs)}"
             )
         if cov_n is not None:
+            # Keep backward-compatibility note for callers that still pass cov_n.
             result["cov_n_note"] = "cov_n is deprecated in Pyomo 6.9.5 and is ignored in v24."
 
     return result
