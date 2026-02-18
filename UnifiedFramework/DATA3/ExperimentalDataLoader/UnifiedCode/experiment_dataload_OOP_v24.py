@@ -5118,16 +5118,29 @@ def _estimate_parameters_ipopt_fallback(
         )
 
     exp = experiments[0]
-    m = model_construct_for_parmest_v23(exp, options=options, guess=guess)
+    m = model_construct_for_parmest_v24(exp, options=options, guess=guess)
     solver = pyo.SolverFactory("ipopt")
     if solver_options:
         for k, v in solver_options.items():
             solver.options[k] = v
+    # Build weighted SSE objective from ParmEst-style suffix labels.
+    # This mirrors obj_function="SSE_weighted" for single-experiment fallback.
+    def _weighted_sse_expr():
+        terms = []
+        for out_v in m.experiment_outputs.keys():
+            y_obs = float(m.experiment_outputs[out_v])
+            sigma = float(m.measurement_error[out_v])
+            sigma_eff = sigma if abs(sigma) > 1e-12 else 1.0
+            terms.append(((out_v - y_obs) / sigma_eff) ** 2)
+        return sum(terms) if terms else 0.0
+
+    m._ipopt_fallback_wsse = pyo.Objective(expr=_weighted_sse_expr(), sense=pyo.minimize)
+
     raw = solver.solve(m, tee=tee)
 
     theta_vals = {c.name: float(pyo.value(c)) for c in theta_component_list(m, options)}
     theta_vals = _augment_theta_with_sigma(theta_vals, options=options)
-    objective = float(pyo.value(m.Total_Cost_Objective))
+    objective = float(pyo.value(m._ipopt_fallback_wsse))
 
     return {
         "raw": raw,
@@ -5312,10 +5325,42 @@ def estimate_parameters_with_parmest_v24(
         solver_options=solver_options,
     )
 
-    # Solve the parameter estimation problem with chosen solver (ipopt by default).
-    out = estimator.theta_est(solver=solver)
-    # Store raw estimator return and estimator handle for downstream use.
-    result: Dict[str, object] = {"raw": out, "estimator": estimator}
+    warning_msgs: List[str] = []
+    try:
+        # Solve the parameter estimation problem with chosen solver (ipopt by default).
+        out = estimator.theta_est(solver=solver)
+        # Store raw estimator return and estimator handle for downstream use.
+        result: Dict[str, object] = {"raw": out, "estimator": estimator}
+    except RuntimeError as err:
+        # Pyomo 6.9.5 ParmEst may still require ef_ipopt token in theta_est.
+        if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
+            out = estimator.theta_est(solver="ef_ipopt")
+            result = {"raw": out, "estimator": estimator}
+            warning_msgs.append(
+                "ParmEst theta_est in this environment requires solver token 'ef_ipopt'; "
+                "mapped user solver 'ipopt' to ParmEst 'ef_ipopt'."
+            )
+        # Last-resort path: direct single-experiment solve when ParmEst front-end fails.
+        elif (
+            solver == "ipopt"
+            and len(experiments) == 1
+            and ("Unknown solver in Q_Opt=ef_ipopt" in str(err) or "No executable found for solver" in str(err))
+        ):
+            result = _estimate_parameters_ipopt_fallback(
+                experiments=experiments,
+                options=options,
+                guess=guess,
+                solver_options=solver_options,
+                tee=tee,
+            )
+            warning_msgs.append(
+                "ParmEst theta_est solver interface failed; used direct ipopt solve on labeled model for one experiment."
+            )
+            if warning_msgs:
+                result["warning"] = " ".join(warning_msgs)
+            return result
+        else:
+            raise
 
     if isinstance(out, tuple):
         # theta_est typically returns (objective, theta, ...)
@@ -5358,6 +5403,9 @@ def estimate_parameters_with_parmest_v24(
         if cov_n is not None:
             # Keep backward-compatibility note for callers that still pass cov_n.
             result["cov_n_note"] = "cov_n is deprecated in Pyomo 6.9.5 and is ignored in v24."
+
+    if warning_msgs:
+        result["warning"] = " ".join(warning_msgs)
 
     return result
 
