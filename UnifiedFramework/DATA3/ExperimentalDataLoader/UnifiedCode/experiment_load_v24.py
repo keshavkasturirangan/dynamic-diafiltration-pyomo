@@ -88,10 +88,10 @@ if RUN_PARMEST:
         options=options,                           # Model options.
         calc_cov=True,                             # Attempt covariance matrix.
         cov_n=max(1, len(m.experiment_outputs)),   # Deprecated passthrough note.
-        solver="ef_ipopt",                         # EF solver path for parmest.
+        solver="ipopt",                            # ParmEst solver.
         tee=False,                                 # Hide solver stream output.
     )
-    # Generic warning field (e.g., fallback cases).
+    # Generic warning field from estimation stage.
     if "warning" in est:
         print("WARNING:", est["warning"])
     # Covariance-specific warning with method-level failure diagnostics.

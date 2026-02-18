@@ -29,7 +29,7 @@ It is intentionally small and readable, with heavy lifting delegated to `experim
 - `run_mode`: simulation vs estimation.
 - `b_form`: transport parameterization for solute flux (`single`, `pervial`, `convection`).
 - `nfe`: DAE finite-element count (higher = finer + harder NLP).
-- `solver`: ParmEst EF solver (`ef_ipopt` preferred).
+- `solver`: ParmEst solver (`ipopt`).
 
 ## Typical output
 
@@ -44,7 +44,7 @@ It is intentionally small and readable, with heavy lifting delegated to `experim
 
 - Start with `nfe=30` for stable estimation/covariance.
 - Increase `nfe` only when needed for accuracy.
-- Keep `solver="ef_ipopt"` for ParmEst (with installed alias/binary).
+- Keep `solver="ipopt"` for ParmEst.
 - If DoE struggles, tune NLP settings before increasing model complexity.
 
 ## Packaging/refactor notes
@@ -52,4 +52,3 @@ It is intentionally small and readable, with heavy lifting delegated to `experim
 - This file should become a thin CLI entrypoint (`console_scripts`) in the package.
 - Config values should move into a validated config object or YAML schema.
 - Logging should replace `print` for reproducible runs.
-

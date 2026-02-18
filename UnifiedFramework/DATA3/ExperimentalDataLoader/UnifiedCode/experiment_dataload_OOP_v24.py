@@ -5051,7 +5051,7 @@ def build_experiment_list_v23(
 #     *,
 #     calc_cov: bool = True,
 #     cov_n: Optional[int] = None,
-#     solver: str = "ef_ipopt",
+#     solver: str = "ipopt",
 #     solver_options: Optional[Dict[str, object]] = None,
 #     tee: bool = False,
 # ) -> Dict[str, object]:
@@ -5063,7 +5063,7 @@ def build_experiment_list_v23(
 #         out = estimator.theta_est(solver=solver, calc_cov=calc_cov, cov_n=cov_n)
 #         result: Dict[str, object] = {"raw": out, "estimator": estimator}
 #     except RuntimeError as err:
-#         if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
+#         if solver == "ipopt" and "Unknown solver interface" in str(err):
 #             result = _estimate_parameters_ipopt_fallback(
 #                 experiments=experiments,
 #                 options=options,
@@ -5072,7 +5072,7 @@ def build_experiment_list_v23(
 #                 tee=tee,
 #             )
 #             result["warning"] = (
-#                 "ParmEst ef_ipopt is unavailable; used ipopt fallback on a single labeled experiment model. "
+#                 "ParmEst solver interface failed; used ipopt fallback on a single labeled experiment model. "
 #                 "Covariance is not computed in fallback mode."
 #             )
 #             return result
@@ -5114,7 +5114,7 @@ def _estimate_parameters_ipopt_fallback(
     if len(experiments) != 1:
         raise RuntimeError(
             "ipopt fallback currently supports one experiment at a time. "
-            "Install ef_ipopt for multi-experiment parmest solve."
+            "Use Estimator.theta_est with ipopt for multi-experiment solves."
         )
 
     exp = experiments[0]
@@ -5297,7 +5297,7 @@ def estimate_parameters_with_parmest_v24(
     *,
     calc_cov: bool = True,
     cov_n: Optional[int] = None,
-    solver: str = "ef_ipopt",
+    solver: str = "ipopt",
     solver_options: Optional[Dict[str, object]] = None,
     tee: bool = False,
 ) -> Dict[str, object]:
@@ -5312,27 +5312,10 @@ def estimate_parameters_with_parmest_v24(
         solver_options=solver_options,
     )
 
-    try:
-        # Solve the parameter estimation problem with chosen solver (ef_ipopt by default).
-        out = estimator.theta_est(solver=solver)
-        # Store raw estimator return and estimator handle for downstream use.
-        result: Dict[str, object] = {"raw": out, "estimator": estimator}
-    except RuntimeError as err:
-        # Compatibility fallback: some environments lack ef_ipopt but have ipopt.
-        if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
-            result = _estimate_parameters_ipopt_fallback(
-                experiments=experiments,
-                options=options,
-                guess=guess,
-                solver_options=solver_options,
-                tee=tee,
-            )
-            result["warning"] = (
-                "ParmEst ef_ipopt is unavailable; used ipopt fallback on a single labeled experiment model. "
-                "Covariance is not computed in fallback mode."
-            )
-            return result
-        raise
+    # Solve the parameter estimation problem with chosen solver (ipopt by default).
+    out = estimator.theta_est(solver=solver)
+    # Store raw estimator return and estimator handle for downstream use.
+    result: Dict[str, object] = {"raw": out, "estimator": estimator}
 
     if isinstance(out, tuple):
         # theta_est typically returns (objective, theta, ...)
