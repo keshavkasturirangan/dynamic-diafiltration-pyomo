@@ -3,3 +3,11 @@ __pycache__/utility.cpython-311.pyc
 **/.DS_Store
 __pycache__/
 *.pyc
+
+# macOS
+.DS_Store
+
+
+# macOS
+.DS_Store
+
