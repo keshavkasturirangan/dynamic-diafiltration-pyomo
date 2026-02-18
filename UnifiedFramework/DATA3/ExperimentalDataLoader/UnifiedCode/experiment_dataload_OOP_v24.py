@@ -3896,10 +3896,11 @@ def infer_initial_guess_db_from_mat_files(mat_files: Iterable[Path]) -> Dict[Tup
     return db
 
 
-def infer_initial_guess_db_from_mat_folder(mat_root: Path) -> Dict[Tuple[str, ...], Dict[str, object]]:
-    """Convenience wrapper: infer initial guesses from all .mat files under a folder."""
-    mat_files = [p for p in mat_root.rglob('*.mat') if '__MACOSX' not in str(p)]
-    return infer_initial_guess_db_from_mat_files(mat_files)
+# TODO(remove): legacy helper is currently unused in the unified v24 workflow.
+# def infer_initial_guess_db_from_mat_folder(mat_root: Path) -> Dict[Tuple[str, ...], Dict[str, object]]:
+#     """Convenience wrapper: infer initial guesses from all .mat files under a folder."""
+#     mat_files = [p for p in mat_root.rglob('*.mat') if '__MACOSX' not in str(p)]
+#     return infer_initial_guess_db_from_mat_files(mat_files)
 
 
 def apply_initial_guesses_from_db(
@@ -5042,53 +5043,52 @@ def build_experiment_list_v23(
     return [DiafiltrationExperimentV23(exp=e, options=options, guess=guess) for e in experiments]
 
 
-def estimate_parameters_with_parmest_v23(
-    experiments: List[ExperimentalData],
-    options: ModelOptions,
-    guess: Optional[ParameterGuess] = None,
-    *,
-    calc_cov: bool = True,
-    cov_n: Optional[int] = None,
-    solver: str = "ef_ipopt",
-    solver_options: Optional[Dict[str, object]] = None,
-    tee: bool = False,
-) -> Dict[str, object]:
-    """Run parameter estimation via pyomo.contrib.parmest.Estimator."""
-    exp_list = build_experiment_list_v23(experiments, options, guess)
-    estimator = Estimator(exp_list, tee=tee, solver_options=solver_options)
-
-    try:
-        out = estimator.theta_est(solver=solver, calc_cov=calc_cov, cov_n=cov_n)
-        result: Dict[str, object] = {"raw": out, "estimator": estimator}
-    except RuntimeError as err:
-        # Parmest in this release only accepts ef_ipopt. Provide an ipopt
-        # fallback to keep workflows moving in environments without ef_ipopt.
-        if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
-            result = _estimate_parameters_ipopt_fallback(
-                experiments=experiments,
-                options=options,
-                guess=guess,
-                solver_options=solver_options,
-                tee=tee,
-            )
-            result["warning"] = (
-                "ParmEst ef_ipopt is unavailable; used ipopt fallback on a single labeled experiment model. "
-                "Covariance is not computed in fallback mode."
-            )
-            return result
-        raise
-
-    if isinstance(out, tuple):
-        if len(out) >= 1:
-            result["objective"] = out[0]
-        if len(out) >= 2:
-            result["theta"] = out[1]
-        if len(out) >= 3:
-            result["returned_values"] = out[2]
-        if len(out) >= 4:
-            result["covariance"] = out[3]
-
-    return result
+# TODO(remove): v23 parmest wrapper is unused after migration to v24 SSE_weighted workflow.
+# def estimate_parameters_with_parmest_v23(
+#     experiments: List[ExperimentalData],
+#     options: ModelOptions,
+#     guess: Optional[ParameterGuess] = None,
+#     *,
+#     calc_cov: bool = True,
+#     cov_n: Optional[int] = None,
+#     solver: str = "ef_ipopt",
+#     solver_options: Optional[Dict[str, object]] = None,
+#     tee: bool = False,
+# ) -> Dict[str, object]:
+#     """Run parameter estimation via pyomo.contrib.parmest.Estimator."""
+#     exp_list = build_experiment_list_v23(experiments, options, guess)
+#     estimator = Estimator(exp_list, tee=tee, solver_options=solver_options)
+#
+#     try:
+#         out = estimator.theta_est(solver=solver, calc_cov=calc_cov, cov_n=cov_n)
+#         result: Dict[str, object] = {"raw": out, "estimator": estimator}
+#     except RuntimeError as err:
+#         if solver == "ipopt" and "Unknown solver in Q_Opt=ipopt" in str(err):
+#             result = _estimate_parameters_ipopt_fallback(
+#                 experiments=experiments,
+#                 options=options,
+#                 guess=guess,
+#                 solver_options=solver_options,
+#                 tee=tee,
+#             )
+#             result["warning"] = (
+#                 "ParmEst ef_ipopt is unavailable; used ipopt fallback on a single labeled experiment model. "
+#                 "Covariance is not computed in fallback mode."
+#             )
+#             return result
+#         raise
+#
+#     if isinstance(out, tuple):
+#         if len(out) >= 1:
+#             result["objective"] = out[0]
+#         if len(out) >= 2:
+#             result["theta"] = out[1]
+#         if len(out) >= 3:
+#             result["returned_values"] = out[2]
+#         if len(out) >= 4:
+#             result["covariance"] = out[3]
+#
+#     return result
 
 
 def _estimate_parameters_ipopt_fallback(
@@ -5137,20 +5137,13 @@ def _estimate_parameters_ipopt_fallback(
     }
 
 
-def covariance_to_fim(covariance: Union[np.ndarray, object]) -> np.ndarray:
-    """Covariance to fim.
-
-    Args:
-        covariance: Parameter description.
-
-    Returns:
-        object: Computed value or expression.
-
-    """
-    cov = np.asarray(covariance, dtype=float)
-    if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
-        raise ValueError("Covariance must be a square 2D matrix.")
-    return np.linalg.pinv(cov)
+# TODO(remove): not referenced by current runner (FIM is computed directly by DoE API).
+# def covariance_to_fim(covariance: Union[np.ndarray, object]) -> np.ndarray:
+#     """Covariance to fim."""
+#     cov = np.asarray(covariance, dtype=float)
+#     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
+#         raise ValueError("Covariance must be a square 2D matrix.")
+#     return np.linalg.pinv(cov)
 
 
 def d_optimality(fim: Union[np.ndarray, object], *, log_scale: bool = True) -> float:
@@ -5208,27 +5201,19 @@ def run_doe_with_pyomo_v23(
     }
 
 
-def parmest_callback_factory_v23(
-    experiments: List[ExperimentalData],
-    options: ModelOptions,
-    guess: Optional[ParameterGuess] = None,
-) -> Callable[[int], pyo.ConcreteModel]:
-    """Legacy-compatible callback factory retained for quick usage."""
-
-    def _callback(idx: int) -> pyo.ConcreteModel:
-        """Callback.
-
-        Args:
-            idx: Parameter description.
-
-        Returns:
-            object: Computed value or expression.
-
-        """
-        exp = experiments[idx]
-        return model_construct_for_parmest_v23(exp, options=options, guess=guess)
-
-    return _callback
+# TODO(remove): legacy callback factory is unused in v24 unified workflow.
+# def parmest_callback_factory_v23(
+#     experiments: List[ExperimentalData],
+#     options: ModelOptions,
+#     guess: Optional[ParameterGuess] = None,
+# ) -> Callable[[int], pyo.ConcreteModel]:
+#     """Legacy-compatible callback factory retained for quick usage."""
+#
+#     def _callback(idx: int) -> pyo.ConcreteModel:
+#         exp = experiments[idx]
+#         return model_construct_for_parmest_v23(exp, options=options, guess=guess)
+#
+#     return _callback
 
 
 def model_construct_inter_v24(
