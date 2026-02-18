@@ -72,7 +72,7 @@ if RUN_PARMEST:
         options=options,
         calc_cov=True,
         cov_n=max(1, len(m.experiment_outputs)),
-        solver="ipopt",
+        solver="ef_ipopt",
         tee=False,
     )
     if "warning" in est:
