@@ -55,7 +55,7 @@ options = ModelOptions(
     mode=ExperimentMode.DATA,
     run_mode=RunMode.ESTIMATION,
     b_form="single",
-    nfe=60,
+    nfe=30,
 )
 
 exp_obj = DiafiltrationExperimentV24(exp=exp, options=options)
@@ -77,8 +77,13 @@ if RUN_PARMEST:
     )
     if "warning" in est:
         print("WARNING:", est["warning"])
+    if "covariance_warning" in est:
+        print("WARNING:", est["covariance_warning"])
     print("ParmEst objective:", est.get("objective"))
     print("ParmEst theta:\n", est.get("theta"))
+    if "covariance" in est:
+        print("ParmEst covariance method:", est.get("covariance_method"))
+        print("ParmEst covariance:\n", est.get("covariance"))
 
 # 7) DoE/FIM analysis
 if RUN_DOE:

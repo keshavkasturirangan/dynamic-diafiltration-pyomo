@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional, List, Sequence, Union, Tuple, Dict, Iterable
 from pathlib import Path
+from contextlib import contextmanager
 import pandas as pd
 from scipy.io import loadmat  # MATLAB .mat reader (used for initial-guess inference)
 
@@ -3982,6 +3983,8 @@ class ModelOptions:
     partition_coeff_cation: float = 0.85
     partition_coeff_anion: float = 0.85
     osmotic_factor: float = 1.0
+    use_sigma_logit_transform: bool = True
+    sigma_eps: float = 1e-3
 
 
 @dataclass
@@ -4107,12 +4110,77 @@ def theta_component_list(m: pyo.ConcreteModel, options: ModelOptions) -> List[py
     else:
         raise ValueError(f"Unsupported b_form '{options.b_form}' for theta list.")
 
-    comps.append(m.sigma)
+    if hasattr(m, "sigma_logit"):
+        comps.append(m.sigma_logit)
+    else:
+        comps.append(m.sigma)
     return comps
 
 
 def theta_names(m: pyo.ConcreteModel, options: ModelOptions) -> List[str]:
     return [c.name for c in theta_component_list(m, options)]
+
+
+def _augment_theta_with_sigma(theta_obj: object, *, options: ModelOptions) -> object:
+    """Attach physical sigma to theta output when sigma_logit parametrization is used."""
+    if not options.use_sigma_logit_transform:
+        return theta_obj
+    sigma_eps = float(options.sigma_eps)
+    scale = (1.0 - 2.0 * sigma_eps)
+
+    if isinstance(theta_obj, pd.Series) and "sigma_logit" in theta_obj.index:
+        logit_val = float(theta_obj["sigma_logit"])
+        theta_obj = theta_obj.copy()
+        theta_obj["sigma"] = sigma_eps + scale / (1.0 + np.exp(-logit_val))
+        return theta_obj
+
+    if isinstance(theta_obj, dict) and "sigma_logit" in theta_obj:
+        out = dict(theta_obj)
+        logit_val = float(out["sigma_logit"])
+        out["sigma"] = sigma_eps + scale / (1.0 + np.exp(-logit_val))
+        return out
+
+    return theta_obj
+
+
+@contextmanager
+def _temporary_ipopt_opt(
+    *,
+    max_iter: int = 12000,
+    tol: float = 1e-7,
+    acceptable_tol: float = 1e-5,
+) -> Iterable[None]:
+    """Temporarily create/override local ipopt.opt for covariance solves."""
+    opt_path = Path.cwd() / "ipopt.opt"
+    backup_text: Optional[str] = None
+    had_existing = opt_path.exists()
+    if had_existing:
+        backup_text = opt_path.read_text()
+
+    opt_path.write_text(
+        "\n".join(
+            [
+                f"max_iter {int(max_iter)}",
+                f"tol {float(tol)}",
+                f"acceptable_tol {float(acceptable_tol)}",
+                "mu_strategy adaptive",
+                "bound_push 1e-8",
+                "bound_frac 1e-8",
+                "print_level 0",
+            ]
+        )
+        + "\n"
+    )
+    try:
+        yield
+    finally:
+        if had_existing and backup_text is not None:
+            opt_path.write_text(backup_text)
+        else:
+            try:
+                opt_path.unlink()
+            except FileNotFoundError:
+                pass
 
 
 def model_construct_inter_v23(
@@ -4163,12 +4231,27 @@ def model_construct_inter_v23(
     m.cD.fix(cD)
     m.C_H0 = pyo.Param(initialize=1e-6, mutable=True)
 
+    sigma_guess = float(guess.sigma)
+    sigma_eps = float(options.sigma_eps)
+    sigma_eps = min(max(sigma_eps, 1e-8), 0.49)
+
     if sim_opt:
         m.Lp = pyo.Param(initialize=float(guess.Lp), mutable=True)
-        m.sigma = pyo.Param(initialize=float(guess.sigma), mutable=True)
+        m.sigma = pyo.Param(initialize=sigma_guess, mutable=True)
     else:
         m.Lp = pyo.Var(bounds=(0.5, 50.0), initialize=float(guess.Lp))
-        m.sigma = pyo.Var(bounds=(0.0, 1.0), initialize=float(guess.sigma))
+        if options.use_sigma_logit_transform:
+            sig0 = min(max(sigma_guess, sigma_eps + 1e-8), 1.0 - sigma_eps - 1e-8)
+            frac = (sig0 - sigma_eps) / (1.0 - 2.0 * sigma_eps)
+            frac = min(max(frac, 1e-8), 1.0 - 1e-8)
+            logit0 = float(np.log(frac / (1.0 - frac)))
+            m.sigma_logit = pyo.Var(bounds=(-20.0, 20.0), initialize=logit0)
+
+            def _sigma_rule(mm):
+                return sigma_eps + (1.0 - 2.0 * sigma_eps) / (1.0 + pyo.exp(-mm.sigma_logit))
+            m.sigma = pyo.Expression(rule=_sigma_rule)
+        else:
+            m.sigma = pyo.Var(bounds=(sigma_eps, 1.0 - sigma_eps), initialize=min(max(sigma_guess, sigma_eps), 1.0 - sigma_eps))
 
     if b_form == BForm.SINGLE.value:
         if sim_opt:
@@ -4594,6 +4677,7 @@ def _estimate_parameters_ipopt_fallback(
     raw = solver.solve(m, tee=tee)
 
     theta_vals = {c.name: float(pyo.value(c)) for c in theta_component_list(m, options)}
+    theta_vals = _augment_theta_with_sigma(theta_vals, options=options)
     objective = float(pyo.value(m.Total_Cost_Objective))
 
     return {
@@ -4754,22 +4838,32 @@ def estimate_parameters_with_parmest_v24(
         if len(out) >= 1:
             result["objective"] = out[0]
         if len(out) >= 2:
-            result["theta"] = out[1]
+            result["theta"] = _augment_theta_with_sigma(out[1], options=options)
         if len(out) >= 3:
             result["returned_values"] = out[2]
 
     if calc_cov:
-        cov_method = "finite_difference"
-        cov_step = 0.001
-        cov_solver = "ipopt"
-        try:
-            cov = estimator.cov_est(method=cov_method, solver=cov_solver, step=cov_step)
-            result["covariance"] = cov
-        except Exception as err:
+        cov_attempts = [
+            ("finite_difference", {"solver": "ipopt", "step": 1e-4}),
+            ("reduced_hessian", {"solver": "ipopt"}),
+            ("automatic_differentiation_kaug", {"solver": "ipopt"}),
+        ]
+        cov_errs: List[str] = []
+        for method, kwargs in cov_attempts:
+            try:
+                with _temporary_ipopt_opt():
+                    cov = estimator.cov_est(method=method, **kwargs)
+                result["covariance"] = cov
+                result["covariance_method"] = method
+                break
+            except Exception as err:
+                cov_errs.append(f"{method}: {type(err).__name__}: {err}")
+        if "covariance" not in result:
             result["covariance_warning"] = (
-                "Covariance not computed. Pyomo 6.9.5 cov_est requires built-in "
-                "SSE/SSE_weighted objectives; this workflow uses a custom weighted objective. "
-                f"Reason: {type(err).__name__}: {err}"
+                "Covariance not computed. Parameter estimates were obtained with "
+                "ParmEst built-in SSE_weighted, but covariance solves failed for all methods. "
+                "Typical causes are local ill-conditioning, parameters near bounds, or "
+                f"failed perturbed NLP solves. Attempts: {' | '.join(cov_errs)}"
             )
         if cov_n is not None:
             result["cov_n_note"] = "cov_n is deprecated in Pyomo 6.9.5 and is ignored in v24."
