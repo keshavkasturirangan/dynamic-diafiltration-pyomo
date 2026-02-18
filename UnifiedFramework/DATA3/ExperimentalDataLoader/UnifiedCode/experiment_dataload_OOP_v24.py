@@ -1258,6 +1258,15 @@ def _invert_monotone_1d(
     import math
 
     def g(x: float) -> float:
+        """G.
+
+        Args:
+            x: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return float(fwd_func(float(x)) - y_target)
 
     # Progressive expansions of the upper bound (kept conservative)
@@ -1393,6 +1402,13 @@ def apply_conductivity_to_concentration(
     # One internal helper to avoid permeate/retentate duplication
     def _convert_signal_into_vial(v: VialData, *, which: str) -> None:
         # Select the correct signal + units
+        """Convert signal into vial.
+
+        Args:
+            v: Parameter description.
+            which: Parameter description.
+
+        """
         if which == "retentate":
             sig = v.retentate_signal
             sig_units = v.retentate_signal_units
@@ -1507,6 +1523,9 @@ def plot_experiment(exp: ExperimentalData, *, kind: str = "retentate_signal") ->
 
     def _show_or_close() -> None:
         # In headless smoke tests (Agg backend), calling plt.show() emits a warning.
+        """Show or close.
+
+        """
         if "agg" in str(plt.get_backend()).strip().lower():
             plt.close()
         else:
@@ -1798,6 +1817,15 @@ def load_from_xlsx(xlsx_path: Path, sheet_selector: object, *, initial_guess_db:
 
     def _meta_lookup(*candidates: str):
         # Return the first matching key (case-insensitive) from metadata_kv.
+        """Meta lookup.
+
+        Args:
+            *candidates: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         if not metadata_kv:
             return None
         lowered = {str(k).strip().lower(): k for k in metadata_kv.keys()}
@@ -2926,6 +2954,15 @@ def _conductivity_to_concentration_series(
 
         # Forward mapping: conc_M -> conductivity
         def fwd(conc_M: float) -> float:
+            """Fwd.
+
+            Args:
+                conc_M: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return float(
                 cp.variant_shedlovsky(
                     [conc_M], temp_K,
@@ -2986,6 +3023,15 @@ def _conductivity_to_concentration_series(
         salt_ratios /= np.sum(salt_ratios)
 
         def fwd(total_mM: float) -> float:
+            """Fwd.
+
+            Args:
+                total_mM: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             salts = [float(total_mM * r) for r in salt_ratios]
 
             if n_salts == 1:
@@ -3781,6 +3827,15 @@ def infer_initial_guess_db_from_mat_files(mat_files: Iterable[Path]) -> Dict[Tup
         samples.setdefault(key, []).append(rec)
 
     def _median_ignore_none(vals: List[object]) -> Optional[float]:
+        """Median ignore none.
+
+        Args:
+            vals: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         nums: List[float] = []
         for v in vals:
             if v is None:
@@ -3797,6 +3852,15 @@ def infer_initial_guess_db_from_mat_files(mat_files: Iterable[Path]) -> Dict[Tup
         return float(np.median(nums))
 
     def _median_theta0(arrs: List[Optional[np.ndarray]]) -> Optional[np.ndarray]:
+        """Median theta0.
+
+        Args:
+            arrs: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         arrs2 = [a for a in arrs if isinstance(a, np.ndarray) and a.size > 0]
         if not arrs2:
             return None
@@ -3951,17 +4015,32 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"XLSX smoke test failed: {type(e).__name__}: {e}")
 class ExperimentMode(str, Enum):
+    """ExperimentMode.
+
+    Container class used by the unified loader/model workflow.
+
+    """
     DATA = "DATA"
     LAG = "Lag"
     OVERFLOW = "Overflow"
 
 
 class RunMode(str, Enum):
+    """RunMode.
+
+    Container class used by the unified loader/model workflow.
+
+    """
     SIMULATION = "SIMULATION"
     ESTIMATION = "ESTIMATION"
 
 
 class BForm(str, Enum):
+    """BForm.
+
+    Container class used by the unified loader/model workflow.
+
+    """
     SINGLE = "single"
     PERVIAL = "pervial"
     CONVECTION = "convection"
@@ -3972,6 +4051,11 @@ BFormType = Union[str, float]
 
 @dataclass
 class ModelOptions:
+    """ModelOptions.
+
+    Container class used by the unified loader/model workflow.
+
+    """
     mode: ExperimentMode = ExperimentMode.DATA
     run_mode: RunMode = RunMode.ESTIMATION
     b_form: BFormType = BForm.SINGLE.value
@@ -3989,6 +4073,11 @@ class ModelOptions:
 
 @dataclass
 class ParameterGuess:
+    """ParameterGuess.
+
+    Container class used by the unified loader/model workflow.
+
+    """
     Lp: float
     sigma: float
     B: Optional[Union[float, Dict[int, float]]] = None
@@ -4017,6 +4106,16 @@ DIFFUSIVITY_CM2_S = {
 
 
 def _first_non_nan(x: Optional[np.ndarray], default: float = 1e-6) -> float:
+    """First non nan.
+
+    Args:
+        x: Parameter description.
+        default: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     if x is None:
         return float(default)
     arr = np.asarray(x, dtype=float).reshape(-1)
@@ -4027,6 +4126,15 @@ def _first_non_nan(x: Optional[np.ndarray], default: float = 1e-6) -> float:
 
 
 def _salt_key(component_names: Optional[List[str]]) -> Optional[str]:
+    """Salt key.
+
+    Args:
+        component_names: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     if not component_names:
         return None
     s = str(component_names[0]).strip()
@@ -4061,6 +4169,15 @@ def _infer_primary_ions(exp: ExperimentalData) -> Tuple[str, int, str, int]:
 
 
 def compute_mass_transfer_coeff(exp: ExperimentalData) -> float:
+    """Compute mass transfer coeff.
+
+    Args:
+        exp: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     b = CELL_DIAMETER_CM
     nu = NU_CM2_S
     v = RPM_DEFAULT / 60.0 * np.pi * b
@@ -4073,6 +4190,15 @@ def compute_mass_transfer_coeff(exp: ExperimentalData) -> float:
 
 
 def _scaled_times(exp: ExperimentalData) -> Tuple[Dict[int, float], Dict[int, float], float]:
+    """Scaled times.
+
+    Args:
+        exp: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     t_delay = float(exp.vials[0].time_s[0])
     ti = {}
     tf = {}
@@ -4083,6 +4209,15 @@ def _scaled_times(exp: ExperimentalData) -> Tuple[Dict[int, float], Dict[int, fl
 
 
 def _default_guess(exp: ExperimentalData) -> ParameterGuess:
+    """Default guess.
+
+    Args:
+        exp: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return ParameterGuess(
         Lp=float(exp.Lp0 if exp.Lp0 is not None else 5.0),
         sigma=float(exp.sigma0 if exp.sigma0 is not None else 0.9),
@@ -4097,6 +4232,16 @@ def _default_guess(exp: ExperimentalData) -> ParameterGuess:
 
 
 def theta_component_list(m: pyo.ConcreteModel, options: ModelOptions) -> List[pyo.ComponentData]:
+    """Theta component list.
+
+    Args:
+        m: Parameter description.
+        options: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     b_form = str(options.b_form).lower()
     comps: List[pyo.ComponentData] = [m.Lp]
 
@@ -4118,6 +4263,16 @@ def theta_component_list(m: pyo.ConcreteModel, options: ModelOptions) -> List[py
 
 
 def theta_names(m: pyo.ConcreteModel, options: ModelOptions) -> List[str]:
+    """Theta names.
+
+    Args:
+        m: Parameter description.
+        options: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return [c.name for c in theta_component_list(m, options)]
 
 
@@ -4248,6 +4403,15 @@ def model_construct_inter_v23(
             m.sigma_logit = pyo.Var(bounds=(-20.0, 20.0), initialize=logit0)
 
             def _sigma_rule(mm):
+                """Sigma rule.
+
+                Args:
+                    mm: Parameter description.
+
+                Returns:
+                    object: Computed value or expression.
+
+                """
                 return sigma_eps + (1.0 - 2.0 * sigma_eps) / (1.0 + pyo.exp(-mm.sigma_logit))
             m.sigma = pyo.Expression(rule=_sigma_rule)
         else:
@@ -4325,60 +4489,212 @@ def model_construct_inter_v23(
     Tauf = float(options.time_scaled_end)
 
     def _tf_scale(n: int) -> float:
+        """Tf scale.
+
+        Args:
+            n: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return (TF_dict[n] - TI_dict[n]) / Tauf
 
     if options.mode == ExperimentMode.DATA:
         def ode_cF_rule(mm, n, t):
+            """Ode cF rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.dcF[n, t] == Am * rho / M_F0 * (mm.cD * mm.Jw[n, t] - mm.Js[n, t]) * _tf_scale(n)
         m.ode_cF = pyo.Constraint(m.n_vial, m.tau, rule=ode_cF_rule)
     else:
         def ode_mF_rule(mm, n, t):
+            """Ode mF rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.dmF[n, t] == (-mm.S0 - Am * rho * mm.Jw[n, t]) * _tf_scale(n)
         m.ode_mF = pyo.Constraint(m.n_vial, m.tau, rule=ode_mF_rule)
 
         def ode_cF_rule(mm, n, t):
+            """Ode cF rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.dcF[n, t] == (1 / mm.mF[n, t]) * ((mm.cF[n, t] - mm.cD) * mm.S0 + Am * rho * (mm.cF[n, t] * mm.Jw[n, t] - mm.Js[n, t])) * _tf_scale(n)
         m.ode_cF = pyo.Constraint(m.n_vial, m.tau, rule=ode_cF_rule)
 
     def ode_cH_rule(mm, n, t):
+        """Ode cH rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+            t: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return mm.dcH[n, t] == Am * rho / MH_ML * (mm.Js[n, t] - mm.cH[n, t] * mm.Jw[n, t]) * _tf_scale(n)
     m.ode_cH = pyo.Constraint(m.n_vial, m.tau, rule=ode_cH_rule)
 
     def ode_mV_rule(mm, n, t):
+        """Ode mV rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+            t: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return mm.dmV[n, t] == mm.Jw[n, t] * Am * rho * _tf_scale(n)
     m.ode_mV = pyo.Constraint(m.n_vial, m.tau, rule=ode_mV_rule)
 
     def ode_cVmV_rule(mm, n, t):
+        """Ode cVmV rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+            t: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return mm.dcVmV[n, t] == mm.Jw[n, t] * mm.cH[n, t] * Am * rho * _tf_scale(n)
     m.ode_cVmV = pyo.Constraint(m.n_vial, m.tau, rule=ode_cVmV_rule)
 
     if advanced_xlsx_transport:
         def eqn_cM_film_rule(mm, n, t):
+            """Eqn cM film rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.cM[n, t] == (mm.cF[n, t] - mm.cH[n, t]) * pyo.exp(mm.Jw[n, t] / k) + mm.cH[n, t]
         m.eqn_cM_film = pyo.Constraint(m.n_vial, m.tau, rule=eqn_cM_film_rule)
 
         def eqn_cIn_rule(mm, n, t):
+            """Eqn cIn rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.cIn[n, t] == mm.cM[n, t]
         m.eqn_cIn = pyo.Constraint(m.n_vial, m.tau, rule=eqn_cIn_rule)
     else:
         def eqn_cIn_rule(mm, n, t):
+            """Eqn cIn rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.cIn[n, t] == (mm.cF[n, t] - mm.cH[n, t]) * pyo.exp(mm.Jw[n, t] / k) + mm.cH[n, t]
         m.eqn_cIn = pyo.Constraint(m.n_vial, m.tau, rule=eqn_cIn_rule)
 
     if advanced_xlsx_transport:
         def delta_pi_rule(mm, n, t):
+            """Delta pi rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.osmotic_factor * mm.sigma * R_BAR_CM3_PER_UMOL_K * T * (mm.cM[n, t] - mm.cP[n, t]) * ni
         m.delta_pi = pyo.Expression(m.n_vial, m.tau, rule=delta_pi_rule)
 
         def eqn_Jw_rule(mm, n, t):
+            """Eqn Jw rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.Jw[n, t] * 36000 == mm.Lp * (delP - mm.delta_pi[n, t])
         m.eqn_Jw = pyo.Constraint(m.n_vial, m.tau, rule=eqn_Jw_rule)
     else:
         def eqn_Jw_rule(mm, n, t):
+            """Eqn Jw rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.Jw[n, t] * 36000 == mm.Lp * (delP - (mm.cIn[n, t] - mm.cH[n, t]) * ni * mm.sigma * R_BAR_CM3_PER_UMOL_K * T)
         m.eqn_Jw = pyo.Constraint(m.n_vial, m.tau, rule=eqn_Jw_rule)
 
     def eqn_Js_rule(mm, n, t):
+        """Eqn Js rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+            t: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         delta_c = (mm.cM[n, t] - mm.cP[n, t]) if advanced_xlsx_transport else (mm.cIn[n, t] - mm.cH[n, t])
         if b_form == BForm.SINGLE.value:
             return mm.Js[n, t] * 10000 == mm.B * delta_c
@@ -4389,19 +4705,63 @@ def model_construct_inter_v23(
 
     if b_form == BForm.CONVECTION.value:
         def eqn_Js_exp_rule(mm, n, t):
+            """Eqn Js exp rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.Js_exp[n, t] == pyo.exp(mm.Jw[n, t] / mm.beta_0 * 10000)
         m.eqn_Js_exp = pyo.Constraint(m.n_vial, m.tau, rule=eqn_Js_exp_rule)
 
         def eqn_H_rule(mm, n, t):
+            """Eqn H rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.H[n, t] == mm.beta_1
         m.eqn_H = pyo.Constraint(m.n_vial, m.tau, rule=eqn_H_rule)
 
     def eqn_cV_rule(mm, n, t):
+        """Eqn cV rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+            t: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         return mm.mV[n, t] * mm.cV[n, t] == mm.cVmV[n, t]
     m.eqn_cV = pyo.Constraint(m.n_vial, m.tau, rule=eqn_cV_rule)
 
     if advanced_xlsx_transport:
         def eqn_cP_link_rule(mm, n, t):
+            """Eqn cP link rule.
+
+            Args:
+                mm: Parameter description.
+                n: Parameter description.
+                t: Parameter description.
+
+            Returns:
+                object: Computed value or expression.
+
+            """
             return mm.cP[n, t] == mm.cH[n, t]
         m.eqn_cP_link = pyo.Constraint(m.n_vial, m.tau, rule=eqn_cP_link_rule)
 
@@ -4419,12 +4779,32 @@ def model_construct_inter_v23(
         m.electroneutral_perm_residual = pyo.Expression(m.n_vial, m.tau, rule=lambda mm, n, t: mm.z_cat * mm.cP[n, t] + mm.z_an * mm.cA_p[n, t])
 
     def cF_linking_rule(mm, n):
+        """CF linking rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         if n == mm.n_vial.last():
             return pyo.Constraint.Skip
         return mm.cF[n, Tauf] == mm.cF[n + 1, 0.0]
     m.cF_linking = pyo.Constraint(m.n_vial, rule=cF_linking_rule)
 
     def cH_linking_rule(mm, n):
+        """CH linking rule.
+
+        Args:
+            mm: Parameter description.
+            n: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         if n == mm.n_vial.last():
             return pyo.Constraint.Skip
         return mm.cH[n, Tauf] == mm.cH[n + 1, 0.0]
@@ -4445,10 +4825,28 @@ def model_construct_inter_v23(
 
 
 def apply_discretization(m: pyo.ConcreteModel, *, nfe: int = 300, scheme: str = "BACKWARD") -> None:
+    """Apply discretization.
+
+    Args:
+        m: Parameter description.
+        nfe: Parameter description.
+        scheme: Parameter description.
+
+    """
     pyo.TransformationFactory("dae.finite_difference").apply_to(m, nfe=nfe, scheme=scheme)
 
 
 def _nearest_tau_value(tau_values: Sequence[float], target: float) -> float:
+    """Nearest tau value.
+
+    Args:
+        tau_values: Parameter description.
+        target: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     arr = np.asarray(tau_values, dtype=float)
     return float(arr[np.argmin(np.abs(arr - target))])
 
@@ -4461,6 +4859,16 @@ def attach_weighted_least_squares_objective(
     sigma_cV_rel: float = 0.03,
     sigma_cF_rel: float = 0.003,
 ) -> None:
+    """Attach weighted least squares objective.
+
+    Args:
+        m: Parameter description.
+        exp: Parameter description.
+        sigma_mass_g: Parameter description.
+        sigma_cV_rel: Parameter description.
+        sigma_cF_rel: Parameter description.
+
+    """
     if not list(m.tau):
         raise RuntimeError("Model must be discretized before adding measurement objective.")
 
@@ -4588,12 +4996,29 @@ class DiafiltrationExperimentV23(ParmestExperiment):
         options: ModelOptions,
         guess: Optional[ParameterGuess] = None,
     ):
+        """Init.
+
+        Args:
+            exp: Parameter description.
+            options: Parameter description.
+            guess: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         super().__init__(model=None)
         self.exp = exp
         self.options = options
         self.guess = guess
 
     def get_labeled_model(self):
+        """Get labeled model.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         self.model = model_construct_for_parmest_v23(self.exp, self.options, self.guess)
         return self.model
 
@@ -4603,6 +5028,17 @@ def build_experiment_list_v23(
     options: ModelOptions,
     guess: Optional[ParameterGuess] = None,
 ) -> List[DiafiltrationExperimentV23]:
+    """Build experiment list v23.
+
+    Args:
+        experiments: Parameter description.
+        options: Parameter description.
+        guess: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return [DiafiltrationExperimentV23(exp=e, options=options, guess=guess) for e in experiments]
 
 
@@ -4662,6 +5098,19 @@ def _estimate_parameters_ipopt_fallback(
     solver_options: Optional[Dict[str, object]],
     tee: bool,
 ) -> Dict[str, object]:
+    """Estimate parameters ipopt fallback.
+
+    Args:
+        experiments: Parameter description.
+        options: Parameter description.
+        guess: Parameter description.
+        solver_options: Parameter description.
+        tee: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     if len(experiments) != 1:
         raise RuntimeError(
             "ipopt fallback currently supports one experiment at a time. "
@@ -4689,6 +5138,15 @@ def _estimate_parameters_ipopt_fallback(
 
 
 def covariance_to_fim(covariance: Union[np.ndarray, object]) -> np.ndarray:
+    """Covariance to fim.
+
+    Args:
+        covariance: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     cov = np.asarray(covariance, dtype=float)
     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
         raise ValueError("Covariance must be a square 2D matrix.")
@@ -4696,6 +5154,16 @@ def covariance_to_fim(covariance: Union[np.ndarray, object]) -> np.ndarray:
 
 
 def d_optimality(fim: Union[np.ndarray, object], *, log_scale: bool = True) -> float:
+    """D optimality.
+
+    Args:
+        fim: Parameter description.
+        log_scale: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     fim_arr = np.asarray(fim, dtype=float)
     sign, logdet = np.linalg.slogdet(fim_arr)
     if sign <= 0:
@@ -4748,6 +5216,15 @@ def parmest_callback_factory_v23(
     """Legacy-compatible callback factory retained for quick usage."""
 
     def _callback(idx: int) -> pyo.ConcreteModel:
+        """Callback.
+
+        Args:
+            idx: Parameter description.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         exp = experiments[idx]
         return model_construct_for_parmest_v23(exp, options=options, guess=guess)
 
@@ -4759,6 +5236,17 @@ def model_construct_inter_v24(
     options: ModelOptions,
     guess: Optional[ParameterGuess] = None,
 ) -> pyo.ConcreteModel:
+    """Model construct inter v24.
+
+    Args:
+        exp: Parameter description.
+        options: Parameter description.
+        guess: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return model_construct_inter_v23(exp=exp, options=options, guess=guess)
 
 
@@ -4787,6 +5275,12 @@ class DiafiltrationExperimentV24(DiafiltrationExperimentV23):
     """v24 wrapper with xlsx-only advanced transport/thermo model support."""
 
     def get_labeled_model(self):
+        """Get labeled model.
+
+        Returns:
+            object: Computed value or expression.
+
+        """
         self.model = model_construct_for_parmest_v24(self.exp, self.options, self.guess)
         return self.model
 
@@ -4797,6 +5291,17 @@ def build_experiment_list_v24(
     guess: Optional[ParameterGuess] = None,
 ) -> List[DiafiltrationExperimentV24]:
     # Convert raw ExperimentalData list into ParmEst-compatible experiment wrappers.
+    """Build experiment list v24.
+
+    Args:
+        experiments: Parameter description.
+        options: Parameter description.
+        guess: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return [DiafiltrationExperimentV24(exp=e, options=options, guess=guess) for e in experiments]
 
 
@@ -4898,6 +5403,20 @@ def run_doe_with_pyomo_v24(
     solver_name: str = "ipopt",
     tee: bool = False,
 ) -> Dict[str, object]:
+    """Run doe with pyomo v24.
+
+    Args:
+        experiment: Parameter description.
+        fd_formula: Parameter description.
+        step: Parameter description.
+        objective_option: Parameter description.
+        solver_name: Parameter description.
+        tee: Parameter description.
+
+    Returns:
+        object: Computed value or expression.
+
+    """
     return run_doe_with_pyomo_v23(
         experiment=experiment,
         fd_formula=fd_formula,
