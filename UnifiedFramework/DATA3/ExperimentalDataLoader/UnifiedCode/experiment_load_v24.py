@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Simple user-facing runner for the unified v23 workflow."""
+"""Simple user-facing runner for the unified v24 workflow."""
 
 from pathlib import Path
 
-from experiment_dataload_OOP_v23 import (
-    DiafiltrationExperimentV23,
+from experiment_dataload_OOP_v24 import (
+    DiafiltrationExperimentV24,
     ExperimentMode,
     ModelOptions,
     RunMode,
-    estimate_parameters_with_parmest_v23,
+    estimate_parameters_with_parmest_v24,
     load_experiment_easy,
-    run_doe_with_pyomo_v23,
+    run_doe_with_pyomo_v24,
     theta_names,
 )
 
@@ -58,7 +58,7 @@ options = ModelOptions(
     nfe=60,
 )
 
-exp_obj = DiafiltrationExperimentV23(exp=exp, options=options)
+exp_obj = DiafiltrationExperimentV24(exp=exp, options=options)
 m = exp_obj.get_labeled_model()
 print("Theta names:", theta_names(m, options))
 print("Labeled outputs:", len(m.experiment_outputs))
@@ -67,7 +67,7 @@ print("Labeled design inputs:", len(m.experiment_inputs))
 
 # 6) Parameter estimation
 if RUN_PARMEST:
-    est = estimate_parameters_with_parmest_v23(
+    est = estimate_parameters_with_parmest_v24(
         experiments=[exp],
         options=options,
         calc_cov=True,
@@ -82,6 +82,6 @@ if RUN_PARMEST:
 
 # 7) DoE/FIM analysis
 if RUN_DOE:
-    doe = run_doe_with_pyomo_v23(exp_obj, solver_name="ipopt", tee=False)
+    doe = run_doe_with_pyomo_v24(exp_obj, solver_name="ipopt", tee=False)
     print("DoE FIM:\n", doe["fim"])
     print("DoE D-opt (log-det):", doe["d_opt_logdet"])

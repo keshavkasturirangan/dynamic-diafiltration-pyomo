@@ -8,7 +8,10 @@ Created on Wed Dec 17 07:12:33 2025
 
 from pathlib import Path
 
-from experiment_dataload_OOP_v21_conductivity_patched import load_experiment_easy
+from experiment_dataload_OOP_v21_conductivity_patched import (
+    SALT_LAMBDA_PARAMS_25C,
+    load_experiment_easy,
+)
 
 
 # ---------------------------------------------------------------------
@@ -54,6 +57,9 @@ else:
 # ---------------------------------------------------------------------
 # 4) Load (file-agnostic)
 # ---------------------------------------------------------------------
+primary_salt = "NaCl"
+salt_lambda = SALT_LAMBDA_PARAMS_25C[primary_salt]
+
 exp, (ok, issues) = load_experiment_easy(
     str(path),
     selector=selector,
@@ -75,8 +81,10 @@ exp, (ok, issues) = load_experiment_easy(
         "temp_K": 298.15,
         "eta": 0.00089,
         "epsilon": 78.3,
-        "lambda_0_cation": 50.0,
-        "lambda_0_anion": 50.0,
+        # Pulled from appendix-based constants for the selected primary salt.
+        "lambda_0": salt_lambda["lambda_0"],
+        "lambda_0_cation": salt_lambda["lambda_0_cation"],
+        "lambda_0_anion": salt_lambda["lambda_0_anion"],
     },
 
     plot=True,
