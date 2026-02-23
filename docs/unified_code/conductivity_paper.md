@@ -14,7 +14,7 @@ It contains three model functions:
 
 Primary caller:
 
-- `apply_conductivity_to_concentration(...)` in `experiment_dataload_OOP_v24.py`
+- `apply_conductivity_to_concentration(...)` in `unified_codebase_library.py`
 
 Typical flow:
 
@@ -51,7 +51,7 @@ When packaging, these should be normalized behind a single unit policy and valid
 
 - Conversion can become sensitive at low/high concentration extremes.
 - Parameter consistency (`lambda_0`, charges, ion-specific terms) strongly affects inversion quality.
-- Caller-side safeguards in `experiment_dataload_OOP_v24.py` currently handle fallback and monotonic inversion logic.
+- Caller-side safeguards in `unified_codebase_library.py` currently handle fallback and monotonic inversion logic.
 
 ## Refactor guidance for package version
 

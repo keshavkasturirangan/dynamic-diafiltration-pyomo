@@ -2,8 +2,8 @@
 
 This section documents the current unified experimental loader and modeling code under:
 
-- `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_dataload_OOP_v24.py`
-- `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_load_v24.py`
+- `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_library.py`
+- `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
 - `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/conductivity_paper.py`
 
 The goal is to provide:
@@ -14,14 +14,14 @@ The goal is to provide:
 
 ## Module map
 
-- `experiment_dataload_OOP_v24.py`: core data model, file ingestion, validation, conductivity->concentration utilities, dynamic Pyomo model construction, ParmEst integration, DoE/FIM helpers.
-- `experiment_load_v24.py`: user-facing entry script that configures one run.
+- `unified_codebase_library.py`: core data model, file ingestion, validation, conductivity->concentration utilities, dynamic Pyomo model construction, ParmEst integration, DoE/FIM helpers.
+- `unified_codebase_runfile.py`: user-facing entry script that configures one run.
 - `conductivity_paper.py`: conductivity physics helpers (Shedlovsky variant + MSA transport routines).
 
 ## Recommended read order
 
-1. `experiment_load_v24.md` (how users run the workflow)
-2. `experiment_dataload_OOP_v24.md` (core system design and APIs)
+1. `unified_codebase_runfile.md` (how users run the workflow)
+2. `unified_codebase_library.md` (core system design and APIs)
 3. `conductivity_paper.md` (measurement-model internals)
 
 ## Future RTD migration notes
@@ -34,8 +34,8 @@ For Sphinx/MyST, add a `toctree` similar to:
 ```{toctree}
 :maxdepth: 2
 
-experiment_load_v24
-experiment_dataload_OOP_v24
+unified_codebase_runfile
+unified_codebase_library
 conductivity_paper
 ```
 ```

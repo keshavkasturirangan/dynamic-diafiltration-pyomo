@@ -1,8 +1,8 @@
-# `experiment_load_v24.py`
+# `unified_codebase_runfile.py`
 
 ## Purpose
 
-`experiment_load_v24.py` is the user-facing runner script.  
+`unified_codebase_runfile.py` is the user-facing runner script.  
 It wires together:
 
 - experiment loading (`.xlsx`/`.mat`),
@@ -10,7 +10,7 @@ It wires together:
 - parameter estimation via ParmEst,
 - optional DoE/FIM analysis.
 
-It is intentionally small and readable, with heavy lifting delegated to `experiment_dataload_OOP_v24.py`.
+It is intentionally small and readable, with heavy lifting delegated to `unified_codebase_library.py`.
 
 ## Execution flow
 
