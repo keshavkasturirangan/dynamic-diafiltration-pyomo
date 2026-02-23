@@ -2,8 +2,8 @@
 
 ## Objective
 Validate the unified framework by reproducing required DATA1 and DATA2 published results using:
-- `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_dataload_OOP_v24.py`
-- `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_load_v24.py`
+- `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_library.py`
+- `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/conductivity_paper.py`
 
 ## Scope and Rules
@@ -17,6 +17,22 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
   - Table values: absolute tolerance based on reported precision/significant digits
 - Plot outputs must match paper styling.
 - Nightly tests: fail on tolerance miss.
+
+## Execution Reset (2026-02-21)
+- Problem: work expanded into structural refactors without clear stop conditions.
+- Reset principle: reproduction-first, refactor-second.
+- Hard rule: no additional architecture work unless it directly unblocks a required paper target.
+
+### What “Done” means right now
+1. DATA1 main + SI targets are locked to concrete artifacts and pass/fail tolerance status is computed.
+2. DATA2 core (`270511.123`, `270611.123`) has source-backed baselines and pass/fail tolerance status.
+3. Unified run path supports both MAT and XLSX from one external API (`run_unified_pipeline_v24`), with compatibility wrappers retained.
+4. Nightly regression scaffold is runnable and tied to target IDs.
+
+### Explicitly deferred until after above is done
+- Further module splits/renames.
+- Packaging polish not required for immediate reproduction.
+- Non-essential API redesign.
 
 ## Dataset Priorities
 - Stage A (first concrete benchmark): `data_stru-dataset511.12.mat`
@@ -45,7 +61,7 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
 
 ### WS3: Plotting Integration in Unified Module
 - Add/expand plotting utilities in:
-  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_dataload_OOP_v24.py`
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_library.py`
 - Ensure figure generation is reusable by scripts and future package API.
 
 ### WS4: Regression Test Automation
@@ -132,15 +148,166 @@ Exit Criteria:
   - pass/fail status
   - explanation field when using 5–7% relaxed parameter window
 
+## Execution Tracker
+
+| Step ID | Task | Status | Date | Evidence |
+|---|---|---|---|---|
+| EX-001 | Create validation matrix + scaffold script | Completed | 2026-02-18 | `scripts/reproduce/reproduce_data1_data2.py`, `docs/validation/paper_target_matrix.md`, `docs/validation/paper_reference_values_template.csv` |
+| EX-002 | Migrate active workflow to ipopt-only user-facing solver policy | Completed | 2026-02-18 | Commit `4317ce6`; updated `unified_codebase_library.py`, `unified_codebase_runfile.py`, regression/docs |
+| EX-003 | Execute Stage A benchmark on `DATA1_511.12` | Completed | 2026-02-18 | Run IDs `20260218-182946`, `20260218-184013`; Stage A figures/tables generated |
+| EX-004 | Execute Stage C core benchmarks (`270511.123`, `270611.123`) | Completed | 2026-02-18 | Run ID `20260218-183025`; unified metrics + side-by-side CSV generated |
+| EX-005 | Add ParmEst adapter for Pyomo 6.9.5 solver-token compatibility | Completed | 2026-02-18 | Commit `bfe7992`; `unified_codebase_library.py` |
+| EX-006 | Populate paper baseline values for Stage A/Stage C | Completed | 2026-02-18 | Updated `docs/validation/paper_reference_values_template.csv` (DATA1 from legacy fit file; DATA2 from published-era notebook/script artifacts) |
+| EX-007 | Compute tolerance pass/fail status from populated baselines | Completed (Rerun with source-backed DATA2) | 2026-02-18 | Run `20260218-190331`; comparison table at `results/reproduction/20260218-190331/tables/paper_vs_unified_side_by_side.csv` |
+| EX-008 | Expand to Stage B full DATA1 targets | Completed (covered by EX-016) | 2026-02-20 | Stage B generation implemented and executed in run `20260220-223843` |
+| EX-009 | Improve DATA1/DATA2 fit parity via dataset-specific model forms and parameter mapping | In Progress | 2026-02-18 | Updated DATA2 runs to `Lag + convection`; switched comparison to `beta_0/beta_1`; exploratory constrained run `20260218-191502` |
+| EX-010 | Legacy execution-parity audit against upstream `utility.py` + notebook flow | Completed | 2026-02-19 | Mapped objective/suffix rules and patched unified gating (`n_v0`, `n_extra`, zero-skip, scalar/series `cV_avg`) in `unified_codebase_library.py`; smoke run `20260219-004414` |
+| EX-011 | Implement interpolation-consistent measurement mapping for ParmEst suffix workflow | Completed | 2026-02-19 | Added interpolation-linked measurement proxy variables/constraints and switched suffix labeling to proxy outputs; runs `20260219-121031`, `20260219-121117` |
+| EX-012 | Align DATA1 fit model form/parameterization with legacy utility.py | Completed (major parity gains) | 2026-02-19 | Added DATA-mode legacy boundary/linking behavior, legacy grouped objective fit path, MAT `ni` mapping, and DATA1 non-logit sigma setting; run `20260219-164626` |
+| EX-013 | Use MAT-native initialization by default + ipopt-only ParmEst path + XLSX multistart hook | Completed | 2026-02-19 | Added `build_guess_from_experiment_v24`, removed `ef_ipopt` bridging, and integrated optional `pyomo.contrib.multistart` for XLSX single-experiment fallback; run `20260219-171416` |
+| EX-014 | Replace external multistart dependency with internal restart loop and keep common MAT/XLSX estimation flow | Completed | 2026-02-20 | Swapped fallback from `pyomo.contrib.multistart` solve call to internal randomized restart loop; preserved MAT-native initialization and shared estimation pipeline; run `20260220-221507` |
+| EX-015 | Enable utility-style restart sweep for DATA1 MAT legacy-fit path | Completed | 2026-02-20 | Added optional MAT-legacy restart flag and ran DATA1 sweep (`multistart_iterations=30`); run `20260220-223530` |
+| EX-016 | Execute Stage B DATA1 artifact generation (main Fig.4/5/6 + SI S2-S7) | Completed | 2026-02-20 | Added Stage B generator + manifest in scaffold and produced artifacts in run `20260220-223843` |
+| EX-017 | Deterministically regenerate DATA1 notebook outputs and produce panel checklist | Completed | 2026-02-21 | Added `scripts/reproduce/regenerate_data1_notebook_artifacts.py`; run `20260221-data1-notebook` generated 44 PNGs with manifest + panel checklist |
+| EX-018 | Lock DATA1 main/SI figure mappings by PDF visual comparison and update matrix | Completed | 2026-02-21 | Locked SI/main mappings in `data1_panel_checklist.md`; updated `paper_target_matrix.md` DATA1 figure statuses to `Locked (20260221-data1-notebook)` |
+| EX-019 | Rename unified modules + add shared MAT/XLSX pipeline entrypoint | Completed | 2026-02-21 | Renamed to `unified_codebase_library.py` and `unified_codebase_runfile.py`, added `UnifiedPipelineConfigV24` + `run_unified_pipeline_v24`, and preserved legacy wrappers |
+| EX-020 | Deepen unified MAT/XLSX orchestration internals behind one API contract | Completed | 2026-02-21 | Added source-aware option resolver, stage helpers (`_run_unified_estimation_stage_v24`, `_run_unified_doe_stage_v24`), run metadata builder, and optional reporting hook in `run_unified_pipeline_v24` |
+
 ## Immediate Next Actions
-1. Populate paper reference values for Stage A rows in `paper_reference_values_template.csv`.
-2. Run Stage A script with `ipopt` and generate artifact bundle.
-3. Validate Stage A against tolerance thresholds and update status matrix.
-4. Resolve any Stage A mismatches (model options, plotting parity, data mapping).
-5. Begin Stage B expansion once Stage A is accepted.
+1. Re-run DATA1 + DATA2 tolerance evaluation now using locked figure mappings and source-backed baselines.
+2. Update `paper_target_matrix.md` rows from `Locked/Preliminary` to explicit `PASS/FAIL/MISSING_VALUE`.
+3. Emit one consolidated validation report CSV keyed by target ID.
+4. Only if blocked by code-path mismatch: apply minimal fixes in `unified_codebase_library.py` and rerun.
 
 ## Open Items to Track
 - Covariance behavior when `k_aug` is unavailable in environment (documented limitation path).
 - Any solver option tuning needed for stable covariance/fit across datasets.
 - Final plotting parity details (fonts/line styles/layout per paper).
 - Repo cleanup rename/move proposal document (pending).
+- Investigate DATA1 Stage A objective and parameter mismatches (objective, `Lp`, `B`) vs legacy baseline.
+- Align DATA2 comparison metrics with paper model form (`beta_0`, `beta_1`, optional `S0`) since scalar `theta.B` is not directly comparable.
+- Add dataset-specific initial guesses/fixed-parameter controls in scaffold to avoid boundary convergence for DATA2 (`beta_0`, `beta_1`, `sigma`).
+
+## Progress Log
+- 2026-02-18: Stage A executed with `ipopt` on `DATA1_511.12` via `scripts/reproduce/reproduce_data1_data2.py`.
+  - Run ID: `20260218-182946`
+  - Generated: Fig.2 set, Table 1 side-by-side CSV, Fig.3 overlay, Table 2 side-by-side CSV.
+  - Note: side-by-side tolerance status remains `MISSING_VALUE` until paper baseline values are populated in `paper_reference_values_template.csv`.
+- 2026-02-18: Stage C core executed with `ipopt` on `DATA2_270511.123` and `DATA2_270611.123`.
+  - Run ID: `20260218-183025`
+  - Generated: unified metrics and side-by-side comparison CSV (baseline paper values still pending).
+- 2026-02-18: EX-006 baseline population updated and EX-007 first pass executed.
+  - Run ID: `20260218-185741`
+  - Status summary: `PASS=7`, `FAIL=5`, `MISSING_VALUE=3`.
+  - Failures observed in DATA1 Stage A (`objective`, `theta.Lp`, `theta.B`) and objective rows for DATA2 (with provisional baseline values).
+- 2026-02-18: EX-007 rerun after replacing DATA2 provisional baselines with source-backed values.
+  - Run ID: `20260218-190331`
+  - Status summary: `PASS=1`, `FAIL=8`, `MISSING_VALUE=6`.
+  - DATA2 `theta.B` and some objective rows remain `MISSING_VALUE` where no scalar/table-equivalent baseline exists in current artifacts.
+- 2026-02-18: EX-009 exploratory improvement run with dataset-specific DATA2 form.
+  - Run ID: `20260218-191502`
+  - Changes tested: DATA2 `mode=Lag`, `b_form=convection`, tightened `beta` bounds, fixed `sigma` in estimation.
+  - Outcome: objective dropped substantially, but parameter parity remains outside tolerance; indicates local-minimum/weighting mismatch rather than simple solver configuration issue.
+- 2026-02-18: EX-009 redesign run with cross-validation metric switch.
+  - Run ID: `20260218-192333`
+  - Changes implemented in scaffold:
+    - dataset-specific execution mode (`estimation` for `DATA2_270511.123`; fixed-parameter cross-validation for `DATA2_270611.123`)
+    - DATA2 metric mapping changed to curve-quality targets (`nrmse.mass`, `nrmse.cF`, `nrmse.cV`)
+    - side-by-side merge changed to left-join on references only (prevents non-target metric inflation).
+  - Outcome: comparison semantics improved, but tolerance failures remain significant (`FAIL=6`, `PASS=1`, `MISSING_VALUE=3`).
+- 2026-02-18: EX-009 stability fixes and re-run.
+  - Run ID: `20260218-194541` (DATA1 only quick check)
+  - Fixes:
+    - removed unsupported IPOPT option (`acceptable_iter`) in curve-simulation retry path
+    - removed duplicate `objective_legacy` insertion in metric table assembly
+  - Outcome: pipeline stability improved; numeric mismatch for DATA1 remains and requires objective/measurement parity deep-dive.
+- 2026-02-19: EX-010 upstream legacy parity audit + unified objective/suffix gating patch.
+  - Sources reviewed: upstream `README.md`, `utility.py`, `DATA1_model_demo.ipynb`, `DATA2_model_demo.ipynb`, `DATA2_visualization.ipynb`.
+  - Unified updates in `unified_codebase_library.py`:
+    - persisted MAT gating metadata (`n_v0`, `n_extra`, `n`) on `ExperimentalData`
+    - applied legacy vial gates to mass/cF/cV measurement objective terms
+    - applied matching gates to ParmEst suffix labeling
+    - added zero-value skip logic and scalar-or-series handling for `cV_avg`
+  - Validation run: `20260219-004414` (DATA1 only smoke run) completed end-to-end.
+  - Outcome: execution parity improved structurally; numerical parity still requires additional alignment (likely interpolation-vs-discrete labeling and DATA1 legacy model-form details).
+- 2026-02-19: EX-011 interpolation-consistent measurement mapping implemented and tested.
+  - Unified updates in `unified_codebase_library.py`:
+    - added linear interpolation helper over discretized `tau` nodes for arbitrary measurement times
+    - added measurement-record builder with legacy gating/weighting rules
+    - added measured-output proxy variables and linking constraints (`_obs_pred == interpolated state`)
+    - switched ParmEst/DoE suffix labeling to use proxy outputs (instead of nearest-node state values)
+  - Validation runs: `20260219-121031`, `20260219-121117` (DATA1 Stage A only).
+  - Outcome: interpolation parity mechanism is active and stable, but DATA1 Stage A fit parity did not improve yet (`theta.B` still at lower bound; objective and `theta.Lp` remain outside tolerance).
+- 2026-02-19: EX-012 DATA1 legacy fit alignment implemented.
+  - Unified updates in `unified_codebase_library.py`:
+    - DATA-mode MAT initial `cH[1,0]` now follows legacy (`0.8 * first-vial cV_avg`)
+    - DATA-mode legacy vial-linking constraints for `mV` and `cVmV` restored
+    - MAT loader now maps `data_config.ni` (ionic species count) to model osmotic term
+    - added direct legacy grouped objective fit path for DATA/MAT/single-B runs
+    - added utility-style casadi initialization attempt before discretized legacy fit
+  - Script update in `scripts/reproduce/reproduce_data1_data2.py`:
+    - DATA1 canonical run now uses non-logit sigma parameterization
+  - Validation run: `20260219-164626` (DATA1 Stage A, `nfe=300`).
+  - Outcome vs baseline:
+    - `theta.B`: from bound (`1e-6`) to `0.2842` (relative error ~7.54%)
+    - `theta.Lp`: improved to `3.2900` (relative error ~10.58%)
+    - `objective_legacy`: improved to `9.59e5` (relative error ~30.2%)
+- 2026-02-19: EX-013 initialization/solver framework modernization.
+  - Unified updates in `unified_codebase_library.py`:
+    - added `build_guess_from_experiment_v24` to source default guesses from MAT `theta0/Lp0/B0/sigma0`
+    - estimation path now avoids `ef_ipopt` mapping and remains `ipopt`-only in unified code
+    - added optional XLSX-only multistart hook (`ModelOptions.use_multistart_for_xlsx`, `multistart_iterations`, `multistart_strategy`) using `pyomo.contrib.multistart`
+  - Runner update in `scripts/reproduce/reproduce_data1_data2.py`:
+    - DATA1 canonical case now uses MAT-derived initialization by default when no explicit override is provided
+  - Validation run: `20260219-171416` (DATA1 Stage A quick run) completed successfully with MAT-derived initialization.
+- 2026-02-20: EX-014 internal restart fallback + common flow cleanup.
+  - `unified_codebase_library.py`:
+    - replaced runtime `multistart` solver call with internal utility-style randomized restart loop in ipopt fallback
+    - retained `ModelOptions` restart controls so this can be refactored to official multistart later
+    - kept MAT initial-value usage (`theta0/Lp0/B0/sigma0`) through shared `build_guess_from_experiment_v24`
+  - outcome: no regression in DATA1 quick validation (`20260220-221507`), and fallback path no longer depends on external multistart availability.
+- 2026-02-20: EX-015 MAT restart sweep enabled.
+  - `scripts/reproduce/reproduce_data1_data2.py`:
+    - DATA1 canonical spec now enables MAT-legacy restart sweep (`use_multistart_for_mat_legacy=True`, `multistart_iterations=30`)
+  - `unified_codebase_library.py`:
+    - legacy DATA/MAT fit path now optionally uses the shared internal restart routine
+  - validation run: `20260220-223530` (DATA1 Stage A quick run).
+  - outcome: converged to the same best basin as prior MAT-initialized fit (`Lp~3.294`, `B~0.283`, objective~9.56e5), indicating remaining mismatch is structural/data-treatment, not local-minimum search failure.
+- 2026-02-20: EX-016 Stage B DATA1 artifact generation completed.
+  - `scripts/reproduce/reproduce_data1_data2.py` updates:
+    - added `_build_data1_stage_b_outputs` to generate:
+      - DATA1 main: Fig.4 (`data1_fig4_*`), Fig.5 (`data1_fig5_*`), Fig.6 (`data1_fig6_*`)
+      - DATA1 SI: Fig.S2-S7 (`data1_si_figS*_*.png`)
+    - added `data1_stageB_artifact_manifest.csv` with target-to-file mapping
+    - wired Stage B generation into `main()` metadata output
+  - run: `20260220-223843`.
+  - `paper_target_matrix.md` updated to mark DATA1 Stage B targets as `Generated (20260220-223843)`.
+- 2026-02-21: EX-017 deterministic DATA1 notebook regeneration and panel checklist completed.
+  - added script: `scripts/reproduce/regenerate_data1_notebook_artifacts.py`
+  - run: `20260221-data1-notebook`
+  - output manifest: `results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
+  - output checklist: `docs/validation/data1_panel_checklist.md`
+  - generated artifacts: 44 PNGs (main + SI-oriented notebook outputs)
+- 2026-02-21: EX-018 DATA1 figure mapping lock completed.
+  - locked main/SI mapping via PDF image extracts under:
+    - `results/reproduction/20260221-data1-notebook/pdf_extract/data1_si/`
+  - updated figure mapping statuses:
+    - `docs/validation/data1_panel_checklist.md`
+    - `docs/validation/paper_target_matrix.md`
+- 2026-02-21: EX-019 unified module rename + shared pipeline API baseline completed.
+  - module rename:
+    - `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_library.py`
+    - `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
+  - compatibility wrappers retained:
+    - `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_dataload_OOP_v24.py`
+    - `UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_load_v24.py`
+  - shared MAT/XLSX pipeline API added:
+    - `UnifiedPipelineConfigV24`
+    - `run_unified_pipeline_v24(...)`
+- 2026-02-21: EX-020 unified orchestration internals refactor completed.
+  - `unified_codebase_library.py`:
+    - added source-aware model options defaults and resolver for MAT vs XLSX
+    - added shared stage helpers for estimation and DoE execution
+    - added run metadata builder including stage/target IDs/artifact-root context
+    - extended `UnifiedPipelineConfigV24` with reporting fields and callback hook
+    - updated `run_unified_pipeline_v24` to route through helper stages with one API contract
