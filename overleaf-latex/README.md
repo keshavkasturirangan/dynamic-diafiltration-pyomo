@@ -2,21 +2,35 @@
 
 This folder contains a starter LaTeX project (`main.tex`) intended to sync with Overleaf using Git.
 
-## Connect this folder to Overleaf (Git)
+## Current Setup
 
-1. In Overleaf, open your project and enable Git access.
-2. Copy the Overleaf Git URL from **Menu -> Git**.
-3. In this repository, run:
+- Overleaf remote name: `overleaf`
+- Overleaf project URL: `https://git.overleaf.com/699d176f9b4bfb2fe06e101f`
+
+## First-time authentication
+
+If prompted, use your Overleaf Git credentials from **Overleaf -> Menu -> Git**.
 
 ```bash
-cd overleaf-latex
-git init
-# Add your remote (replace URL)
-git remote add overleaf <OVERLEAF_GIT_URL>
-# First push
-git add .
-git commit -m "Initialize LaTeX project"
-git push -u overleaf master
+git config --global credential.helper osxkeychain
 ```
 
-If this repository is already a Git repo (it is), you can instead add the Overleaf remote from the repo root and push only this folder.
+## Push local changes to Overleaf
+
+Run from repo root:
+
+```bash
+cd /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo
+git subtree push --prefix overleaf-latex overleaf master
+```
+
+## Pull Overleaf changes back into this folder
+
+Run from repo root:
+
+```bash
+cd /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo
+git subtree pull --prefix overleaf-latex overleaf master --squash
+```
+
+This imports the Overleaf project into `overleaf-latex/` and records it as a single merge commit.

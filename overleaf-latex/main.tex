@@ -1,21 +1,163 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb}
-\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{enumitem}
 
-\title{Dynamic Diafiltration Notes}
+\title{SIAM UQ 2026 Presentation Template\\Intrusive Uncertainty Quantification and Optimal Experiment Design to Characterize Membrane Separation Systems}
 \author{Keshav Team}
-\date{\today}
+\date{2026}
 
 \begin{document}
 \maketitle
 
-\section{Introduction}
-This document is set up for Overleaf + Git collaboration.
+\section*{Slide 1: Title \& Thesis}
+\textbf{Header:} Intrusive Uncertainty Quantification and Optimal Experiment Design to Characterize Membrane Separation Systems
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Goal:} Characterize nonlinear transport in surface-charged membranes under uncertainty.
+  \item \textbf{Approach:} Sequential Model-Based Design of Experiments (MBDoE) using intrusive sensitivities.
+\end{itemize}
+\[
+\phi_{k+1}^* = \arg\max_{\phi} \log\det\left(M_k + M(\hat{\theta}_k, \phi)\right)
+\]
+\textbf{Key Takeaway:} We optimize experiment design by maximizing information gain in a closed-loop framework.
 
-\section{Next Steps}
-Add your content, equations, figures, and references here.
+\section*{Slide 2: General Forward Model (ODE-Constrained)}
+\textbf{Header:} Mechanistic Foundation \& Notation
+\begin{itemize}[leftmargin=*]
+  \item System dynamics governed by nonlinear ODEs with parameters $\theta$.
+  \item Experimental design $\phi$ parameterizes the time-varying inputs $u(t)$.
+\end{itemize}
+\[
+\dot{x}(t) = f(x(t), u(t; \phi), \theta), \quad x(0) = x_0
+\]
+\[
+\hat{y}^r(t) = g^r(x(t), u(t; \phi), \theta)
+\]
+\textbf{Key Takeaway:} The Forward Problem maps physical parameters and design choices to observable trajectories.
+
+\section*{Slide 3: Measurement \& Noise Model}
+\textbf{Header:} Statistical Characterization of Data
+\begin{itemize}[leftmargin=*]
+  \item Data = model truth + stochastic noise.
+  \item Heterogeneous sensors (e.g., flux vs. concentration) require weighted objectives.
+\end{itemize}
+\[
+y^r(t) = \hat{y}^r(t; \theta, \phi) + \epsilon^r(t), \quad \epsilon^r \sim \mathcal{N}(0, V_r)
+\]
+\textbf{Key Takeaway:} Explicitly modeling the noise covariance $V_r$ is essential for multi-modal data fusion.
+
+\section*{Slide 4: Parameter Estimation (The Inverse Problem)}
+\textbf{Header:} Weighted Least Squares (WLS) Formulation
+\begin{itemize}[leftmargin=*]
+  \item Estimate $\hat{\theta}$ by minimizing the Weighted Sum of Squared Errors (WSSE).
+  \item This is the Maximum Likelihood Estimate (MLE) under the Gaussian assumption.
+\end{itemize}
+\[
+\hat{\theta} = \arg\min_{\theta} \sum_r \left\lVert y^r - \hat{y}^r(\theta, \phi) \right\rVert_{V_r^{-1}}^2
+\]
+\textbf{Key Takeaway:} Parameter estimation is the inner loop of the UQ framework.
+
+\section*{Slide 5: Intrusive Sensitivities (The Engine)}
+\textbf{Header:} Exact Derivatives via Sensitivity ODEs
+\begin{itemize}[leftmargin=*]
+  \item Intrusive means differentiating the physics directly, not using finite differences.
+  \item State sensitivity $S(t)$ propagates parameter influence through the dynamics.
+\end{itemize}
+\[
+\dot{S}(t) = \frac{\partial f}{\partial x}S(t) + \frac{\partial f}{\partial \theta}, \quad S(0)=0
+\]
+\[
+Q^r(t) = \frac{\partial g^r}{\partial x}S(t) + \frac{\partial g^r}{\partial \theta}
+\]
+\textbf{Key Takeaway:} Derivative-consistent sensitivities provide the high-fidelity gradients needed for the FIM.
+
+\section*{Slide 6: Fisher Information \& Covariance}
+\textbf{Header:} Mapping Sensitivity to Information Geometry
+\begin{itemize}[leftmargin=*]
+  \item FIM ($M$) summarizes the local information content of an experiment.
+  \item Cram\'er-Rao Bound: $M^{-1}$ approximates the local parameter covariance.
+\end{itemize}
+\[
+M(\hat{\theta},\phi) = \sum_r \int_0^T Q^r(t)^T V_r^{-1} Q^r(t)\,dt
+\]
+\[
+\mathrm{Cov}(\hat{\theta}) \approx M(\hat{\theta},\phi)^{-1}
+\]
+\textbf{Key Takeaway:} The FIM quantifies how sensitive our measurements are to parameter changes.
+
+\section*{Slide 7: Identifiability Diagnostics}
+\textbf{Header:} Spectrum of the Information Matrix
+\begin{itemize}[leftmargin=*]
+  \item Condition number $\kappa(M)$ quantifies ill-conditioning and sloppy directions.
+  \item Small eigenvalues $\lambda_{\min}$ indicate practically unidentifiable parameters.
+\end{itemize}
+\[
+\kappa(M) = \frac{\lambda_{\max}(M)}{\lambda_{\min}(M)}
+\]
+\textbf{Key Takeaway:} Spectral analysis of $M$ shows which parameters the experiment failed to capture.
+
+\section*{Slide 8: MBDoE Objective (D-Optimality)}
+\textbf{Header:} Designing for Maximum Information
+\begin{itemize}[leftmargin=*]
+  \item Goal: Choose $\phi$ to minimize the volume of the uncertainty ellipsoid.
+  \item D-optimality is invariant under linear reparameterization.
+\end{itemize}
+\[
+\phi^* = \arg\max_{\phi} \log\det M(\hat{\theta}, \phi)
+\]
+\textbf{Key Takeaway:} Maximizing the determinant of the FIM is equivalent to maximizing Shannon information gain.
+
+\section*{Slide 9: Sequential Design Workflow}
+\textbf{Header:} Closing the Loop: Sequential MBDoE
+\begin{itemize}[leftmargin=*]
+  \item Update total information: $M_{\mathrm{total}} = M_{\mathrm{prior}} + M_{\mathrm{new}}$.
+  \item Stop when the trace of covariance (A-optimality) meets tolerance $\tau$.
+\end{itemize}
+\[
+\mathrm{tr}(M^{-1}) \leq \tau
+\]
+\textbf{Key Takeaway:} Sequential design reduces experimental effort by targeting only remaining uncertainty.
+
+\section*{Slide 10: Mapping Theory to Physics (Case Study)}
+\textbf{Header:} Realizing the Framework: Dynamic Diafiltration
+
+\begin{tabular}{ll}
+\toprule
+\textbf{Category} & \textbf{Terms} \\
+\midrule
+States ($x$) & Solute concentration ($c_f$), Solution mass ($m$) \\
+Parameters ($\theta$) & Permeability ($B$), Reflection ($\sigma$), Charge ($\chi$) \\
+Design ($\phi$) & Pressure ($\Delta P$), Flow rates ($Q$), Initial conc. ($c_0$) \\
+\bottomrule
+\end{tabular}
+
+\[
+\frac{dc_f}{dt} = \frac{1}{V(t)}\left[Q_{in}c_{in} - Q_{out}c_f - J_s A_m\right]
+\]
+\textbf{Key Takeaway:} The general UQ framework is applied to characterize complex transport in NF270 membranes.
+
+\section*{Slide 11: Results --- Information Gain \& Validation}
+\textbf{Header:} Impact of Transient Dynamics (Lag vs. Overflow)
+\begin{itemize}[leftmargin=*]
+  \item Framework identified Lag Startup Mode as an information goldmine.
+  \item Result: 138\% improvement in parameter precision compared to steady-state.
+\end{itemize}
+\[
+\Delta\log\det(M) \quad \text{over iterations } k
+\]
+\textbf{Key Takeaway:} Modeling transients and dead volumes is critical for high-fidelity membrane characterization.
+
+\section*{Slide 12: Limitations \& Future Work}
+\textbf{Header:} SIAM-Honest Critique \& Scaling
+\begin{itemize}[leftmargin=*]
+  \item Non-convexity: Mapping $\phi \to M(\phi)$ is nonlinear; global solvers may be needed.
+  \item Future: Scaling to self-driving labs for critical mineral recovery (Li-ion recycling).
+\end{itemize}
+\[
+\pi(\theta\mid y) \approx \mathcal{N}(\hat{\theta}, M^{-1})
+\]
+\textbf{Key Takeaway:} This digital twin foundation enables autonomous, uncertainty-aware inverse design.
 
 \end{document}
