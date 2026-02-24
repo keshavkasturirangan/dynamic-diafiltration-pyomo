@@ -1,0 +1,14 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,param_rel_primary_limit,param_rel_with_expl_limit,objective_rel_limit,relative_error,status
+DATA1_511.12,objective,,,D1-M-T1,Fill from DATA1 publication baseline,38273.56155624901,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.B,,,D1-M-T1,Fill from DATA1 publication baseline,1e-06,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.Lp,,,D1-M-T1,Fill from DATA1 publication baseline,2.2516926945079896,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.sigma,,,D1-M-T1,Fill from DATA1 publication baseline,0.9989999979378459,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.sigma_logit,,,,,19.99751270937257,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,objective,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,theta.B,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,theta.Lp,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,theta.sigma,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,objective,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.B,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.Lp,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.sigma,,,D2-M-T2,Fill from DATA2 publication baseline,,0.05,0.07,0.05,,MISSING_VALUE

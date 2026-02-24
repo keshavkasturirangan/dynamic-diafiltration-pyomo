@@ -1,0 +1,15 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,param_rel_primary_limit,param_rel_with_expl_limit,objective_rel_limit,relative_error,status
+DATA1_511.12,objective,1374169.294771704,,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.B,0.3074072904020317,um/s,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.Lp,3.679272964056146,L/m^2/bar/h,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,,0.05,0.07,0.05,,MISSING_VALUE
+DATA1_511.12,theta.sigma,0.9999999978935008,dimensionless,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,objective,462346.8611339315,,D2-M-T2,Published-era baseline from DATA2_model_demo.ipynb (mode Lag; B_form=1 empirical B model),10886.25774952387,0.05,0.07,0.05,0.9764543491809922,FAIL
+DATA2_270511.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,9.062789051076873,0.05,0.07,0.05,0.18450531258137295,FAIL
+DATA2_270511.123,theta.beta_0,1.0649294788103598,dimensionless,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,5.0,0.05,0.07,0.05,3.695146579645382,FAIL
+DATA2_270511.123,theta.beta_1,0.0151714212246034,dimensionless,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,0.1,0.05,0.07,0.05,5.5913402916946655,FAIL
+DATA2_270511.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,objective,,,D2-M-T2,No direct published objective found for dataset270611.123 in available local artifacts,8312.799822187275,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,8.50908721983539,0.05,0.07,0.05,0.2343289263989914,FAIL
+DATA2_270611.123,theta.beta_0,1.0649294788103598,dimensionless,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,5.0,0.05,0.07,0.05,3.695146579645382,FAIL
+DATA2_270611.123,theta.beta_1,0.0151714212246034,dimensionless,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,0.1,0.05,0.07,0.05,5.5913402916946655,FAIL
+DATA2_270611.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,,0.05,0.07,0.05,,MISSING_VALUE

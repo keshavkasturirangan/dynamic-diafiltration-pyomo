@@ -1,0 +1,11 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,param_rel_primary_limit,param_rel_with_expl_limit,objective_rel_limit,relative_error,status
+DATA1_511.12,objective_legacy,1374169.294771704,,D1-M-T1,Legacy objective baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,955966.5977880133,0.05,0.07,0.05,0.30433127750330663,FAIL
+DATA1_511.12,theta.Lp,3.679272964056146,L/m^2/bar/h,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,3.2942753884168923,0.05,0.07,0.05,0.10463957944963682,FAIL
+DATA1_511.12,theta.B,0.3074072904020317,um/s,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.2834576796816833,0.05,0.07,0.05,0.077908401876308,FAIL
+DATA1_511.12,theta.sigma,0.9999999978935008,dimensionless,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.9800573680044441,0.05,0.07,0.05,0.01994262993106584,PASS
+DATA2_270511.123,nrmse.mass,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for mass trajectory,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,nrmse.cF,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for retentate concentration trajectory,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,nrmse.cV,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for vial concentration trajectory,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,nrmse.mass,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for mass trajectory,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,nrmse.cF,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for retentate concentration trajectory,,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,nrmse.cV,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for vial concentration trajectory,,0.05,0.07,0.05,,MISSING_VALUE

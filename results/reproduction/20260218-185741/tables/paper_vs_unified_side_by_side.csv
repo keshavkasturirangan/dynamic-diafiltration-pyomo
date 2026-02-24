@@ -1,0 +1,16 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,param_rel_primary_limit,param_rel_with_expl_limit,objective_rel_limit,relative_error,status
+DATA1_511.12,objective,1374169.294771704,,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,19136.780778124506,0.05,0.07,0.05,0.9860739278261171,FAIL
+DATA1_511.12,theta.B,0.3074072904020317,um/s,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,1e-06,0.05,0.07,0.05,0.9999967469867137,FAIL
+DATA1_511.12,theta.Lp,3.679272964056146,L/m^2/bar/h,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,2.2516926945079896,0.05,0.07,0.05,0.38800607715018437,FAIL
+DATA1_511.12,theta.sigma,0.9999999978935008,dimensionless,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.9989999979378459,0.05,0.07,0.05,0.0009999999577614167,PASS
+DATA1_511.12,theta.sigma_logit,,,,,19.99751270937257,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,objective,403661.23990446766,,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,201830.61995223377,0.05,0.07,0.05,0.5000000000000001,FAIL
+DATA2_270511.123,theta.B,2.889562703895721,um/s,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,2.889562703895781,0.05,0.07,0.05,2.0747791092725153e-14,PASS
+DATA2_270511.123,theta.Lp,6.491272055398287,L/m^2/bar/h,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,6.491272055398294,0.05,0.07,0.05,1.094612473019363e-15,PASS
+DATA2_270511.123,theta.sigma,0.0010000020710458,dimensionless,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,0.001000002071045898,0.05,0.07,0.05,9.801167340602505e-14,PASS
+DATA2_270511.123,theta.sigma_logit,,,,,-19.99321008787239,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,objective,150656.42954687614,,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,75328.214773438,0.05,0.07,0.05,0.5000000000000004,FAIL
+DATA2_270611.123,theta.B,19.98919260535834,um/s,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,19.989192605355683,0.05,0.07,0.05,1.3294333013882806e-13,PASS
+DATA2_270611.123,theta.Lp,7.951854568984934,L/m^2/bar/h,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,7.951854568984772,0.05,0.07,0.05,2.0328398989577782e-14,PASS
+DATA2_270611.123,theta.sigma,0.6183715649430225,dimensionless,D2-M-T2,PROVISIONAL baseline from unified run 20260218-183025; replace with published table value,0.6183715649429093,0.05,0.07,0.05,1.829510485653194e-13,PASS
+DATA2_270611.123,theta.sigma_logit,,,,,0.48364739166953713,0.05,0.07,0.05,,MISSING_VALUE

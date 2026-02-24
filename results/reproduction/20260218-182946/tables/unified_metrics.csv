@@ -1,0 +1,6 @@
+dataset_id,metric,unified_value
+DATA1_511.12,objective,38273.56155624901
+DATA1_511.12,theta.Lp,2.2516926945079896
+DATA1_511.12,theta.B,1e-06
+DATA1_511.12,theta.sigma_logit,19.99751270937257
+DATA1_511.12,theta.sigma,0.9989999979378459

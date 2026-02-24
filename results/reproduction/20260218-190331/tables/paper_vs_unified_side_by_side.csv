@@ -1,0 +1,16 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,param_rel_primary_limit,param_rel_with_expl_limit,objective_rel_limit,relative_error,status
+DATA1_511.12,objective,1374169.294771704,,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,19136.780778124506,0.05,0.07,0.05,0.9860739278261171,FAIL
+DATA1_511.12,theta.B,0.3074072904020317,um/s,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,1e-06,0.05,0.07,0.05,0.9999967469867137,FAIL
+DATA1_511.12,theta.Lp,3.679272964056146,L/m^2/bar/h,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,2.2516926945079896,0.05,0.07,0.05,0.38800607715018437,FAIL
+DATA1_511.12,theta.sigma,0.9999999978935008,dimensionless,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.9989999979378459,0.05,0.07,0.05,0.0009999999577614167,PASS
+DATA1_511.12,theta.sigma_logit,,,,,19.99751270937257,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,objective,462346.8611339315,,D2-M-T2,Published-era baseline from DATA2_model_demo.ipynb (mode Lag; B_form=1 empirical B model),201830.61995223377,0.05,0.07,0.05,0.5634649287826181,FAIL
+DATA2_270511.123,theta.B,,,D2-M-T2,Not directly comparable: paper model uses empirical B(c_in)=beta_0+beta_1*c_in; no scalar B,2.889562703895781,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270511.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,6.491272055398294,0.05,0.07,0.05,0.4158974852076805,FAIL
+DATA2_270511.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,0.001000002071045898,0.05,0.07,0.05,0.9989999979289541,FAIL
+DATA2_270511.123,theta.sigma_logit,,,,,-19.99321008787239,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,objective,,,D2-M-T2,No direct published objective found for dataset270611.123 in available local artifacts,75328.214773438,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.B,,,D2-M-T2,Not directly comparable: paper model uses empirical B(c_in)=beta_0+beta_1*c_in; no scalar B,19.989192605355683,0.05,0.07,0.05,,MISSING_VALUE
+DATA2_270611.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,7.951854568984772,0.05,0.07,0.05,0.28447025307710505,FAIL
+DATA2_270611.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,0.6183715649429093,0.05,0.07,0.05,0.38162843505709065,FAIL
+DATA2_270611.123,theta.sigma_logit,,,,,0.48364739166953713,0.05,0.07,0.05,,MISSING_VALUE

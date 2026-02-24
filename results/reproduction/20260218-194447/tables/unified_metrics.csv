@@ -1,0 +1,9 @@
+dataset_id,metric,unified_value
+DATA2_270611.123,theta.Lp,11.113241068147595
+DATA2_270611.123,theta.sigma,1.0
+DATA2_270611.123,theta.beta_0,1.0649294788103598
+DATA2_270611.123,theta.beta_1,0.015171421224603474
+DATA2_270611.123,nrmse.mass,
+DATA2_270611.123,nrmse.cF,
+DATA2_270611.123,nrmse.cV,
+DATA2_270611.123,objective_legacy,

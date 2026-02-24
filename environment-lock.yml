@@ -1,0 +1,21 @@
+name: my-idaes-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - idaes-pse
+  - spyder=6.0.8
+  - jupyter
+  - notebook
+  - scikit-learn
+  - cyipopt
+  - setuptools
+  - numpy
+  - cython
+  - ipopt
+  - pkg-config
+  - openpyxl
+  - pypdf
+  - pyomo
+prefix: /Users/kkasturi/miniforge3/envs/my-idaes-env

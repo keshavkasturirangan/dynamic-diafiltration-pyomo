@@ -1,0 +1,56 @@
+{
+  "run_id": "20260218-185741",
+  "repo_root": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo",
+  "solver": "ipopt",
+  "nfe": 30,
+  "run_doe": false,
+  "calc_cov": false,
+  "datasets": [
+    "DATA1_511.12",
+    "DATA2_270511.123",
+    "DATA2_270611.123"
+  ],
+  "tolerances": {
+    "param_rel_primary": 0.05,
+    "param_rel_with_explanation": 0.07,
+    "objective_rel": 0.05,
+    "curve_nrmse_range": 0.05,
+    "table_sig_digits": 3
+  },
+  "notes": [
+    "Figure/table-specific generation functions are scaffold placeholders in this phase.",
+    "Use docs/validation/paper_target_matrix.md target IDs to incrementally implement plotting and table pipelines."
+  ],
+  "stage_a_artifacts": {
+    "figures": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/figures/data1_fig2_a_mass_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/figures/data1_fig2_b_retentate_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/figures/data1_fig2_c_vial_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/figures/data1_fig2_d_combined_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/figures/data1_fig3_model_overlay.png"
+    ],
+    "tables": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/tables/data1_table1_side_by_side.csv",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/tables/data1_table2_side_by_side.csv",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/results/reproduction/20260218-185741/tables/data1_stageA_unified_metrics.csv"
+    ],
+    "summary": {
+      "objective": 19136.780778124506,
+      "theta": {
+        "Lp": 2.2516926945079896,
+        "B": 1e-06,
+        "sigma": 0.9989999979378459
+      },
+      "rmse": {
+        "mass": NaN,
+        "cF": NaN,
+        "cV": 17.15758168999245
+      },
+      "nrmse": {
+        "mass": 11.194006943593276,
+        "cF": 0.06748623559117573,
+        "cV": 1.1972876642987134
+      }
+    }
+  }
+}

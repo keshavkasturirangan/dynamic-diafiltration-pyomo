@@ -1,0 +1,23 @@
+{
+  "dataset_id": "DATA1_511.12",
+  "stage": "A",
+  "paper": "DATA1",
+  "data_file": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA1_matlab/data_library/data_stru-dataset511.12.mat",
+  "load_ok": true,
+  "issues": [],
+  "objective": 959040.4798127114,
+  "theta": {
+    "Lp": 3.290046704661723,
+    "B": 0.28424236722316687,
+    "sigma": 0.9813639863610443
+  },
+  "covariance_method": null,
+  "covariance_warning": null,
+  "curve_metrics": {
+    "nrmse.mass": 0.033515319845595797,
+    "nrmse.cF": 0.017649103542930363,
+    "nrmse.cV": 0.08423768089154143,
+    "objective_legacy": 959040.4798127173
+  },
+  "objective_legacy": 959040.4798127173
+}

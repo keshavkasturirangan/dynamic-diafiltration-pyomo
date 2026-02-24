@@ -1,0 +1,7 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,relative_error,status
+DATA1_511.12,covariance.method,,,,,,,MISSING_VALUE
+DATA1_511.12,objective,,,,,955966.5977880122,,MISSING_VALUE
+DATA1_511.12,objective_legacy,1374169.294771704,,D1-M-T1,Legacy objective baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,,,MISSING_VALUE
+DATA1_511.12,theta.B,0.3074072904020317,um/s,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.28345767969247165,0.07790840184121328,FAIL
+DATA1_511.12,theta.Lp,3.679272964056146,L/m^2/bar/h,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,3.2942753885871174,0.10463957940337083,FAIL
+DATA1_511.12,theta.sigma,0.9999999978935008,dimensionless,D1-M-T1,Legacy baseline from DATA1_matlab/data_library/511.12/fit_stru.mat,0.9800573680707186,0.019942629864791298,PASS
