@@ -23,3 +23,35 @@ Outputs are written under:
 - `results/reproduction/<run_id>/summaries/*.json`
 - `results/reproduction/<run_id>/tables/unified_metrics.csv`
 - `results/reproduction/<run_id>/tables/paper_vs_unified_side_by_side.csv`
+
+## Storage Helpers
+
+Use dry-run first:
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/reproduce/prune_reproduction_artifacts.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --keep-full 3 \
+  --mode archive
+```
+
+Apply prune (archives old `figures/` first):
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/reproduce/prune_reproduction_artifacts.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --keep-full 3 \
+  --mode archive \
+  --apply
+```
+
+Restore one pruned run's figures:
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/reproduce/restore_reproduction_figures.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --run-id 20260221-004354 \
+  --apply
+```
+
+If `figures/` already exists and you want to replace it, add `--overwrite`.

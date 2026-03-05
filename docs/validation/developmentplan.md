@@ -148,6 +148,85 @@ Exit Criteria:
   - pass/fail status
   - explanation field when using 5–7% relaxed parameter window
 
+## Continuity Breadcrumbs (Storage-Aware)
+
+Purpose:
+- Preserve only the minimum context needed to resume quickly when disk space is constrained.
+- Avoid re-scanning large historical runs before coding or validation work.
+
+Primary breadcrumb index:
+- `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/continuity_ledger.csv`
+
+Minimum keep-set (do not delete):
+- `docs/validation/paper_target_matrix.md`
+- `docs/validation/paper_reference_values_template.csv`
+- `docs/validation/target_validation_status_consolidated.csv`
+- `docs/validation/tolerance_eval_refresh_20260221.csv` (or latest equivalent)
+- `docs/validation/data1_panel_checklist.md`
+- For canonical reproduction run(s):
+  - `results/reproduction/<run_id>/run_metadata.json`
+  - `results/reproduction/<run_id>/tables/*.csv`
+  - `results/reproduction/<run_id>/summaries/*.json`
+- For locked DATA1 notebook mapping run:
+  - `results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
+
+Space-management policy:
+- Keep only the latest 3 full reproduction run folders with `figures/` preserved.
+- For older runs, keep `run_metadata.json`, `tables/`, and `summaries/`; archive or remove `figures/`.
+- Do not archive/delete any run explicitly referenced by:
+  - `target_validation_status_consolidated.csv`
+  - `continuity_ledger.csv`
+  - `data1_panel_checklist.md`
+- Use the helper:
+  - `scripts/reproduce/prune_reproduction_artifacts.py` (dry-run by default)
+
+Resume-fast command set:
+```bash
+# Canonical unified rerun (DATA1 + DATA2 core)
+python scripts/reproduce/reproduce_data1_data2.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --solver ipopt \
+  --nfe 30
+
+# Numeric-only refresh (skip stage figure regeneration for speed)
+python scripts/reproduce/reproduce_data1_data2.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --solver ipopt \
+  --nfe 30 \
+  --skip-stage-artifacts
+
+# Deterministic DATA1 notebook artifact regeneration
+python scripts/reproduce/regenerate_data1_notebook_artifacts.py --run-id 20260221-data1-notebook
+
+# Storage-aware prune preview (no deletion)
+python scripts/reproduce/prune_reproduction_artifacts.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --keep-full 3 \
+  --mode archive
+
+# Apply storage-aware prune
+python scripts/reproduce/prune_reproduction_artifacts.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --keep-full 3 \
+  --mode archive \
+  --apply
+
+# Restore a pruned run's figures from archive
+python scripts/reproduce/restore_reproduction_figures.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --run-id 20260221-004354 \
+  --apply
+```
+
+Handoff rule:
+- After each materially relevant run, update `docs/validation/continuity_ledger.csv` with:
+  - run ID,
+  - purpose,
+  - retained evidence paths,
+  - next action,
+  - blockers (if any).
+- If a run is archived/pruned, keep a pointer to the archive artifact path in the ledger.
+
 ## Execution Tracker
 
 | Step ID | Task | Status | Date | Evidence |
