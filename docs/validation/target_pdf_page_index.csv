@@ -1,0 +1,33 @@
+target_id,paper_item,pdf_key,matched_pages,match_status,evidence_run_id
+D1-M-F2,Fig. 2 (all four plots),data1_main,5;6;7,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-T1,Table 1,data1_main,7,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-F3,Fig. 3,data1_main,6;7,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-T2,Table 2,data1_main,8;9,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-F4,Fig. 4 (all plots),data1_main,8,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-F5,Fig. 5 (all plots),data1_main,10,MATCHED,20260306-023356-paper-pdf-extract
+D1-M-F6,Fig. 6 (all plots),data1_main,9;11,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS2,Fig. S2 (all plots),data1_si,4,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS3,Fig. S3 (all plots),data1_si,6,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS4,Fig. S4 (all plots),data1_si,7,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS5,Fig. S5 (all plots),data1_si,8,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS6,Fig. S6 (all plots),data1_si,9,MATCHED,20260306-023356-paper-pdf-extract
+D1-S-FS7,Fig. S7 (all plots),data1_si,10,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-VARS,Verify manipulated/measured variables,data2_main,7,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-T2,Table 2,data2_main,9;10;11;13,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-F6,Fig. 6 (all plots),data2_main,9;10;11;12;14,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-T3,Table 3,data2_main,11,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-T4,Table 4,data2_main,12,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-F7,Fig. 7 (all plots),data2_main,13,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-F8,Fig. 8 (all plots),data2_main,13,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-T5,Table 5,data2_main,14,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-T6,Table 6,data2_main,14;15,MATCHED,20260306-023356-paper-pdf-extract
+D2-M-F9,Fig. 9,data2_main,15,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-TS1,Table S1,data2_si,11,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS1,Fig. S1 (both plots),data2_si,12,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS2,Fig. S2 (all plots),data2_si,11;13;18,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS3,Fig. S3 (all plots),data2_si,14,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS4,Fig. S4 (all plots),data2_si,15,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS5,Fig. S5 (all plots),data2_si,16,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS6,Fig. S6 (all plots),data2_si,17,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS7,Fig. S7 (both plots),data2_si,18,MATCHED,20260306-023356-paper-pdf-extract
+D2-S-FS8,Fig. S8 (all plots),data2_si,19,MATCHED,20260306-023356-paper-pdf-extract

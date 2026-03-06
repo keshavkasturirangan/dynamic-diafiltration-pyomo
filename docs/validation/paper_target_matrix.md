@@ -22,10 +22,10 @@ This document tracks published-result reproduction targets for validating the un
 
 ## Source papers
 
-- DATA1 main: `/Users/kkasturi/Downloads/DATA1_main.pdf`
-- DATA1 SI: `/Users/kkasturi/Downloads/DATA1_SI.pdf`
-- DATA2 main: `/Users/kkasturi/Downloads/DAT2_main.pdf`
-- DATA2 SI: `/Users/kkasturi/Downloads/DATA2_SI.pdf`
+- DATA1 main: `published_works/DATA1_main.pdf`
+- DATA1 SI: `published_works/DATA1_SI.pdf`
+- DATA2 main: `published_works/DATA2_main.pdf`
+- DATA2 SI: `published_works/DATA2_SI.pdf`
 
 ## DATA1 main targets
 
@@ -54,30 +54,30 @@ This document tracks published-result reproduction targets for validating the un
 
 | Target ID | Paper item | Artifact type | Dataset scope | Unified artifact output (planned) | Status |
 |---|---|---|---|---|---|
-| D2-M-VARS | Verify manipulated/measured variables | Verification report | DATA2 | `results/reproduction/<run_id>/tables/data2_variable_verification.csv` | MISSING_VALUE (artifact: Planned) |
+| D2-M-VARS | Verify manipulated/measured variables | Verification report | DATA2 | `results/reproduction/<run_id>/tables/data2_variable_verification.csv` | NOT_APPLICABLE (reference-only: experimental inputs/measurements) |
 | D2-M-T2 | Table 2 | Table | DATA2 | `results/reproduction/<run_id>/tables/paper_vs_unified_side_by_side.csv` | FAIL [numeric run: 20260218-190331] (artifact: Preliminary FAIL (`20260218-190331`)) |
-| D2-M-F6 | Fig. 6 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig6_*.png` | FAIL [numeric run: 20260221-refresh] (artifact: Planned) |
-| D2-M-T3 | Table 3 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table3_side_by_side.csv` | MISSING_VALUE (artifact: Planned) |
-| D2-M-T4 | Table 4 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table4_side_by_side.csv` | MISSING_VALUE (artifact: Planned) |
-| D2-M-F7 | Fig. 7 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig7_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-M-F8 | Fig. 8 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig8_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-M-T5 | Table 5 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table5_side_by_side.csv` | MISSING_VALUE (artifact: Planned) |
-| D2-M-T6 | Table 6 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table6_side_by_side.csv` | MISSING_VALUE (artifact: Planned) |
-| D2-M-F9 | Fig. 9 | Figure | DATA2 | `results/reproduction/<run_id>/figures/data2_fig9.png` | MISSING_VALUE (artifact: Planned) |
+| D2-M-F6 | Fig. 6 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig6_*.png` | FAIL [numeric run: 20260221-refresh] (artifact: Page-matched (`20260306-023356-paper-pdf-extract`)) |
+| D2-M-T3 | Table 3 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table3_side_by_side.csv` | MISSING_VALUE (artifact: WARNING-baseline (`20260306-mainpaper-table-baseline`)) |
+| D2-M-T4 | Table 4 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table4_side_by_side.csv` | MISSING_VALUE (artifact: WARNING-baseline (`20260306-mainpaper-table-baseline`)) |
+| D2-M-F7 | Fig. 7 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig7_*.png` | MISSING_VALUE (artifact: Page-matched (`20260306-023356-paper-pdf-extract`)) |
+| D2-M-F8 | Fig. 8 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_fig8_*.png` | MISSING_VALUE (artifact: Locked (`20260306-023356-paper-pdf-extract`)) |
+| D2-M-T5 | Table 5 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table5_side_by_side.csv` | MISSING_VALUE (artifact: WARNING-baseline (`20260306-mainpaper-table-baseline`)) |
+| D2-M-T6 | Table 6 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_table6_side_by_side.csv` | MISSING_VALUE (artifact: WARNING-baseline (`20260306-mainpaper-table-baseline`)) |
+| D2-M-F9 | Fig. 9 | Figure | DATA2 | `results/reproduction/<run_id>/figures/data2_fig9.png` | MISSING_VALUE (artifact: Locked (`20260306-023356-paper-pdf-extract`)) |
 
 ## DATA2 SI targets
 
 | Target ID | Paper item | Artifact type | Dataset scope | Unified artifact output (planned) | Status |
 |---|---|---|---|---|---|
-| D2-S-TS1 | Table S1 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_si_tableS1_side_by_side.csv` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS1 | Fig. S1 (both plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS1_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS2 | Fig. S2 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS2_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS3 | Fig. S3 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS3_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS4 | Fig. S4 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS4_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS5 | Fig. S5 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS5_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS6 | Fig. S6 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS6_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS7 | Fig. S7 (both plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS7_*.png` | MISSING_VALUE (artifact: Planned) |
-| D2-S-FS8 | Fig. S8 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS8_*.png` | MISSING_VALUE (artifact: Planned) |
+| D2-S-TS1 | Table S1 | Table | DATA2 | `results/reproduction/<run_id>/tables/data2_si_tableS1_side_by_side.csv` | MISSING_VALUE (artifact: Page-matched (`20260306-023356-paper-pdf-extract`)) |
+| D2-S-FS1 | Fig. S1 (both plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS1_*.png` | MISSING_VALUE (artifact: Page-matched (`20260306-023356-paper-pdf-extract`)) |
+| D2-S-FS2 | Fig. S2 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS2_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS3 | Fig. S3 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS3_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS4 | Fig. S4 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS4_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS5 | Fig. S5 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS5_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS6 | Fig. S6 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS6_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS7 | Fig. S7 (both plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS7_*.png` | MISSING_VALUE (artifact: Locked (`20260306-cross-verification`)) |
+| D2-S-FS8 | Fig. S8 (all plots) | Figure set | DATA2 | `results/reproduction/<run_id>/figures/data2_si_figS8_*.png` | MISSING_VALUE (artifact: Page-matched (`20260306-023356-paper-pdf-extract`)) |
 
 ## Staged execution roadmap
 

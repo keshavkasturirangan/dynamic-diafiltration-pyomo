@@ -1,0 +1,4 @@
+Source: OCR from DATA2_main extracted pages page-11.png (Table 3), page-12.png (Table 4), page-14.png (Tables 5-6).
+Extraction run: 20260306-023356-paper-pdf-extract
+Created: 2026-03-06T03:08:35.406356
+Unified-value columns intentionally left blank with WARNING status due runtime blocker in run_DATA2_model_variations.py (Pyomo OverflowError under Python 3.12).
