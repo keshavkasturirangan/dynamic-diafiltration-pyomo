@@ -1,13 +1,17 @@
-__pycache__/utility.cpython-311.pyc
-.DS_Store
-**/.DS_Store
 __pycache__/
 *.pyc
 
 # macOS
 .DS_Store
+**/.DS_Store
 
+# Local data link/helper path
+data_library
 
-# macOS
-.DS_Store
+# Local copies of published papers (large binaries; keep out of git by default)
+published_works/*.pdf
 
+# Large extraction artifacts generated during PDF/notebook panel matching
+results/reproduction/*-paper-pdf-extract/
+results/reproduction/*/pdf_extract/
+results/reproduction/*/notebook_extract/
