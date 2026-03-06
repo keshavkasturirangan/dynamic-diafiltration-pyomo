@@ -1,0 +1,31 @@
+name: nightly-validation
+
+on:
+  schedule:
+    - cron: "0 08 * * *"
+  workflow_dispatch:
+
+jobs:
+  validation-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Nightly validation status gate
+        run: |
+          python scripts/validation/nightly_validation_gate.py \
+            --status-csv docs/validation/target_validation_status_consolidated.csv \
+            --exceptions-csv docs/validation/nightly_known_nonpass.csv
+
+      - name: Storage-aware prune dry-run
+        run: |
+          python scripts/reproduce/prune_reproduction_artifacts.py \
+            --repo-root . \
+            --keep-full 3 \
+            --mode archive

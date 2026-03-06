@@ -11,6 +11,8 @@ This folder tracks DATA1/DATA2 published-result reproduction for unified-code va
 - `target_pdf_page_index.csv`: target-to-paper-page evidence index.
 - `panel_validation_both_DATA1_DATA2.md`: current high-level checkpoint.
 - `data2_panel_checklist_provisional.md`: DATA2 panel/table mapping status (includes locked + pending items).
+- `nightly_known_nonpass.csv`: allowlist of accepted nightly non-pass numeric targets.
+- `nightly_ops.md`: runbook for nightly gate and prune helpers.
 
 ## Reproduction scaffold
 
@@ -80,6 +82,14 @@ python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/val
   --consolidated-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/target_validation_status_consolidated.csv \
   --tolerance-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/tolerance_eval_refresh_20260221.csv \
   --evidence-run-id 20260221-refresh
+```
+
+Nightly status gate (unexpected non-pass targets fail, known ones warn):
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly_validation_gate.py \
+  --status-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/target_validation_status_consolidated.csv \
+  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly_known_nonpass.csv
 ```
 
 Current blocker for full DATA2 numeric closure:
