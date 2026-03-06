@@ -9,3 +9,11 @@ DATA2_270511.123,nrmse.cV,0.05,range-normalized,D2-M-F6,Cross-validation quality
 DATA2_270611.123,nrmse.mass,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for mass trajectory,,,MISSING_VALUE
 DATA2_270611.123,nrmse.cF,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for retentate concentration trajectory,,,MISSING_VALUE
 DATA2_270611.123,nrmse.cV,0.05,range-normalized,D2-M-F6,Cross-validation quality threshold for vial concentration trajectory,,,MISSING_VALUE
+DATA2_270511.123,objective,462346.8611339315,,D2-M-T2,Published-era baseline from DATA2_model_demo.ipynb (mode Lag; B_form=1 empirical B model),201830.61995223377,0.5634649287826181,FAIL
+DATA2_270511.123,theta.B,,,D2-M-T2,Not directly comparable: paper model uses empirical B(c_in)=beta_0+beta_1*c_in; no scalar B,2.889562703895781,,MISSING_VALUE
+DATA2_270511.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,6.491272055398294,0.4158974852076805,FAIL
+DATA2_270511.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era baseline from run_cross_verification.py fit_stru_base,0.001000002071045898,0.9989999979289541,FAIL
+DATA2_270611.123,objective,,,D2-M-T2,No direct published objective found for dataset270611.123 in available local artifacts,75328.214773438,,MISSING_VALUE
+DATA2_270611.123,theta.B,,,D2-M-T2,Not directly comparable: paper model uses empirical B(c_in)=beta_0+beta_1*c_in; no scalar B,19.989192605355683,,MISSING_VALUE
+DATA2_270611.123,theta.Lp,11.113241068147596,L/m^2/bar/h,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,7.951854568984772,0.28447025307710505,FAIL
+DATA2_270611.123,theta.sigma,1.0,dimensionless,D2-M-T2,Published-era base parameter reused for cross-verification in run_cross_verification.py,0.6183715649429093,0.38162843505709065,FAIL

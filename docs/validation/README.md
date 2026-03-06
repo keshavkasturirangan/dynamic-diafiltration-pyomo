@@ -55,3 +55,12 @@ python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/rep
 ```
 
 If `figures/` already exists and you want to replace it, add `--overwrite`.
+
+Refresh consolidated numeric target status (`PASS/FAIL/MISSING_VALUE/NOT_APPLICABLE`):
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/update_target_validation_status_consolidated.py \
+  --consolidated-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/target_validation_status_consolidated.csv \
+  --tolerance-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/tolerance_eval_refresh_20260221.csv \
+  --evidence-run-id 20260221-refresh
+```
