@@ -3,33 +3,50 @@
 ## Purpose
 
 `unified_codebase_runfile.py` is the user-facing runner script.  
-It wires together:
+It now supports profile-based switching for:
 
-- experiment loading (`.xlsx`/`.mat`),
-- model-option configuration,
-- parameter estimation via ParmEst,
-- optional DoE/FIM analysis.
+- `DATA1` reproduction,
+- `DATA2` reproduction,
+- `DATA3` experiments (custom file/sheet workflow).
 
-It is intentionally small and readable, with heavy lifting delegated to `unified_codebase_library.py`.
+Heavy lifting remains delegated to `unified_codebase_library.py`.
 
 ## Execution flow
 
-1. Choose input file and selector (`path`, `selector`).
-2. Supply optional metadata overrides (`specs`).
-3. Toggle stages (`RUN_PARMEST`, `RUN_DOE`).
-4. Load one experiment with `load_experiment_easy`.
-5. Build `ModelOptions`.
-6. Create labeled model via `DiafiltrationExperimentV24`.
-7. Run `estimate_parameters_with_parmest_v24`.
-8. Run `run_doe_with_pyomo_v24` (optional).
+1. Select `--profile DATA1|DATA2|DATA3`.
+2. Resolve default file/selector/model-options from profile.
+3. Apply optional overrides (`--file-path`, `--selector`, `--nfe`, flags).
+4. Build `UnifiedPipelineConfigV24`.
+5. Execute `run_unified_pipeline_v24`.
+6. Print run summary (load status, theta labels, estimation/DoE output).
 
-## Key configuration fields
+## Profiles
 
-- `mode`: experimental balance mode (`DATA`, `Lag`, `Overflow`).
-- `run_mode`: simulation vs estimation.
-- `b_form`: transport parameterization for solute flux (`single`, `pervial`, `convection`).
-- `nfe`: DAE finite-element count (higher = finer + harder NLP).
-- `solver`: ParmEst solver (`ipopt`).
+- `DATA1`
+  - file: `DATA1_matlab/data_library/data_stru-dataset511.12.mat`
+  - defaults: `mode=DATA`, `b_form=single`, estimation run mode
+- `DATA2`
+  - files:
+    - `DATA1_matlab/data_library/data_stru-dataset270511.123.mat`
+    - `DATA1_matlab/data_library/data_stru-dataset270611.123.mat`
+  - defaults: `mode=Lag`, `b_form=convection`, `fix_sigma_in_estimation=True`
+- `DATA3`
+  - file: `UnifiedFramework/ExperimentalDataFiles/NF270_MC2.xlsx` (override recommended)
+  - default selector/specs enabled for quick XLSX experiments
+  - default `run_doe=True` (can be overridden with `--no-run-doe`)
+
+## Key CLI options
+
+- `--profile DATA1|DATA2|DATA3`
+- `--file-path <path>`
+- `--selector <xlsx_sheet_name>`
+- `--nfe <int>`
+- `--run-doe`
+- `--no-run-doe`
+- `--calc-cov`
+- `--convert-to-concentration`
+- `--plot`
+- `--solver ipopt`
 
 ## Typical output
 
@@ -39,6 +56,25 @@ It is intentionally small and readable, with heavy lifting delegated to `unified
 - estimated objective and theta,
 - covariance (if converged),
 - FIM and D-optimality metric.
+
+## Example commands
+
+```bash
+# DATA1 reproduction baseline
+python UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py \
+  --profile DATA1 --nfe 30
+
+# DATA2 reproduction baseline with DoE
+python UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py \
+  --profile DATA2 --run-doe --nfe 30
+
+# DATA3 experiment from custom XLSX
+python UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py \
+  --profile DATA3 \
+  --file-path /abs/path/to/experiment.xlsx \
+  --selector "SheetName" \
+  --nfe 30
+```
 
 ## Operational guidance
 

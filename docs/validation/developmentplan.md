@@ -6,6 +6,34 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/conductivity_paper.py`
 
+## Validation Baseline Corpus (2026-03-05)
+
+Use these sources as the reference corpus for validation and parity decisions.
+
+1. Current unified code + docs:
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/conductivity_paper.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/unified_code/conductivity_paper.md`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_library.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/unified_code/unified_codebase_library.md`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/unified_code/unified_codebase_runfile.md`
+2. Last v24 compatibility wrappers and pseudocode lineage:
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_dataload_OOP_v24.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/experiment_load_v24.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/Pseudocodes/DataLoader/versions/pseudocode_v2.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/archives/processmodel_pseudocode_v8_updated_conductivity.py`
+3. Legacy reproduction stack (DATA1/DATA2 parity):
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/utility.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_model_demo.ipynb`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_visualization.ipynb`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/run_cross_verification.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/run_DATA2_model_variations.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/run_pre_B_dependence.py`
+4. Published references:
+   - `published_works/` (paper figures/tables used for acceptance checks)
+5. Digitization fallback when panel/table source data are not available:
+   - `https://automeris.io/` (WebPlotDigitizer) with source path + extraction notes recorded per target.
+
 ## Scope and Rules
 - Reproduction target: all required figures/tables listed for DATA1 main/SI and DATA2 main/SI.
 - Solver policy: use `ipopt` (no `ef_ipopt`).
@@ -73,6 +101,18 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
 ### WS5: Repo Cleanup Proposal (No Moves Yet)
 - Deliver a concrete rename/move proposal first.
 - Execute moves only after approval.
+
+### WS6: Profile-Switching UX for Unified Runner
+- Maintain a simple user entrypoint to switch between:
+  - DATA1 reproduction
+  - DATA2 reproduction
+  - DATA3 experiment workflows
+- Current implementation lives in:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py`
+- User contract:
+  - `--profile DATA1|DATA2|DATA3`
+  - optional `--file-path` / `--selector` overrides
+  - optional stage toggles (`--run-doe`, `--calc-cov`)
 
 ## Stage Plan
 
@@ -216,6 +256,12 @@ python scripts/reproduce/restore_reproduction_figures.py \
   --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
   --run-id 20260221-004354 \
   --apply
+
+# Recompute consolidated numeric status with NOT_APPLICABLE semantics
+python scripts/validation/update_target_validation_status_consolidated.py \
+  --consolidated-csv docs/validation/target_validation_status_consolidated.csv \
+  --tolerance-csv docs/validation/tolerance_eval_refresh_20260221.csv \
+  --evidence-run-id 20260221-refresh
 ```
 
 Handoff rule:
@@ -251,12 +297,15 @@ Handoff rule:
 | EX-018 | Lock DATA1 main/SI figure mappings by PDF visual comparison and update matrix | Completed | 2026-02-21 | Locked SI/main mappings in `data1_panel_checklist.md`; updated `paper_target_matrix.md` DATA1 figure statuses to `Locked (20260221-data1-notebook)` |
 | EX-019 | Rename unified modules + add shared MAT/XLSX pipeline entrypoint | Completed | 2026-02-21 | Renamed to `unified_codebase_library.py` and `unified_codebase_runfile.py`, added `UnifiedPipelineConfigV24` + `run_unified_pipeline_v24`, and preserved legacy wrappers |
 | EX-020 | Deepen unified MAT/XLSX orchestration internals behind one API contract | Completed | 2026-02-21 | Added source-aware option resolver, stage helpers (`_run_unified_estimation_stage_v24`, `_run_unified_doe_stage_v24`), run metadata builder, and optional reporting hook in `run_unified_pipeline_v24` |
+| EX-021 | Implement profile-based runner switching (DATA1/DATA2/DATA3) and document usage | Completed | 2026-03-05 | Updated `unified_codebase_runfile.py` with CLI profile switching and refreshed `docs/unified_code/unified_codebase_runfile.md` |
+| EX-022 | Separate `NOT_APPLICABLE` from `MISSING_VALUE` for consolidated numeric validation status | Completed | 2026-03-05 | Added `scripts/validation/update_target_validation_status_consolidated.py` and refreshed `target_validation_status_consolidated.csv` from tolerance rows |
 
 ## Immediate Next Actions
 1. Re-run DATA1 + DATA2 tolerance evaluation now using locked figure mappings and source-backed baselines.
 2. Update `paper_target_matrix.md` rows from `Locked/Preliminary` to explicit `PASS/FAIL/MISSING_VALUE`.
 3. Emit one consolidated validation report CSV keyed by target ID.
 4. Only if blocked by code-path mismatch: apply minimal fixes in `unified_codebase_library.py` and rerun.
+5. Add nightly guardrails that fail on `MISSING_VALUE` only for numeric-applicable targets (ignore `NOT_APPLICABLE` rows).
 
 ## Open Items to Track
 - Covariance behavior when `k_aug` is unavailable in environment (documented limitation path).
