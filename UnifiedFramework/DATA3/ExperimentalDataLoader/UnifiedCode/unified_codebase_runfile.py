@@ -27,7 +27,12 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
-PRESET_DATA1_PATH = REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset511.12.mat"
+PRESET_DATA1_PATHS = [
+    REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset501.1.mat",
+    REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset501.11.mat",
+    REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset511.11.mat",
+    REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset511.12.mat",
+]
 PRESET_DATA2_PATHS = [
     REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset270511.123.mat",
     REPO_ROOT / "DATA1_matlab" / "data_library" / "data_stru-dataset270611.123.mat",
@@ -119,9 +124,8 @@ def _resolve_run_doe(profile: str, cli_value: Optional[bool]) -> bool:
     return bool(defaults[profile])
 
 
-def _build_data1_config(args: argparse.Namespace, run_doe: bool) -> UnifiedPipelineConfigV24:
-    """Build canonical DATA1 reproduction config."""
-    file_path = Path(args.file_path).expanduser().resolve() if args.file_path else PRESET_DATA1_PATH
+def _build_data1_config(file_path: Path, args: argparse.Namespace, run_doe: bool) -> UnifiedPipelineConfigV24:
+    """Build DATA1 reproduction config for one MAT file."""
     model_options = ModelOptions(
         mode=ExperimentMode.DATA,
         run_mode=RunMode.ESTIMATION,
@@ -235,12 +239,18 @@ def main() -> None:
     run_doe = _resolve_run_doe(args.profile, args.run_doe)
 
     if args.profile == "DATA1":
-        config = _build_data1_config(args, run_doe=run_doe)
         print("Profile: DATA1")
-        print("Purpose: Reproduce canonical DATA1 baseline")
-        print(f"Input file: {config.file_path}")
-        result = run_unified_pipeline_v24(config)
-        _print_result(result)
+        print("Purpose: Reproduce canonical DATA1 baselines")
+        if args.file_path:
+            file_paths = [Path(args.file_path).expanduser().resolve()]
+        else:
+            file_paths = PRESET_DATA1_PATHS
+        for i, file_path in enumerate(file_paths, start=1):
+            config = _build_data1_config(file_path=file_path, args=args, run_doe=run_doe)
+            print(f"\nDATA1 case [{i}/{len(file_paths)}]")
+            print(f"Input file: {config.file_path}")
+            result = run_unified_pipeline_v24(config)
+            _print_result(result)
         return
 
     if args.profile == "DATA2":

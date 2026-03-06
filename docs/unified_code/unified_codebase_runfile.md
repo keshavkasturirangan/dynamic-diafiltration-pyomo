@@ -23,8 +23,12 @@ Heavy lifting remains delegated to `unified_codebase_library.py`.
 ## Profiles
 
 - `DATA1`
-  - file: `DATA1_matlab/data_library/data_stru-dataset511.12.mat`
-  - defaults: `mode=DATA`, `b_form=single`, estimation run mode
+  - files:
+    - `DATA1_matlab/data_library/data_stru-dataset501.1.mat`
+    - `DATA1_matlab/data_library/data_stru-dataset501.11.mat`
+    - `DATA1_matlab/data_library/data_stru-dataset511.11.mat`
+    - `DATA1_matlab/data_library/data_stru-dataset511.12.mat`
+  - defaults: `mode=DATA`, `b_form=single`, non-logit sigma, MAT legacy restart enabled
 - `DATA2`
   - files:
     - `DATA1_matlab/data_library/data_stru-dataset270511.123.mat`
@@ -74,6 +78,11 @@ python UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebas
   --file-path /abs/path/to/experiment.xlsx \
   --selector "SheetName" \
   --nfe 30
+
+# Single-file override for DATA1 or DATA2
+python UnifiedFramework/DATA3/ExperimentalDataLoader/UnifiedCode/unified_codebase_runfile.py \
+  --profile DATA1 \
+  --file-path /abs/path/to/data_stru-dataset511.12.mat
 ```
 
 ## Operational guidance

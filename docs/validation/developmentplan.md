@@ -299,13 +299,19 @@ Handoff rule:
 | EX-020 | Deepen unified MAT/XLSX orchestration internals behind one API contract | Completed | 2026-02-21 | Added source-aware option resolver, stage helpers (`_run_unified_estimation_stage_v24`, `_run_unified_doe_stage_v24`), run metadata builder, and optional reporting hook in `run_unified_pipeline_v24` |
 | EX-021 | Implement profile-based runner switching (DATA1/DATA2/DATA3) and document usage | Completed | 2026-03-05 | Updated `unified_codebase_runfile.py` with CLI profile switching and refreshed `docs/unified_code/unified_codebase_runfile.md` |
 | EX-022 | Separate `NOT_APPLICABLE` from `MISSING_VALUE` for consolidated numeric validation status | Completed | 2026-03-05 | Added `scripts/validation/update_target_validation_status_consolidated.py` and refreshed `target_validation_status_consolidated.csv` from tolerance rows |
+| EX-023 | Enable full paper extraction runtime and build target-to-page evidence index | Completed | 2026-03-06 | Installed PDF/OCR tooling; extraction run `20260306-023356-paper-pdf-extract`; `docs/validation/target_pdf_page_index.csv` (`32/32` targets matched) |
+| EX-024 | Lock DATA2 main/SI figure panel mappings (prioritize main paper first) | Completed (figures) | 2026-03-06 | Locked `D2-M-F8`, `D2-M-F9`, `D2-S-FS2..FS7` in source map and consolidated status using generated artifacts + paper page evidence |
+| EX-025 | Generate dedicated main-paper table artifacts for DATA2 Tables 3-6 with warning semantics | Completed (warning baseline) | 2026-03-06 | Added `results/reproduction/20260306-mainpaper-table-baseline/tables/data2_table3_side_by_side.csv` ... `data2_table6_side_by_side.csv`; set `numeric_validation_status=MISSING_VALUE` with WARNING notes |
+| EX-026 | Reclassify `D2-M-VARS` as reference-only integrity target | Completed | 2026-03-06 | Updated matrix/source-map/consolidated/checklists to `NOT_APPLICABLE (reference-only: experimental inputs/measurements)` and removed PASS/FAIL gating expectation |
 
 ## Immediate Next Actions
-1. Re-run DATA1 + DATA2 tolerance evaluation now using locked figure mappings and source-backed baselines.
-2. Update `paper_target_matrix.md` rows from `Locked/Preliminary` to explicit `PASS/FAIL/MISSING_VALUE`.
-3. Emit one consolidated validation report CSV keyed by target ID.
-4. Only if blocked by code-path mismatch: apply minimal fixes in `unified_codebase_library.py` and rerun.
-5. Add nightly guardrails that fail on `MISSING_VALUE` only for numeric-applicable targets (ignore `NOT_APPLICABLE` rows).
+1. Close numeric reproduction gaps for main-paper targets first:
+   - DATA1: `D1-M-T1` (`FAIL`)
+   - DATA2: `D2-M-T2` (`FAIL`), `D2-M-F6` (`FAIL`), `D2-M-T3..T6` (`MISSING_VALUE`)
+2. Resolve `run_DATA2_model_variations.py` runtime blocker (Pyomo overflow under Python 3.12) to populate unified-side values for Tables 3-6.
+3. Refresh tolerance evaluation and consolidated status after table-value generation.
+4. Then address SI table `D2-S-TS1` (if still unresolved) and finalize one consolidated validation report keyed by target ID.
+5. Add nightly guardrails that fail on `MISSING_VALUE` only for numeric-applicable targets (ignore `NOT_APPLICABLE` rows, including `D2-M-VARS`).
 
 ## Open Items to Track
 - Covariance behavior when `k_aug` is unavailable in environment (documented limitation path).
@@ -315,6 +321,7 @@ Handoff rule:
 - Investigate DATA1 Stage A objective and parameter mismatches (objective, `Lp`, `B`) vs legacy baseline.
 - Align DATA2 comparison metrics with paper model form (`beta_0`, `beta_1`, optional `S0`) since scalar `theta.B` is not directly comparable.
 - Add dataset-specific initial guesses/fixed-parameter controls in scaffold to avoid boundary convergence for DATA2 (`beta_0`, `beta_1`, `sigma`).
+- Runtime blocker: `run_DATA2_model_variations.py` currently fails in this environment with Pyomo NL writer overflow (`OverflowError: Python integer -1 out of bounds for uint8`), preventing unified-side numeric fill for DATA2 Tables 3-6.
 
 ## Progress Log
 - 2026-02-18: Stage A executed with `ipopt` on `DATA1_511.12` via `scripts/reproduce/reproduce_data1_data2.py`.
@@ -439,3 +446,18 @@ Handoff rule:
     - added run metadata builder including stage/target IDs/artifact-root context
     - extended `UnifiedPipelineConfigV24` with reporting fields and callback hook
     - updated `run_unified_pipeline_v24` to route through helper stages with one API contract
+- 2026-03-06: EX-023 to EX-026 validation consolidation completed (main-paper priority).
+  - extraction + evidence:
+    - run `20260306-023356-paper-pdf-extract` produced page/image/text artifacts for DATA1/DATA2 main+SI papers
+    - `docs/validation/target_pdf_page_index.csv` now maps all targets (`32/32`) to matched paper pages
+  - figure/panel lock progress:
+    - main paper locked: `D2-M-F8`, `D2-M-F9`
+    - SI locked: `D2-S-FS2..FS7` via cross-verification outputs + panel visual checks
+  - main-paper tables:
+    - generated warning-baseline artifacts for `D2-M-T3..T6` under `results/reproduction/20260306-mainpaper-table-baseline/tables/`
+    - statuses kept as `MISSING_VALUE` until unified-side values can be produced in a stable runtime
+  - semantics correction:
+    - `D2-M-VARS` set to `NOT_APPLICABLE` as reference-only metadata integrity target (not reproducible numeric result)
+  - current replication snapshot from consolidated status:
+    - DATA1: `FAIL=1` (`D1-M-T1`), `NOT_APPLICABLE=12`
+    - DATA2: `FAIL=2` (`D2-M-T2`, `D2-M-F6`), `MISSING_VALUE=4` (`D2-M-T3..T6`), remainder `NOT_APPLICABLE`
