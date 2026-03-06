@@ -22,6 +22,18 @@ python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/val
   --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly_known_nonpass.csv
 ```
 
+Append an entry to the running nightly notes document:
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/append_nightly_note.py \
+  --run-id 20260306-nightly-local \
+  --context "Local post-setup validation" \
+  --gate-status PASS \
+  --gate-summary "No unexpected FAIL/MISSING_VALUE; 7 known warnings allowed." \
+  --pytest-status TIMEOUT \
+  --action "Keep gate as nightly health signal; optimize full pytest runtime."
+```
+
 Prune dry-run (no deletions):
 
 ```bash
@@ -56,3 +68,9 @@ When a target improves to `PASS` or `NOT_APPLICABLE`, remove or deactivate that 
 - `NOT_APPLICABLE` is never treated as a failure in nightly gating.
 - `PASS_WITH_EXPLANATION` is currently treated as pass.
 - The gate fails only on unexpected `FAIL`/`MISSING_VALUE` or status mismatches against the exception list.
+
+## Running notes document
+
+Use this file as the rolling nightly checkpoint log:
+
+- `docs/validation/nightly_test_notes.md`
