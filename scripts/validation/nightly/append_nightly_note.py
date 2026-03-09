@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Append one structured nightly note entry to docs/validation/nightly_test_notes.md."""
+"""Append one structured nightly note entry to docs/validation/nightly/logs/nightly_test_notes.md."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Append a nightly test note entry.")
-    p.add_argument("--notes-md", type=Path, default=Path("docs/validation/nightly_test_notes.md"))
+    p.add_argument("--notes-md", type=Path, default=Path("docs/validation/nightly/logs/nightly_test_notes.md"))
     p.add_argument("--run-id", required=True, help="Run identifier, e.g., 20260306-nightly-local")
     p.add_argument("--context", default="Nightly validation run")
     p.add_argument("--gate-status", choices=("PASS", "FAIL", "SKIPPED"), required=True)

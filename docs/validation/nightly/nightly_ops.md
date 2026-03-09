@@ -9,23 +9,34 @@ Workflow: `.github/workflows/nightly-validation.yml`
 Nightly steps:
 1. Run status gate on `docs/validation/target_validation_status_consolidated.csv`.
 2. Treat only unexpected `FAIL`/`MISSING_VALUE` targets as hard failures.
-3. Keep documented known non-pass targets as warnings via `docs/validation/nightly_known_nonpass.csv`.
-4. Run storage prune in dry-run mode for visibility into reclaimable space.
+3. Keep documented known non-pass targets as warnings via `docs/validation/nightly/config/known_nonpass.csv`.
+4. Run digitized panel comparison report (`docs/validation/nightly/digitized_baselines/comparison_latest.csv`).
+5. Run storage prune in dry-run mode for visibility into reclaimable space.
 
 ## Local commands
 
 Run the nightly status gate locally:
 
 ```bash
-python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly_validation_gate.py \
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly/nightly_validation_gate.py \
   --status-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/target_validation_status_consolidated.csv \
-  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly_known_nonpass.csv
+  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/config/known_nonpass.csv
+```
+
+Run digitized paper-vs-unified figure comparison:
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly/compare_digitized_baselines.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --manifest /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/manifest.csv \
+  --thresholds /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/thresholds.csv \
+  --out-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/comparison_latest.csv
 ```
 
 Append an entry to the running nightly notes document:
 
 ```bash
-python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/append_nightly_note.py \
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly/append_nightly_note.py \
   --run-id 20260306-nightly-local \
   --context "Local post-setup validation" \
   --gate-status PASS \
@@ -55,7 +66,7 @@ python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/rep
 
 ## How to update known non-pass targets
 
-Edit `docs/validation/nightly_known_nonpass.csv`:
+Edit `docs/validation/nightly/config/known_nonpass.csv`:
 - Keep one row per currently accepted non-pass target.
 - Set `expected_status` to `FAIL` or `MISSING_VALUE`.
 - Set `active=true` to allow warning behavior.
@@ -73,4 +84,16 @@ When a target improves to `PASS` or `NOT_APPLICABLE`, remove or deactivate that 
 
 Use this file as the rolling nightly checkpoint log:
 
-- `docs/validation/nightly_test_notes.md`
+- `docs/validation/nightly/logs/nightly_test_notes.md`
+
+## Digitized baseline activation
+
+To enable a panel target:
+1. Export digitized paper points (`paper/*.csv`) from WebPlotDigitizer.
+2. Export matching unified outputs (`unified/*.csv`) on same axes/units.
+3. Set the row to `active=true` in `docs/validation/nightly/digitized_baselines/manifest.csv`.
+4. Tune tolerances in `docs/validation/nightly/digitized_baselines/thresholds.csv`.
+
+When you want strict nightly enforcement, add flags to the compare command:
+- `--fail-on-fail`
+- `--fail-on-missing`

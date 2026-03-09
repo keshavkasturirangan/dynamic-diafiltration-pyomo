@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--exceptions-csv",
         type=Path,
-        default=Path("docs/validation/nightly_known_nonpass.csv"),
+        default=Path("docs/validation/nightly/config/known_nonpass.csv"),
         help="Known non-pass exceptions allowlist CSV.",
     )
     return parser.parse_args()

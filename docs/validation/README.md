@@ -11,8 +11,11 @@ This folder tracks DATA1/DATA2 published-result reproduction for unified-code va
 - `target_pdf_page_index.csv`: target-to-paper-page evidence index.
 - `panel_validation_both_DATA1_DATA2.md`: current high-level checkpoint.
 - `data2_panel_checklist_provisional.md`: DATA2 panel/table mapping status (includes locked + pending items).
-- `nightly_known_nonpass.csv`: allowlist of accepted nightly non-pass numeric targets.
-- `nightly_ops.md`: runbook for nightly gate and prune helpers.
+- `nightly/README.md`: nightly validation folder index and purpose.
+- `nightly/config/known_nonpass.csv`: allowlist of accepted nightly non-pass numeric targets.
+- `nightly/nightly_ops.md`: runbook for nightly gate and prune helpers.
+- `nightly/logs/nightly_test_notes.md`: rolling nightly run notes.
+- `nightly/digitized_baselines/`: WebPlotDigitizer-based paper figure baseline folder (`manifest.csv`, `thresholds.csv`, `comparison_latest.csv`).
 
 ## Reproduction scaffold
 
@@ -87,9 +90,19 @@ python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/val
 Nightly status gate (unexpected non-pass targets fail, known ones warn):
 
 ```bash
-python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly_validation_gate.py \
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly/nightly_validation_gate.py \
   --status-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/target_validation_status_consolidated.csv \
-  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly_known_nonpass.csv
+  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/config/known_nonpass.csv
+```
+
+Digitized panel comparison (paper curve vs unified curve):
+
+```bash
+python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/scripts/validation/nightly/compare_digitized_baselines.py \
+  --repo-root /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo \
+  --manifest /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/manifest.csv \
+  --thresholds /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/thresholds.csv \
+  --out-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/nightly/digitized_baselines/comparison_latest.csv
 ```
 
 Current blocker for full DATA2 numeric closure:

@@ -197,6 +197,14 @@ Purpose:
 Primary breadcrumb index:
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/docs/validation/continuity_ledger.csv`
 
+Nightly validation assets (as of 2026-03-09):
+- Docs root: `docs/validation/nightly/`
+- Nightly runbook: `docs/validation/nightly/nightly_ops.md`
+- Known non-pass allowlist: `docs/validation/nightly/config/known_nonpass.csv`
+- Running nightly notes: `docs/validation/nightly/logs/nightly_test_notes.md`
+- Digitized baselines: `docs/validation/nightly/digitized_baselines/`
+- Nightly scripts: `scripts/validation/nightly/`
+
 Minimum keep-set (do not delete):
 - `docs/validation/paper_target_matrix.md`
 - `docs/validation/paper_reference_values_template.csv`
