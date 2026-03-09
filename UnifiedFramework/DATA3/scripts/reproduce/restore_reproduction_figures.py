@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--repro-root",
         type=Path,
-        default=Path("results/reproduction"),
+        default=Path("UnifiedFramework/DATA3/results/reproduction"),
         help="Reproduction root relative to repo-root.",
     )
     parser.add_argument(
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional explicit archive path; overrides archive-root/run-id default.",
     )
-    parser.add_argument("--overwrite", action="store_true", help="Replace existing UnifiedFramework/DATA3/figures/ if present.")
+    parser.add_argument("--overwrite", action="store_true", help="Replace existing run figures/ if present.")
     parser.add_argument("--apply", action="store_true", help="Apply restore (default is dry-run).")
     return parser.parse_args()
 
@@ -73,7 +73,7 @@ def main() -> None:
     if not run_dir.exists():
         raise SystemExit(f"[restore] run directory not found: {run_dir}")
     if figures_dir.exists() and not args.overwrite:
-        raise SystemExit("[restore] UnifiedFramework/DATA3/figures/ already exists. Re-run with --overwrite to replace.")
+        raise SystemExit("[restore] run figures/ already exists. Re-run with --overwrite to replace.")
 
     expected_prefix = f"{run_id}/figures"
     with tarfile.open(archive_path, "r:gz") as tf:

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Storage-aware pruning for results/reproduction artifacts.
+"""Storage-aware pruning for UnifiedFramework/DATA3/results/reproduction artifacts.
 
 Policy:
-- Keep full artifacts (including UnifiedFramework/DATA3/figures/) for the newest N runs.
+- Keep full artifacts (including per-run `figures/`) for the newest N runs.
 - Keep full artifacts for any run referenced by validation breadcrumbs/docs.
-- For all other runs, prune UnifiedFramework/DATA3/figures/ by either:
-  - archiving to .tar.gz then deleting UnifiedFramework/DATA3/figures/ (default), or
-  - deleting UnifiedFramework/DATA3/figures/ directly.
+- For all other runs, prune per-run `figures/` by either:
+  - archiving to .tar.gz then deleting `figures/` (default), or
+  - deleting `figures/` directly.
 - Always keep run_metadata.json, tables/, and summaries/.
 
 This script is dry-run by default; pass --apply to perform changes.
@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--repro-root",
         type=Path,
-        default=Path("results/reproduction"),
+        default=Path("UnifiedFramework/DATA3/results/reproduction"),
         help="Reproduction output root (relative to repo-root by default).",
     )
     parser.add_argument(
@@ -63,7 +63,7 @@ def parse_args() -> argparse.Namespace:
         "--mode",
         choices=("archive", "remove"),
         default="archive",
-        help="How to prune UnifiedFramework/DATA3/figures/ for older runs.",
+        help="How to prune per-run figures/ directories for older runs.",
     )
     parser.add_argument(
         "--archive-root",
@@ -111,7 +111,7 @@ def _read_text(path: Path) -> str:
 
 def protected_runs_from_docs(repo_root: Path, run_ids: Iterable[str]) -> Set[str]:
     """Mark runs referenced anywhere in docs/validation as protected."""
-    docs_dir = repo_root / "docs/validation"
+    docs_dir = repo_root / "UnifiedFramework/DATA3/docs/validation"
     if not docs_dir.exists():
         return set()
 

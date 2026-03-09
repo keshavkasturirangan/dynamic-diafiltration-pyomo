@@ -2,7 +2,7 @@
 
 Date: 2026-02-21  
 Run ID: `20260221-data1-notebook`  
-Artifacts: `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/UnifiedFramework/DATA3/figures/data1_notebook_regen`
+Artifacts: `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen`
 
 ## DATA1 Main
 
@@ -39,7 +39,7 @@ Artifacts: `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/Unifie
 - SI figure image extracts used for direct visual lock:
   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/pdf_extract/data1_si/`
 - Regeneration manifest:
-  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/UnifiedFramework/DATA3/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
 
 ## Remaining check before tolerance sign-off
 - Numeric tolerance pass/fail is still separate from figure lock and tracked via side-by-side table outputs.

@@ -95,7 +95,7 @@ plt.ylim(bottom=0)
 plt.legend(fontsize=10,loc='best')
 
 fname = 'Js_Jw_cin'
-fig.savefig('figures/'+fname+'.png',dpi=300,bbox_inches='tight')
+fig.savefig(_figure_output_base(fname)+'.png',dpi=300,bbox_inches='tight')
 
 cmap1 = plt.get_cmap("tab10")
 cmap2 = plt.get_cmap("tab20")
@@ -114,7 +114,7 @@ for key, sim_st in Allsim_stru.items():
                       alpha=.8)
         fi += 1
 
-ylabelstr = 'B [$\mathbf{\mu}$m $\mathbf{\cdot}$ s$\mathbf{^{-1}}$]'        
+ylabelstr = r'B [$\mathbf{\mu}$m $\mathbf{\cdot}$ s$\mathbf{^{-1}}$]'        
 plt.xlabel('Interface Concentration[mM]',fontsize=16,fontweight='bold')
 plt.ylabel(ylabelstr,fontsize=16,fontweight='bold')
 plt.xticks(fontsize=12)
@@ -124,4 +124,4 @@ plt.xlim(left=0)
 plt.ylim(bottom=0)
 
 fname = 'Bpervial'
-fig.savefig('figures/'+fname+'.png',dpi=300,bbox_inches='tight')
+fig.savefig(_figure_output_base(fname)+'.png',dpi=300,bbox_inches='tight')

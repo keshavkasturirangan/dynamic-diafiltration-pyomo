@@ -18,6 +18,7 @@ This folder tracks DATA1/DATA2 published-result reproduction for unified-code va
 - `target_notebook_source_map.csv`: target-to-artifact evidence mapping.
 - `target_pdf_page_index.csv`: target-to-paper-page evidence index.
 - `panel_validation_both_DATA1_DATA2.md`: current high-level checkpoint.
+- `artifact_map_DATA1_DATA2.md`: short path map for current DATA1/DATA2 artifacts under the DATA3 subtree.
 - `data2_panel_checklist_provisional.md`: DATA2 panel/table mapping status (includes locked + pending items).
 - `nightly/README.md`: nightly validation folder index and purpose.
 - `nightly/config/known_nonpass.csv`: allowlist of accepted nightly non-pass numeric targets.

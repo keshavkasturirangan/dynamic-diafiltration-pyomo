@@ -216,7 +216,7 @@ Minimum keep-set (do not delete):
   - `UnifiedFramework/DATA3/results/reproduction/<run_id>/tables/*.csv`
   - `UnifiedFramework/DATA3/results/reproduction/<run_id>/summaries/*.json`
 - For locked DATA1 notebook mapping run:
-  - `UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/UnifiedFramework/DATA3/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
+  - `UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
 
 Space-management policy:
 - Keep only the latest 3 full reproduction run folders with `UnifiedFramework/DATA3/figures/` preserved.
@@ -428,7 +428,7 @@ Handoff rule:
 - 2026-02-21: EX-017 deterministic DATA1 notebook regeneration and panel checklist completed.
   - added script: `UnifiedFramework/DATA3/scripts/reproduce/regenerate_data1_notebook_artifacts.py`
   - run: `20260221-data1-notebook`
-  - output manifest: `UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/UnifiedFramework/DATA3/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
+  - output manifest: `UnifiedFramework/DATA3/results/reproduction/20260221-data1-notebook/figures/data1_notebook_regen/manifest_data1_notebook_regen.json`
   - output checklist: `UnifiedFramework/DATA3/docs/validation/data1_panel_checklist.md`
   - generated artifacts: 44 PNGs (main + SI-oriented notebook outputs)
 - 2026-02-21: EX-018 DATA1 figure mapping lock completed.
