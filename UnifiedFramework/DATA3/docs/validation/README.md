@@ -24,7 +24,6 @@ This folder tracks DATA1/DATA2 published-result reproduction for unified-code va
 - `nightly/nightly_ops.md`: runbook for nightly gate and prune helpers.
 - `nightly/logs/nightly_test_notes.md`: rolling nightly run notes.
 - `nightly/digitized_baselines/`: WebPlotDigitizer-based paper figure baseline folder (`manifest.csv`, `thresholds.csv`, `comparison_latest.csv`).
-- `unified_codex_code_reorg_map.md`: reference map for the external `unified_codex_code` subtree reorganization.
 
 ## Reproduction scaffold
 

@@ -205,11 +205,6 @@ Nightly validation assets (as of 2026-03-09):
 - Digitized baselines: `UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/`
 - Nightly scripts: `UnifiedFramework/DATA3/scripts/validation/nightly/`
 
-External reorg reference:
-- `UnifiedFramework/DATA3/docs/validation/unified_codex_code_reorg_map.md`
-- Use this as a path-migration checklist for `/Users/kkasturi/GitHub/unified_codex_code`.
-- Do not delete files from this repository merely because that external repo relocated them.
-
 Minimum keep-set (do not delete):
 - `UnifiedFramework/DATA3/docs/validation/paper_target_matrix.md`
 - `UnifiedFramework/DATA3/docs/validation/paper_reference_values_template.csv`

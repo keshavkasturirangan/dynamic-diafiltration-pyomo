@@ -24,7 +24,3 @@ Nightly status should be interpreted using the main validation semantics:
 ## Related workflow
 
 - `.github/workflows/nightly-validation.yml`
-
-## Related migration note
-
-- `UnifiedFramework/DATA3/docs/validation/unified_codex_code_reorg_map.md`
