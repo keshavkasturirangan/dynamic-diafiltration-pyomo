@@ -2,6 +2,14 @@
 
 This folder tracks DATA1/DATA2 published-result reproduction for unified-code validation.
 
+## Validation semantics
+
+- Source of truth for validation targets: figures and tables that appear in `published_works/` only.
+- `PASS` / `FAIL`: reserved for numeric validation against published table values or digitized data extracted from published paper figures.
+- `MISSING_VALUE`: a published target exists, but the numeric comparison is incomplete because either the paper-side numeric baseline or unified-side value is still missing.
+- `NOT_APPLICABLE`: the target is not currently part of numeric gating. In practice this often means the target is published-paper mapped/page-matched but has not yet been converted into a numeric comparison.
+- “Locked” or “visual/artifact validation” should be read as: the generated artifact has been mapped back to a figure/table that exists in `published_works/`; it is not, by itself, a numeric pass.
+
 ## Files
 
 - `paper_target_matrix.md`: required figure/table targets and stage plan.
@@ -16,6 +24,7 @@ This folder tracks DATA1/DATA2 published-result reproduction for unified-code va
 - `nightly/nightly_ops.md`: runbook for nightly gate and prune helpers.
 - `nightly/logs/nightly_test_notes.md`: rolling nightly run notes.
 - `nightly/digitized_baselines/`: WebPlotDigitizer-based paper figure baseline folder (`manifest.csv`, `thresholds.csv`, `comparison_latest.csv`).
+- `unified_codex_code_reorg_map.md`: reference map for the external `unified_codex_code` subtree reorganization.
 
 ## Reproduction scaffold
 

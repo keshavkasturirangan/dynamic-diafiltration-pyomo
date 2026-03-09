@@ -4,6 +4,12 @@ This document tracks published-result reproduction targets for validating the un
 
 ## Validation policy
 
+- Only figures and tables that appear in `published_works/` are valid reproduction targets.
+- Generated notebook/script plots are candidate reproductions only after they are mapped back to a published-paper figure/table.
+- `PASS` / `FAIL` are reserved for numeric validation against published table values or digitized data extracted from published figures.
+- `MISSING_VALUE` means a published target exists but the numeric comparison is not yet complete.
+- “Locked” / “Page-matched” in the status column mean published-paper mapping evidence exists; they are not equivalent to numeric pass/fail.
+
 - Parameter tolerance:
   - primary: relative error <= 5%
   - acceptable with explanation: <= 7%
