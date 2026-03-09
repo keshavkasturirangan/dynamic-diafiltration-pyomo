@@ -1,0 +1,45 @@
+J.A. Ouimet et al.                                                                                                                      Journal of Membrane Science 641 (2022) 119743
+
+
+
+
+Fig. 6. Residual squared contours comparing the hydraulic permeability and solute permeability coefficient for diafiltration experiments. Two different models (with concentration
+polarization & without concentration polarization) and two data set variations (data with an inline conductivity sensor & data encompassing only the initial and final in-situ retentate
+measurements) are evaluated. The model used to generate the contours of panel A includes concentration polarization with the inline conductivity probe measurements. The residual
+squared contours of panel B were calculated using a reduced data set which excludes the semi-continuous retentate data. Panel C contours evaluate model in which the inline
+conductivity measurements were used yet concentration polarization is not accounted for.
+
+
+Declaration of competing interest                                                              Appendix A. Supplementary data
+
+    The authors declare that they have no known competing finan-                                   Supplementary material related to this article can be found online
+cial interests or personal relationships that could have appeared to                           at https://doi.org/10.1016/j.memsci.2021.119743.
+influence the work reported in this paper.
+                                                                                               References
+Acknowledgments
+                                                                                                [1] M. Elimelech, W.A. Phillip, The future of seawater desalination: energy,
+    This work was made possible with support from the National Sci-
+                                                                                                    technology, and the environment, Science 333 (6043) (2011) 712–717.
+ence Foundation (NSF), United States of America through the Advanced                            [2] A.L. Zydney, New developments in membranes for bioprocessing–a review, J.
+Manufacturing Program (Award Number: 1932206), and we apprecia-                                     Membr. Sci. (2020) 118804.
+tively acknowledge this support. This work was partially supported by                           [3] I. Manzano, N. Taylor, M. Csordas, G.E. Vezeau, H.M. Salis, A.L. Zydney,
+the Bureau of Reclamation, Department of Interior, via DWPR Agree-                                  Purification of Cas9—RNA complexes by ultrafiltration, Biotechnol. Prog. 37 (2)
+ment R18AC00116 and by the NSF, United States of America through                                    (2021) e3104.
+                                                                                                [4] T. Corrado, R. Guo, Macromolecular design strategies toward tailoring free
+the CAREER Program (Award Number: CBET-1941596). We would like
+                                                                                                    volume in glassy polymers for high performance gas separation membranes, Mol.
+to thank the Center for Environmental Science and Technology at the                                 Syst. Des. Eng 5 (1) (2020) 22–48.
+University of Notre Dame (CEST) portions of this research was per-                              [5] T. Corrado, Z. Huang, J. Aboki, R. Guo, Microporous polysulfones with enhanced
+formed with instruments at this facility. D.J.B. gratefully acknowledges                            separation performance via integration of the triptycene moiety, Ind. Eng. Chem.
+support for this project from the Vincent P. Slatt Fellowship for Un-                               Res. 59 (12) (2019) 5351–5361.
+dergraduate Research in Energy Systems and Processes, administered                              [6] J.R. Werber, A. Deshmukh, M. Elimelech, The critical need for increased selec-
+                                                                                                    tivity, not increased water permeability, for desalination membranes, Environ.
+by the Center for Sustainable Energy at Notre Dame. E.A.E gratefully
+                                                                                                    Sci. Technol. Lett 3 (4) (2016) 112–120.
+acknowledges support from the Patrick and Jana Eilers Graduate Stu-                             [7] J.R. Hoffman, W.A. Phillip, 100th anniversary of macromolecular science
+dent Fellowship for Energy Related Research at the University of Notre                              viewpoint: Integrated membrane systems, ACS Macro Lett 9 (9) (2020)
+Dame.                                                                                               1267–1279.
+
+
+                                                                                          11
+

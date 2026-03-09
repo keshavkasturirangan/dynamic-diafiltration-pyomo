@@ -1,0 +1,79 @@
+J.A. Ouimet et al.                                                                                                                     Journal of Membrane Science 641 (2022) 119743
+
+
+ [8] R. Sujanani, M.R. Landsman, S. Jiao, J.D. Moon, M.S. Shell, D.F. Lawler,                   [33] E.A. Eugene, W.A. Phillip, A.W. Dowling, Data science-enabled molecular-to-
+     L.E. Katz, B.D. Freeman, Designing solute-tailored selectivity in membranes:                    systems engineering for sustainable water treatment, Curr. Opin. Chem. Eng 26
+     Perspectives for water reuse and resource recovery, ACS Macro Lett 9 (11) (2020)                (2019) 122–130.
+     1709–1717.                                                                                 [34] J. Liu, B. McCool, J. Johnson, N. Rangnekar, P. Daoutidis, M. Tsapatsis,
+ [9] National Academies of Sciences, Engineering, and Medicine, A Research Agenda                    Mathematical modeling and parameter estimation of MFI membranes for
+     for Transforming Separation Science, National Academies Press, 2019.                            para/ortho-xylene separation, AIChE J. (2021) e17232.
+[10] R.Z. Waldman, F. Gao, W.A. Phillip, S.B. Darling, Maximizing selectivity: An               [35] A. Altaee, Computational model for estimating reverse osmosis system design and
+     analysis of isoporous membranes, J. Membr. Sci. (2021) 119389.                                  performance: Part-one binary feed solution, Desalination 291 (2012) 101–105.
+[11] X. Qiu, H. Yu, M. Karunakaran, N. Pradeep, S.P. Nunes, K.-V. Peinemann,                    [36] J. Garcia-Aleman, J.M. Dickson, Mathematical modeling of nanofiltration mem-
+     Selective separation of similarly sized proteins with tunable nanoporous block                  branes with mixed electrolyte solutions, J. Membr. Sci. 235 (1–2) (2004)
+     copolymer membranes, ACS Nano 7 (1) (2013) 768–776.                                             1–13.
+[12] C. Osuji, P.J. Ferreira, G. Mao, C.K. Ober, J.B. Vander Sande, E.L. Thomas,                [37] G. Franceschini, S. Macchietto, Model-based design of experiments for parameter
+     Alignment of self-assembled hierarchical microstructure in liquid crystalline                   precision: State of the art, Chem. Eng. Sci. 63 (19) (2008) 4846–4872.
+     diblock copolymers using high magnetic fields, Macromolecules 37 (26) (2004)               [38] W.J. Hill, W.G. Hunter, D.W. Wichern, A joint design criterion for the dual
+     9903–9908.                                                                                      problem of model discrimination and parameter estimation, Technometrics 10
+[13] E.S. Hatakeyama, C.J. Gabriel, B.R. Wiesenauer, J.L. Lohr, M. Zhou, R.D. Noble,                 (1) (1968) 145–160.
+     D.L. Gin, Water filtration performance of a lyotropic liquid crystal polymer               [39] G.B. Ferraris, P. Forzatti, G. Emig, H. Hofmann, Sequential experimental design
+     membrane with uniform, sub-1-nm pores, J. Membr. Sci. 366 (1–2) (2011)                          for model discrimination in the case of multiple responses, Chem. Eng. Sci. 39
+     62–72.                                                                                          (1) (1984) 81–85.
+[14] A. Zirehpour, A. Rahimpour, M. Ulbricht, Nano-sized metal organic framework                [40] M. Schwaab, F.M. Silva, C.A. Queipo, A.G. Barreto Jr, M. Nele, J.C. Pinto, A new
+     to improve the structural properties and desalination performance of thin film                  approach for sequential experimental design for model discrimination, Chem.
+     composite forward osmosis membrane, J. Membr. Sci. 531 (2017) 59–67.                            Eng. Sci. 61 (17) (2006) 5791–5806.
+[15] J.L. Fenton, D.W. Burke, D. Qian, M. Olvera de la Cruz, W.R. Dichtel, Polycrys-            [41] F. Galvanin, R. Marchesini, M. Barolo, F. Bezzo, M. Fidaleo, Optimal design of
+     talline covalent organic framework films act as adsorbents, not membranes, J.                   experiments for parameter identification in electrodialysis models, Chem. Eng.
+     Am. Chem. Soc. 143 (3) (2021) 1466–1473.                                                        Res. Des. 105 (2016) 107–119, http://dx.doi.org/10.1016/j.cherd.2015.10.048.
+[16] D. Zhu, X. Li, Y. Li, M. Barnes, C.-P. Tseng, S. Khalil, M.M. Rahman, P.M.                 [42] F. Galvanin, E. Cao, N. Al-Rifai, A. Gavriilidis, V. Dua, A joint model-based ex-
+     Ajayan, R. Verduzco, Transformation of one-dimensional linear polymers into                     perimental design approach for the identification of kinetic models in continuous
+     two-dimensional covalent organic frameworks through sequential reversible and                   flow laboratory reactors, Comput. Chem. Eng. 95 (2016) 202–215.
+     irreversible chemistries, Chem. Mater. (2020).                                             [43] L.T. Biegler, Nonlinear Programming: Concepts, Algorithms, and Applications To
+[17] F. Gao, A. Hunter, S. Qu, J.R. Hoffman, P. Gao, W.A. Phillip, Interfacial junctions             Chemical Processes, SIAM, 2010.
+     control electrolyte transport through charge-patterned membranes, ACS Nano 13              [44] K.D. Dorfman, P. Daoutidis, Numerical Methods with Chemical Engineering
+     (7) (2019) 7655–7664.                                                                           Applications, Cambridge University Press, 2017.
+[18] I. Sadeghi, A. Asatekin, Membranes with functionalized nanopores for                       [45] O. Kedem, A. Katchalsky, Thermodynamic analysis of the permeability of
+     aromaticity-based separation of small molecules, ACS Appl. Mater. Interfaces 11                 biological membranes to non-electrolytes, Biochimica Et Biophysica Acta 27
+     (13) (2019) 12854–12862.                                                                        (1958) 229–246.
+[19] S. Benavides, S. Qu, F. Gao, W.A. Phillip, Polymeric ion pumps: Using an                   [46] S. Yang, N. Wang, A novel p systems based optimization algorithm for parameter
+     oscillating stimulus to drive solute transport in reactive membranes, Langmuir                  estimation of proton exchange membrane fuel cell model, Int. J. Hydrogen
+     34 (15) (2018) 4503–4514.                                                                       Energy 37 (10) (2012) 8465–8476.
+[20] J. Lu, H. Zhang, J. Hou, X. Li, X. Hu, Y. Hu, C.D. Easton, Q. Li, C. Sun, A.W.             [47] S. Sundaramoorthy, G. Srinivasan, D. Murthy, An analytical model for spiral
+     Thornton, et al., Efficient metal ion sieving in rectifying subnanochannels enabled             wound reverse osmosis membrane modules: Part I—Model development and
+     by metal–organic frameworks, Nature Mater. (2020) 1–8.                                          parameter estimation, Desalination 280 (1–3) (2011) 403–411.
+[21] H. Zhang, X. Hou, L. Zeng, F. Yang, L. Li, D. Yan, Y. Tian, L. Jiang, Bioinspired          [48] Zeman, A.L. Zydney, Microfiltration and Ultrafiltration: Principles and
+     artificial single ion pump, J. Am. Chem. Soc. 135 (43) (2013) 16102–16110.                      Applications, CRC Press, 1996.
+[22] Y. Zhang, G.C. Schatz, Advantages of conical pores for ion pumps, J. Phys. Chem.           [49] H. Al-Zoubi, N. Hilal, N. Darwish, A. Mohammad, Rejection and modelling of
+     C 121 (1) (2017) 161–168.                                                                       sulphate and potassium salts by nanofiltration membranes: neural network and
+[23] E. Cussler, Membranes which pump, AIChE J. 17 (6) (1971) 1300–1303.                             spiegler–kedem model, Desalination 206 (1–3) (2007) 42–60.
+[24] E.L. Cussler, Multicomponent Diffusion, vol. 3, Elsevier, 2013.                            [50] A. Pankajakshan, C. Waldron, M. Quaglio, A. Gavriilidis, F. Galvanin, A multi-
+[25] J. Lamb, J. Christensen, S. Izatt, K. Bedke, M. Astin, R. Izatt, Effects of salt                objective optimal experimental design framework for enhancing the efficiency of
+     concentration and anion on the rate of carrier-facilitated transport of metal                   online model identification platforms, Engineering 5 (6) (2019) 1049–1059.
+     cations through bulk liquid membranes containing crown ethers, J. Am. Chem.                [51] C. Waldron, A. Pankajakshan, M. Quaglio, E. Cao, F. Galvanin, A. Gavriilidis,
+     Soc. 102 (10) (1980) 3399–3403.                                                                 Closed-loop model-based design of experiments for kinetic model discrimina-
+[26] V.S. Rathee, S. Qu, W.A. Phillip, J.K. Whitmer, A coarse-grained thermodynamic                  tion and parameter estimation: Benzoic acid esterification on a heterogeneous
+     model for the predictive engineering of valence-selective membranes, Mol. Syst.                 catalyst, Ind. Eng. Chem. Res. 58 (49) (2019) 22165–22177.
+     Des. Eng 1 (3) (2016) 301–312.                                                             [52] M. Quaglio, C. Waldron, A. Pankajakshan, E. Cao, A. Gavriilidis, E.S. Fraga, F.
+[27] X. Zhou, Z. Wang, R. Epsztein, C. Zhan, W. Li, J.D. Fortner, T.A. Pham, J.-H.                   Galvanin, An online reparametrisation approach for robust parameter estimation
+     Kim, M. Elimelech, Intrapore energy barriers govern ion transport and selectivity               in automated model identification platforms, Comput. Chem. Eng. 124 (2019)
+     of desalination membranes, Sci. Adv. 6 (48) (2020) eabd9045.                                    270–284.
+[28] C. Cheng, A. Yaroshchuk, M.L. Bruening, Fundamentals of selective ion trans-               [53] D. Vlachos, A. Mhadeshwar, N.S. Kaisare, Hierarchical multiscale model-based
+     port through multilayer polyelectrolyte membranes, Langmuir 29 (6) (2013)                       design of experiments, catalysts, and reactors for fuel processing, Comput. Chem.
+     1885–1892.                                                                                      Eng. 30 (10–12) (2006) 1712–1724.
+[29] Z. Zhang, M.M. Rahman, C. Abetz, A.-L. Höhme, E. Sperling, V. Abetz, Chemically            [54] C. Tsay, R.C. Pattison, M. Baldea, B. Weinstein, S.J. Hodson, R.D. Johnson, A
+     tailored multifunctional asymmetric isoporous triblock terpolymer membranes for                 superstructure-based design of experiments framework for simultaneous domain-
+     selective transport, Adv. Mater. 32 (8) (2020) 1907014.                                         restricted model identification and parameter estimation, Comput. Chem. Eng.
+[30] J. Shao, A.L. Zydney, Optimization of ultrafiltration/diafiltration processes for               107 (2017) 408–426.
+     partially bound impurities, Biotechnol. Bioeng. 87 (3) (2004) 286–292.                     [55] S. Qu, T. Dilenschneider, W.A. Phillip, Preparation of chemically-tailored
+[31] R. Ghosh, Z. Cui, Analysis of protein transport and polarization through mem-                   copolymer membranes with tunable ion transport properties, ACS Appl. Mater.
+     branes using pulsed sample injection technique, J. Membr. Sci. 175 (1) (2000)                   Interfaces 7 (35) (2015) 19746–19754.
+     75–84.                                                                                     [56] F. Fornasiero, H.G. Park, J.K. Holt, M. Stadermann, C.P. Grigoropoulos, A. Noy,
+[32] R. Ghosh, Y. Wan, Z. Cui, G. Hale, Parameter scanning ultrafiltration: rapid                    O. Bakajin, Ion exclusion by sub-2-nm carbon nanotube pores, Proc. Natl. Acad.
+     optimisation of protein separation, Biotechnol. Bioeng. 81 (6) (2003) 673–682.                  Sci. 105 (45) (2008) 17250–17255.
+
+
+
+
+                                                                                           12
+

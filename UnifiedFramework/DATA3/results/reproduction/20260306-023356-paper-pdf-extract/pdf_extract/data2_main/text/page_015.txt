@@ -1,0 +1,69 @@
+Industrial & Engineering Chemistry Research                                            pubs.acs.org/IECR                                           Article
+
+increase, while A- and D-optimality metrics show slight
+decreases when startup data are included. This suggests that
+the overflow model does not capture the startup process as
+accurately as the relative steady dynamics of the following
+experiment, leading to a reduction in the effective information
+gain.
+   The results in Table 6 underscore the significant role of
+modeling the startup processes. Lag mode experiments that
+model startup (i.e, M1) are the most informative. Overflow
+experiments or lag experiments that do not model startup
+processes (e.g., prior work26) provide comparable amounts of
+information. As such, accurately capturing the early stage
+dynamics of lag experiments allows for more precise parameter
+estimation, ultimately leading to a better understanding of solute
+transport mechanisms. This information gain exemplifies the
+synergistic feedback between experimental design, model
+development, and data analysis, driving more informed and
+efficient advancements in membrane characterization.
+
+■    IMPACTS AND OPPORTUNITIES
+One key component toward the inverse design of materials lies
+in the ability to model, and subsequently identify, the
+mechanisms that dominate solute transport. Diafiltration
+experiments illustrate how researchers can identify the key                  Figure 9. Modeling the dynamics of diafiltration experiments helps
+factors that govern transport behavior by leveraging dynamic                 elucidate the relevant solute transport phenomena. (A) Lag mode
+measurements to explore wide concentration spaces. Specifi-                  diafiltration experiments that model the startup processes contain
+cally, Figure 9 summarizes the key benefits of dynamic modeling              ∼138% more information (quantified by D-optimality) than baseline
+and data analytics for this study. By capturing dynamic system               prior work, which used lag mode experiments that do not consider
+behaviors and indiscriminately weighing the effects of transport             startup dynamics. In comparison, overflow mode experiments are
+                                                                             slightly less informative than this prior baseline, even with modeling
+phenomena (e.g., diffusion, convection, and solute partitioning),            startup dynamics. (B) Box plots show the distribution of weighted
+data-driven frameworks can provide a detailed understanding of               residuals zi / nr , see eqs 34 and 35, for the three measurements in a
+how membrane structure and operating conditions affect                       concentrating experiment. The diffusion-only model considers a
+material properties and performance. These frameworks lay                    constant B, whereas the convention−diffusion model uses the best B
+the groundwork for systematically optimizing membranes for                   polynomial correlation identified in this work. Accounting for
+diverse applications (e.g., water desalination, biomedical                   convention and the concentration dependence of B enhances the
+separations, chemical production, wastewater treatment)                      accuracy of the permeate concentration predictions.
+where precise control over membrane properties is critical to
+achieve specific performance goals, providing a direct pathway
+to optimize selectivity, permeability, and long-term performance             ing and in-line analytics within SDL systems further enhance
+in complex industrial environments.                                          experimentation by providing immediate feedback for process
+   Building on the gains from diafiltration experiments and data-            adjustments.
+driven modeling, advanced experimental design and automation                    The integration of MBDoE, automation, and SDL systems in
+present opportunities to accelerate membrane innovations.                    diafiltration experiments could catalyze high-throughput, data-
+Advanced optimization techniques, such as MBDoE, allow                       rich investigations into membrane behavior. For instance, faster
+systematic exploration of membrane structure−property−                       experimental cycles, informed by MBDoE, support the system-
+performance relationships by optimizing conditions like feed                 atic exploration of advanced material features like dynamic
+concentration profiles, operating pressures, and permeate flux.              covalent interactions within the polymer backbone or functional
+Faster, targeted experiments informed by MBDoE not only                      group distribution across multiple length scales.
+reduce resource demands needed for elucidating transport                        Another key opportunity is embedding diafiltration-driven
+mechanisms, but also enable precise fine-tuning of materials to              models into process-scale optimization frameworks.91,92 The
+meet specific application needs, such as ion-selective separations           polynomial expressions for concentration-dependence perform-
+and molecular sieving.                                                       ance can act as computationally efficient reduced-order scale-
+   Automation amplifies these capabilities by enabling high-                 bridging models34,93 to facilitate rigorous optimization of
+throughput experimentation with minimal human intervention.                  multiple design and operational scenarios to identify the optimal
+Looking ahead, incorporating additional solute−solute and                    membrane system configurations. Moreover, such multiscale
+solute-membrane interactions can further expand the exper-                   optimization approaches can facilitate bidirectional feedback
+imental design space. For instance, automated systems equipped               loops across materials, devices, and process systems.13 For
+with multiple diafiltrate tanks can switch between concentrating,            example, the proposed diafiltration experimental apparatus and
+diluting, and critical regimes.58 In a similar manner, experiments           modeling framework can rapidly distinguish between dominant
+can possess time-varying applied pressures. In this way, flexible            transport phenomena and identify predictive science-based
+experiments that systematically vary operating conditions can                models with quantified uncertainty. These models can then be
+provide information-rich data sets that promote a deeper                     embedded in process and system optimization frameworks to
+understanding of membrane performance. Real-time monitor-                    assess the technical, economic, and environmental performance
+                                                                     12125                                             https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                   Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

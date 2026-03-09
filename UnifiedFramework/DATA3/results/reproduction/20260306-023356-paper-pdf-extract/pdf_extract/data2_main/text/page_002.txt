@@ -1,0 +1,59 @@
+Industrial & Engineering Chemistry Research                                                   pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 1. Pressure is first applied to both the diafiltrate tank and the head space of the stirred cell to bring the whole system to the initial pressure. The
+valve to the stirred cell is then closed and an increased pressure is applied to the diafiltrate tank (subscript d). The diafiltrate flows through the tubing
+into the stirred cell containing the feed solution (subscript f), with concentration cf monitored by an inline conductivity probe. The permeate initially
+enters the holdup region (subscript h) and then travels through a tube with volume, vtb, before being collected in scintillation vials resting on a balance.
+Time-series mass data, mv, are recorded, and the average permeate concentration, cv, is analyzed using inductively coupled plasma-optical emission
+spectroscopy (ICP-OES) Reproduced from Muetzel et al.54 Copyright 2022 American Chemical Society.
+
+transmembrane transport.26 As one example, the effect of solute-                      To create comprehensive data sets, innovations that can
+membrane interactions on diffusion and partitioning remains                        inform the design of experiments to generate mechanistic
+largely convoluted due to the lack of information contained                        insights are needed.34 Model-based design of experiments
+within measurements. Traditionally, the experiments used to                        (MBDoE) utilizes high-fidelity models grounded in scientific
+regress these coefficients rely on ex-situ solution analyses (e.g.,                principles to optimize experimental campaigns. MBDoE enables
+sorption27 and time-lag experiments,28 respectively) and have                      the discrimination between scientific hypotheses43,44�posed as
+changed little over the past 40 years. The statistical design of                   mathematical models�and improves the precision of parameter
+experiments (e.g., response surface methodology) provides a                        estimates.45−47 For instance, MBDoE has been used to
+systematic approach to planning experiments and identifying                        differentiate between candidate kinetic models in microreactor
+factors that influence membrane performance, but requires                          designs, increasing the information gained from experiments
+time-consuming and resource-intensive data collection before                       while reducing material costs and experimental time commit-
+valid conclusions can be drawn.29,30 Consequently, there is a                      ments.48 While MBDoE has been employed to understand many
+pressing need for more robust, adaptable experimentation                           processes (e.g., oxidation of methanol on silver catalysts,49
+methods, as well as sophisticated modeling techniques, to                          product formulation50), only a few of those applications (e.g.,
+accurately characterize and deconvolute transport properties                       electrodialysis51 and chromatographic separations52) come
+under a wide range of conditions.                                                  from the separations community. The emergence of new
+   Recent advancements in automation and artificial intelligence                   MBDoE software53 holds significant potential for optimizing the
+(AI) have introduced transformative approaches to material                         design of instruments and experiments. Building on these
+research through the development of self-driving laboratories                      advancements, parameter precision criteria from MBDoE have
+                                                                                   been applied to diafiltration experiments26,54,55 to optimize
+(SDLs) and digital twins.31−34 SDLs integrate experimental
+                                                                                   time-invariant experimental conditions in the system.56
+automation with AI-driven optimization, enabling the autono-
+                                                                                   Applying MBDoE enabled a quantitative comparison between
+mous execution of experiments, data collection, analysis, and
+                                                                                   traditional filtration and dynamic diafiltration experiments. The
+iterative refinement of experimental conditions. While SDLs can                    results demonstrated that diafiltration experiments enhanced
+revolutionize experimentation, they typically rely on classical                    parameter estimation and reduced the experimental time
+“black-box” approaches that fail to integrate mechanistic                          required to characterize the transport properties of TFC NF
+understanding,31,35,36 limiting their ability to generalize findings               membranes. By harnessing the power of MBDoE, researchers
+across complex membrane systems. Digital twins complement                          can systematically optimize experiments to maximize the
+SDLs by providing virtual representations of physical systems                      information gained, reducing the time and resources needed
+that enable predictive modeling, real-time system monitoring,                      for membrane development. The integration of data science
+and data-driven decision-making.37,38 This combination further                     techniques,47 science-based digital twins, and SDLs into
+enhanced the efficiency of SDLs in generating and analyzing                        membrane research creates a powerful pathway toward more
+experimental data.39−42 For NF applications, digital twins                         efficient experimentation, inverse design of materials, and the
+leveraging dynamic membrane characterization could simulate                        real-time optimization of processes.
+complex transport phenomena, predict membrane performance,                            In this work, we combine dynamic diafiltration experiments
+and optimize separation process conditions.13 These tools create                   with model-based data analytics techniques to systematically
+a valuable bridge between theoretical predictions and                              characterize the transport properties of charged NF membranes
+experimental validation. However, before future research efforts                   (i.e., NF270 membranes, which exhibit a negative surface charge
+in the membrane field can pair SDLs and digital twins, accurate                    for aqueous solutions above pH 3). By incorporating
+physics-based models and comprehensive data sets must be                           experimental startup dynamics and accounting for the delay
+available.                                                                         between when the permeate exits the membrane and when it is
+                                                                           12112                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                           Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

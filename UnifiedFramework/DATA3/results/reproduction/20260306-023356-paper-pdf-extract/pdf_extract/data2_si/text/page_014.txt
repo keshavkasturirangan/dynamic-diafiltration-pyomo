@@ -1,0 +1,11 @@
+Figure S3: Empirical model prediction for additional experiments. (B.1) Diafiltration exper-
+iments were performed in the lag mode, at 40 psi, with 15 mM/120 mM KCl feed/diafiltrate
+solutions for the NF270 membrane sample. (B.2) Diafiltration experiments were performed
+in the lag mode, at 20 psi, with 15 mM/120 mM KCl feed/diafiltrate solutions for the NF270
+membrane sample.
+
+
+
+
+                                           SI-14
+

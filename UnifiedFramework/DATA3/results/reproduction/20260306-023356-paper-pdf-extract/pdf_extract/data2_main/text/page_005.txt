@@ -1,0 +1,89 @@
+Industrial & Engineering Chemistry Research                                                pubs.acs.org/IECR                                                          Article
+
+moment when the first drop of permeate appears in the                          mass minus the tube mass mtb was reached. These time
+scintillation vial, as recorded by the balance, which measures the             corrections ensure a direct comparison between the model-
+time-dependent weight of the vial. The time tH is estimated by                 predicted vial concentrations and the experimental measure-
+extrapolating the permeate mass data based on the time required                ments.
+to fill the tube (i.e., vtb ∼ 0.8 mL for a connecting tube with an                Concentration Polarization. Accounting for concentra-
+inner diameter of 2.2 mm, and length of 200 mm). There is no                   tion polarization on the feed side of the membrane is essential
+strict sequence between tH, and tL or tF; these times are                      for accurately determining membrane transport coefficients.
+determined based on experimental observations and incorpo-                     Namely, the solute concentration difference across the
+rated into the models accordingly.                                             membrane is represented by Δc = cin,f − ch, where cin,f is the
+   In our model, for t0 ≤ t < tH, the mass (mh) and concentration              feed-side concentration at the solution-membrane interface, and
+of the solution in the holdup region are given by eqs 10 and 11:               ch is the concentration in the holdup region, approximating the
+   dmh                                                                         permeate concentration at the membrane-solution interface. cin,f
+       = A m Jw                                                                accounts for the effect of concentration polarization, and is
+    dt                                                         (10)            related to bulk feed/retentate concentration cf, using the thin-
+   d(chmh)                                                                     film model as illustrated in eqs 18 and 19.59
+           =A m Js
+                                                                                  cin,f     ch           iJ y                           ij            yz i J y
+                                                                                                 = expjjjj w zzzz                                ch zzzexpjjjj w zzzz + ch
+      dt
+                                                                                                                              cin,f = jjjc f
+                                                                                   cf      ch                                            j             z
+       dch  A
+           = m (Js              chJw )                                                                   kk{                             k             { kk{
+       dt    mh                                                (11)                                                                                                          (18)
+                                                                                                           0.57               0.33
+For tH ≤ t < tV, the mass the solution in the holdup region no                    kb         ij bv 0 yz           ij yz                              (v )
+                                                                                                                                                         0 0.57
+                                                                                                                                                               Ds0.67
+                                                                                     = 0.23jjj        zz           jj zz                 k = 0.23
+longer changes, eq 12 and hence the concentration is derived as                   Ds                   z            jj D zz                               0.24 0.43
+                                                                                              k        {             k s{                                      b
+eq 13:
+                                                                                                                                                                             (19)
+   dmh
+       =0                                                                      where k is the mass transfer coefficient, b is the stirred cell
+    dt                                                         (12)            diameter, Ds is the diffusion coefficient of the solute in water, ν is
+   d(chmh)                                                                     the kinematic viscosity of water, and v0 is the average velocity
+            = A m Js chA m Jw                                                  within the system, defined as the product of the stir bar angular
+      dt                                                                       velocity and radius.
+       dc h    A                                                                  Membrane Transport Models. The transport properties of
+            = m (Js chJw )                                                     the membrane are characterized by modeling the solvent and
+       dt       mh                                             (13)
+                                                                               solute fluxes through the membrane. Specifically, the volumetric
+   In the model, we neglect the time delay associated with                     flux of water Jw is described as a function of the applied pressure
+transferring the permeate from the holdup volume to the                        difference across the membrane, eq 2057:
+scintillation vial and assume that the permeate within the
+                                                                                  Jw =Lp( P                        )
+scintillation vial is well-mixed. Therefore, for t ≥ tV, we have eqs
+14−17:
+                                                                                          =Lp( P           nRT c)                                                            (20)
+   dmh
+       =0
+    dt                                                         (14)            where Lp is the hydraulic permeability, a key parameter
+                                                                               quantifying the membrane’s ability to transport water, and σ is
+   dch  A                                                                      the reflection coefficient, a parameter related to the membrane’s
+       = m (Js         chJw )
+   dt    mh                                                    (15)            solute rejection properties. ΔP is the applied pressure in the
+                                                                               diafiltration experiment, and Δπ = nRTΔc is the osmotic
+   dm v                                                                        pressure, calculated using the van’t Hoff equation, where n is the
+        = A m Jw
+    dt                                                         (16)            number of dissolved species formed by the solute(s), R is the gas
+                                                                               constant, and T is the temperature, and Δc is the solute
+   d(c vm v )   dm v                                                           concentration difference across the membrane.
+              =      ch = A m Jw ch
+      dt         dt                                                               When ion transport across the membrane is governed by the
+                                                                               combined effects of convection and diffusion, the local solute
+       dc v                (c v        ch)                                     flux in the membrane, js, is mathematically described as eq 21:
+               = A m Jw
+       dt                         mv                           (17)
+                                                                                                 dc(z)
+where the efflux from the holdup volume is collected directly                     js =     Dm          + Jw c(z)
+                                                                                                  dz                                                                         (21)
+into the scintillation vial, eq 17.
+                                                                                                                                 dc(z)
+   The average concentrations of permeate collected in the                     where the first term, Dm dz , represents the diffusive
+scintillation vials are measured using inductively coupled                     contribution to the flux, which is driven by the concentration
+plasma-optical emission spectroscopy (ICP-OES) after the
+experiment. To account for the time delay introduced by the                    gradient, dc(z) , with Dm being the solute diffusion coefficient in
+                                                                                            dz
+connecting tube, the measurement time for the permeate                         the membrane phase. The second term, Jwc(z), corresponds to
+concentration is corrected by backtracking the time-series vial                the convective contribution to the flux, driven by the volumetric
+mass data to account for the permeate mass in the tube. For                    solvent flux, Jw, which carries the solute. Because the membrane
+example, instead of using the time stamp at the end of each vial               responds more rapidly than the rate at which the feed
+collection, we use the time corresponding to when the total vial               concentration changes, a pseudosteady-state approximation
+                                                                       12115                                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

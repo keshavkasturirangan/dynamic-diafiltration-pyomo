@@ -1,0 +1,69 @@
+Mass Permeate Retentate
+
+* m7 = i =7
+a a 4 1
+6 1.6 —_—_—__] 6 6
+See —™Ssé<CSM PF
+SS SS et eee eee 1.0
+' _—— D — 1 1
+SSS r 2
+ie ze S 2 es —  ——————
+' —er xs ' '
+30 ee 3=—=15 3
+E ‘ E E
+3 2 -1.6 ss 2 0.9 A 2 0.0
+= = Cu 33 =
+f1p—-22 HSS ieee
+0.0 02 04 06 O08 1.0 0.0 «02 04 06 08 1.0 0.0 02 04 06 O8 1.0
+o [dimensionless] o [dimensionless] o [dimensionless]
+i) a —— aa gt SS! ———]
+2 2.0 2 2
+5 SS 2 Oe
+~ 4 ———— 3 7 - 4 5
+iN — 274 9 a "
+¢ 320 ——_ ¢ 35—15 ¢ 3
+so2 “1.6 2 = s2
+= = [33 =
+v1 12 SS we MT ae
+00 02 04 06 08 1.0 0.0 02 04 06 08 1.0 00 02 04 06 O08 1.0
+o [dimensionless] o [dimensionless] o [dimensionless]
+c = -
+a 7p— 12 at a?
+c é L 6 15—T L 6
+a ———
+Fi a SS EE Ss {—_—__— —_
+a5 — a5 21 PS) ey If
+£ ——===——— 23 — _ c
+a 4 a e _ = S1 4 “1.0
+1 — -2.4 1 Fp 1
+¢ 3620 “J ¢3 = = 3
+3 2C 1.6 a ?—— =? 0.0
+Fiz S16 73 pl pe
+0.0 02 04 06 O08 1.0 0.0 02 04 06 08 1.0 0.0 02 04 06 O08 1.0
+o [dimensionless] co [dimensionless] o [dimensionless]
+7} —a2——— gee m7
+t 1
+———— —{
+6 6 4.65 —— 5 6}—_—-1s eel
+s 3, Ss | —_ 4
+25 2s Pri ¢ St 84
+_—_ = &, .—
+» —————,_— . 21 ms 4 o—————
+a x) Tg 3 5 43
+Oe  ——————— E - 09 E
+i a a7 2?
+Flp— 2 3143 Eo!
+0.0 02 04 06 08 1.0 0.0 0.2 04 06 08 1.0 0.0 02 04 06 08 1.
+o [dimensionless] o [dimensionless] o [dimensionless]
+
+Fig. S5: Residual squared contours comparing the hydraulic permeability and reflection coefficient for of filtration experiments.
+Two different models (with concentration polarization & without concentration polarization) and two data set variations (data
+with an inline conductivity sensor & data encompassing only the initial and final in-situ retentate measurements) are evaluated.
+The model used to generate the contours of panel A includes concentration polarization phenomena with the inline conductivity
+probe measurements. The residual squared contours of panel B uses a reduced data set which excludes the semi-continuous
+retentate data. Panel C contours evaluate a separate model in which the inline conductivity measurements are used yet
+concentration polarization is not accounted for. The contours generated in panel D use the reduced data set and ignore
+
+concentration polarization.
+
+SI-8

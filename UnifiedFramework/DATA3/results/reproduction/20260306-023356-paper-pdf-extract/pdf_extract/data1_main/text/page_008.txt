@@ -1,0 +1,62 @@
+J.A. Ouimet et al.                                                                                                                     Journal of Membrane Science 641 (2022) 119743
+
+                      Table 2
+                      Diafiltration experiments for three membranes (i.e., Membranes A, B, C) were conducted. The hydraulic permeability, solute permeability
+                      coefficient and the reflection coefficient for two different models (with concentration polarization & without concentration polarization)
+                      and two data set variations (data with an inline conductivity sensor & data encompassing only the initial and final retentate
+                      measurements) are presented. Predictions within rows labeled M1 include concentration polarization phenomena and inline conductivity
+                      probe measurements. The regressed parameters from rows labeled M2 use a reduced data set which excludes the semi-continuous
+                      retentate data. The M3 predictions evaluate a model in which the inline conductivity measurements are used yet concentration
+                      polarization is not accounted for. The M4 predictions use the reduced data set and do not account for concentration polarization.
+
+
+                                        Membrane        Model      𝐿𝑝                   𝐵           𝜎                  Mass          Permeate       Retentate
+                                                                                                                       Objective     Objective      Objective
+                                                                   L m−2 h−1 bar−1      μm s−1      Dimensionless      g2            mM2            mM2
+                                                        M1         3.90                 0.29        1                  3.39E−03      7.31E−01       9.74E−01
+                                                        M2         3.25                 0.31        1                  3.27E−03      4.38E−01       5.52E−03
+                                        A
+                                                        M3         3.68                 0.31        1                  4.49E−03      7.85E−01       1.10E+00
+                                                        M4         3.04                 0.33        1                  4.62E−03      4.53E−01       5.36E−03
+                                                        M1         3.42                 0.50        1                  5.30E−03      2.11E+01       1.23E+01
+                        Diafiltration                   M2         2.76                 0.73        1                  6.72E−03      7.30E+00       8.20E−05
+                                        B
+                                                        M3         3.27                 0.53        1                  6.37E−03      2.23E+01       1.41E+01
+                                                        M4         2.64                 0.79        1                  7.93E−03      7.25E+00       4.22E−04
+                                                        M1         2.74                 0.34        0.88               5.76E−03      2.15E−01       4.52E+00
+                                                        M2         2.97                 0.34        1.00               2.48E−03      4.33E−01       5.94E−03
+                                        C
+                                                        M3         2.71                 0.37        0.91               5.71E−03      2.73E−01       4.42E+00
+                                                        M4         2.81                 0.37        1.00               3.50E−03      4.28E−01       6.42E−03
+
+
+
+
+Fig. 4. Computational predictions display how different values of the reflection coefficient (i.e., 𝜎 = 0.1, 0.5, 0.9) affect the time evaluation of mass, retentate and permeate data.
+Physically, the reflection coefficient can take any value between zero and one. The predictions were generated using Eqs. (7) (left), (6) (middle) and (5) (right) with 𝐿𝑝&𝐵 values
+for Membrane A, model M1 from Tables 1 and 2. At low concentrations, filtration predictions (A) cannot distinguish between different values of the reflection coefficients. While
+diafiltration predictions (B) for different reflection coefficients are indistinguishable at low concentrations, they diverge from one another at high concentrations.
+
+
+any value of the reflection coefficient will provide an equivalent model                            Diafiltration experiments overcome this limitation related to the
+fit. This confirms that the filtration experiments are insensitive to the                       osmotic pressure by exploring a broader concentration range. A sen-
+reflection coefficient. This insensitivity, which makes the reflection                          sitivity analysis (Fig. 4B) shows that dynamic model predictions are
+coefficient unidentifiable, is due to the low retentate concentrations                          sensitive to perturbations in the reflection coefficient. At low retentate
+within the filtration experiments which produce negligible osmotic                              concentrations, three unique reflection coefficient values provide sim-
+pressures in Eq. (1). Although no information can be gathered on the
+                                                                                                ilar model predictions. Yet, the predictions diverge from one another
+reflection coefficient, filtration experiments are capable of identifying
+                                                                                                once retentate concentrations greater than 40 mM are reached. Ulti-
+membrane specific solute permeability coefficients and hydraulic per-
+                                                                                                mately, after a four hour experiment, if the reflection coefficient of
+meability coefficients as highlighted by the 𝐿𝑝 vs. 𝐵 contours presented
+                                                                                                the membrane was equal to 0.1, the retentate concentration would be
+in Fig. S6. The mass residual squared contour predicts the data can be
+best fit with an 𝐿𝑝 value of 4.37 L m−2 h−1 bar−1 and a solute perme-                           163.5 mM KCl. Conversely, if the membrane reflection coefficient is
+ability coefficient value of 0.67 μm s−1 . This information is reinforced                       equal to 0.5 or 0.9, the retentate concentration will be 112.9 mM KCl
+by the permeate and retentate contours which also display minimum                               and 86.5 mM KCl, respectively. These differences are best highlighted
+squared residual values at the aforementioned 𝐿𝑝 and 𝐵 values (Fig.                             within the retentate data, yet they are also apparent within the mass
+S6).                                                                                            and permeate predictions. The threshold, where the predictions at
+
+                                                                                            8
+

@@ -1,0 +1,58 @@
+J.A. Ouimet et al.                                                                                                                      Journal of Membrane Science 641 (2022) 119743
+
+
+
+
+Fig. 1. A schematic of the experimental apparatus. The diafiltrate reservoir and stirred cell are loaded with solutions of known initial concentrations (i.e., 𝑐𝑓 (0) for the feed and
+𝑐𝑑 in the diafiltrate). After the apparatus is initialized, an applied pressure, P, drives the flow of the diafiltrate into the stirred cell at a rate equal to the flow rate of permeate
+into the scintillation vial. The apparatus continuously monitors permeate mass (𝑚𝑣 ) by using a scintillation vial resting on top of a balance. The concentrations of dissolved ions
+in the permeate are determined through inductively coupled plasma optical emission spectroscopy (ICP-OES) while the retentate concentration is monitored through an inline
+conductivity probe. The pressure is recorded using a digital pressure transducer attached to a gas reservoir.
+
+
+3. Materials and methods                                                                       plate and stirred (at atmospheric pressure) for 10 min to allow ion
+                                                                                               adsorption onto the membrane and exposed surfaces of the stirred cell
+3.1. Materials and equipment                                                                   to take place. 1 mL of the feed solution was subsequently removed
+                                                                                               from the stirred cell and stored in a scintillation vial to be analyzed by
+    An Amicon 8010 stirred cell (Amicon, Burlington, Massachusetts)                            inductively coupled plasma optical emission spectroscopy (ICP-OES).
+was used in all experiments. NF90 membranes supplied by                                        The conductivity probe was turned on and nitrogen gas was used to
+DuPont (DuPont, Wilmington, Delaware) were used for all of the                                 apply a pressure of 60 psi to the stirred cell. A pressure transducer,
+experiments. Pressure data was monitored using an Omega PX409                                  in series with the cell, was used to monitor the applied pressure and
+USBH pressure transducer (Omega, Norwalk, Connecticut). Mass data                              a balance recorded the mass of permeate in the scintillation vials. At
+was measured by an OHAUS Adventure Series Balance (OHAUS, Par-                                 each 0.5 mL of permeate, the scintillation vials were replaced, sealed
+sippany, New Jersey). Conductivity data was gathered from an LFS                               and stored for further analysis. The mass, pressure, and conductivity
+1107 conductivity sensor (Innovative Sensor Technology, Las Vegas,                             readings of the three instruments were synchronized by a MATLAB code
+Nevada). A Keithly 6221 DC and AC current source function generator                            that recorded the time dependent data. At the end of the experiment,
+(Keithly, Cleveland, Ohio) was used to generate a 1 mA peak to peak                            the retentate and the solution left within the tube between the stirred
+sinusoidal AC current. The voltage drop across the conductivity sensor                         cell and the scintillation vial were collected. All closed sample vials
+electrodes was measured with a GwInStek GDS 1054B oscilloscope                                 were stored until they were prepared for analysis by ICP-OES. After
+(GwInStek, Montclair, California). The information was converted to                            each experiment, the conductivity probe was cleaned with DI water
+a conductivity measurement and used in further analyses. An in-house                           and subsequently stored in DI water until the next experiment was
+MATLAB code was used to synchronize and record mass, conductivity,                             conducted.
+and pressure data. All salt solutions were prepared using deionized
+water (DI water) that was supplied by a Millipore water purification                           3.4. Diafiltration experiments
+system (Milli Q Advantage A10, Milli Q, MA). Potassium chloride (KCl),
+and nitric acid (HNO3) were purchased from Sigma Aldrich (Aldrich,                                 Diafiltration experiments were conducted within a modified stirred
+St. Louis, Missouri) and had purities greater than 99.0% and 70%                               cell apparatus (Fig. 1). The diafiltrate tank was filled with a high
+respectively.                                                                                  concentration salt solution. A portion of this solution was collected and
+                                                                                               stored within a scintillation vial for further analysis by ICP-OES. A 10
+3.2. Hydraulic permeability measurements                                                       mL Amicon stirred cell was prepared with 11 mL of a salt solution. The
+                                                                                               solution was stirred for 10 min to allow any ion adsorption onto the
+    The hydraulic permeabilities of the NF90 membranes were deter-                             membrane to occur. 1 mL of the resulting feed solution was collected
+mined by placing the flat sheet membrane into an Amicon stirred cell.                          and stored.
+Four different samples denoted Membrane A, B, C, and D were studied.                               The mathematical analysis of the data was conducted under the
+The stirred cell volume above the membrane was filled with 10 mL of                            assumption that the flow rate of diafiltrate into the stirred cell was
+DI water. Nitrogen gas was used to apply pressures between 30 psi and                          equal to the flow rate of permeate out of the stirred cell. To achieve
+60 psi. The water permeated through the membrane was collected in                              this condition experimentally, the volume of air between the diafiltrate
+scintillation vials that rested on top of the OHAUS balance. A computer                        tank and the stirred cell needs to compress into the headspace of the
+logged the mass and pressure data over time. This data was used to                             stirred cell. We cannot start the experiment from atmospheric pressure
+calculate the hydraulic permeability of the membrane.                                          because, once increased to the operating pressure, there are not enough
+                                                                                               gas molecules within the tubing to occupy the headspace of the stirred
+3.3. Filtration experiments                                                                    cell (i.e., the diafiltrate would flood the stirred cell in an uncontrolled
+                                                                                               manner). For the current experimental system, the volume of air be-
+    Filtration experiments were carried out in a 10 mL Amicon stirred                          tween the tank and stirred cell is 35 mL and the headspace volume is
+cell. The stirred cell was loaded with 12 mL of feed solution at pre-                          7 mL. Assuming an ideal gas, the pressure of the system immediately
+determined salt concentration. The stirred cell was placed on a stir                           before starting the experiment, must be 1/6 of the operating pressure
+
+                                                                                           4
+

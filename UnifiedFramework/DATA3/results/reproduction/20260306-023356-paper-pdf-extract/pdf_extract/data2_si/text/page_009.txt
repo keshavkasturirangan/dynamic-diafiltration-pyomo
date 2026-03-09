@@ -1,0 +1,53 @@
+       drance. This expression can be written for both the co-ion, i, and the counter-ion, j, yielding
+       the following constraint on the ion concentrations inside and outside of the membrane phase.
+1285
+
+                                          cm
+                                           i cj
+                                                 m
+                                                   = Hi Hj = Hsteric                            (S25)
+                                           csi csi
+
+       Assuming a 1:1 salt, eq S25 can be combined with electroneutrality constraints in the mem-
+       brane and solution phases to develop an expression for the co-ion concentration within the
+       membrane phase.                        <
+                                                  χ2 + 4Hsteric csalt 2 − χ
+                                       cm
+                                        i =                                                     (S26)
+                                                          2
+
+          For small bulk concentrations (csalt ≪ χ), a Taylor series expansion is used to approxi-
+1290   mate cm
+             i :
+                                                      Hsteric csalt 2
+                                               cm
+                                                i ≈                                             (S27)
+                                                           χ
+
+       Dividing cm
+                 i by the bulk concentration of salt to calculate the partition coeﬃcient equation,
+
+       we obtain:
+                                                   cm
+                                                    i     Hsteric
+                                          H=            ≈         csalt                         (S28)
+                                                  csalt    χ
+
+          Our estimate H = h0 + h1 cin,f is consistent with the first-order dependence of H on the
+       interface concentration in the solution phase. Assuming that Hsteric = h0 , h1 can be related
+1295   to the partition coeﬃcient described in equation eq S28 by substituting the membrane charge
+       density (χ = 140 mM).
+                                              1    h0
+                                      h1 ≈      ≈     ≈ 0.0042 mM−1                             (S29)
+                                              χ   140
+
+       h1 fitted from the diafiltration experiment is 0.0011 mM−1 , which is on the same order of
+       magnitude as this calculated value. This agreement supports a hypothesis that a combination
+       of steric hindrance and electrostatic interactions underlie the transport properties of NF270
+1300   membranes.
+
+
+
+
+                                                       SI-9
+

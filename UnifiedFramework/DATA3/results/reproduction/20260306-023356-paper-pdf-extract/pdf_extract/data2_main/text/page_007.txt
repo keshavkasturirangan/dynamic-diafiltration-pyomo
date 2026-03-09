@@ -1,0 +1,80 @@
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                                  Article
+
+the diafiltration experiment, form a system of differential-                    Table 1. Manipulated and Measured Variables in the
+algebraic equations (DAEs). This DAE model facilitates the                      Diafiltration Experiments
+simulation and prediction of diafiltration dynamics, enabling us
+                                                                                                description                      variable                value
+to comprehensively characterize membrane behavior under
+varying conditions, bridging fundamental transport mechanisms                                                      manipulated variables
+with experimental observations.                                                           initial feed concentration              cf(t0)       e.g., 15 mM
+                                                                                           diafiltrate concentration              cd           e.g., 120 mM
+
+■    MATERIALS AND METHODS
+   Materials. All experiments were conducted using NF270
+                                                                                            initial applied pressure
+                                                                                         applied operating pressure
+                                                                                            operating temperature
+                                                                                                                                  ΔPi
+                                                                                                                                  ΔPt
+                                                                                                                                  T
+                                                                                                                                               e.g., 8 psi
+                                                                                                                                               e.g., 60 psi
+                                                                                                                                               25 °C
+membranes supplied by DuPont. Every experiment was                                average velocity within the stirred cell        v0           41.89 cm·s−1
+conducted using a 10 mL Amicon stirred cell (Amicon,                                                                 measured variables
+Burlington, Massachusetts). An Omega PX409-100GUSBH                              mass of the solution in the scintillation        mv
+pressure transducer was used to monitor the pressure.                                                    vials
+Conductivity data was acquired using an LFS1107 conductivity                       concentration of the solution in the           cv
+                                                                                                 scintillation vials
+sensor (Innovative Sensor Technology, Las Vegas, Nevada)                            concentration of the feed solution            cf
+with one of two conductivity measurement boards, CN0359                           initial mass of the feed solution in the        mf(t0)       e.g., 10 g
+(Analog Devices Incorporated, Thief River Falls, Minnesota) or                                       stirred cell
+EC EvalBoard LFS (Innovative Sensor Technology, Las Vegas,                       final mass of the solution in the stirred        mf(tend)     e.g., 10 g
+Nevada). Mass data was recorded by an OHAUS Adventure                                                    cell
+Series Balance (OHAUS, Parsippany, New Jersey). Pressure,                                                             known constants
+conductivity, and mass data were recorded using an in-house                                     membrane area                     Am           4.1 cm2
+MATLAB code. Feed and diafiltrate solutions were prepared                          number of dissolved species for KCl            n            2
+using deionized water supplied by a Millipore water purification                    diffusion coefficient of K+ in water          Ds           1.960 × 10−5 cm2·s−1
+system (Milli-Q Advantage A10, Milli-Q, MA). Potassium                                  kinematic viscosity of water              ν            8.927 × 10−3 cm2·s−1
+chloride (KCl) along with nitric acid (HNO3) were purchased                                   density of the water                ρ            1 g·cm−3
+from Sigma-Aldrich (Aldrich, St. Louis, Missouri) with purities                          mass of solution in holdup               mh           0.25 g
+                                                                                volume of solution in the tube between vtb                     0.8 mL
+greater than 99% and 70%, respectively.                                              the stirred cell and scintillation vial
+   Diafiltration Experiments with Lag and Overflow                              volume of air between the diafiltrate tank vtb,d               35 mL
+Startups. Table 1 lists the manipulated and measured variables                                 and the stirred cell
+in a typical diafiltration experiment.                                          volume of the air in the headspace of the vhead                7 mL
+   Diafiltration experiments can be conducted in two startup                                         stirred cell
+modes, lag or overflow, by controlling the timing at which the
+diafiltrate enters the stirred cell. To achieve this control, an                the experiment can be related to the bulk concentration within
+initial pressure to the diafiltrate tank and the head space of the              the stirred cell.
+stirred cell is set at approximately 1/6 of the operating pressure                 ICP-OES Sample Preparation. A total of 14 solutions were
+(e.g., 10 psi for an operating pressure of 60 psi). In lag mode, the            collected in scintillation vials by the end of the experiment,
+initial pressure to the whole system is set slightly above this                 including 10 permeate vials, the initial feed, final retentate, final
+fraction at ∼12 psi. The valve to the stirred cell is then closed and           tube, and diafiltrate solutions. These samples were analyzed
+the diafiltrate tank is pressurized to the operating pressure. Due              using ICP-OES (PerkinElmer Avio 200). The solutions were
+to the compression of gas molecules within the stirred cell head                diluted so that the fixed concentration analyzed for ICP was
+space, the operating pressure is not sufficient to bring the                    approximately 10 ppm. For example, higher concentration
+diafiltrate to the entrance of the stirred cell. Consequently, this             samples such as the retentate and diafiltrate were prepared by
+condition allows the solution to permeate before diafiltrate                    diluting 0.012 mL of solution in 5 mL of 3% nitric acid. 0.12 mL
+enters the stirred cell, effectively resembling a filtration                    of the initial feed solution and 0.025 mL of the permeate
+experiment. During this phase, the concentration within the                     solutions were diluted in 5 mL of 3% nitric acid, according to
+stirred cell increases because of the finite rejection of the solute.           their respective concentrations.
+On the other hand, in overflow mode, the initial pressure in the                   Nonlinear Parameter Estimation and Uncertainty
+headspace is set below 1/6 of the operating pressure at ∼8 psi.                 Quantification. We now describe the model-based data
+Once the main valve to the stirred cell is closed, pressure is                  analytics workflow, which is summarized in Figure 4.
+applied to the diafiltrate tank and a bolus of diafiltrate enters the              Parameter estimation for the DAE models was performed
+stirred cell abruptly, which is detected as a spike in conductivity.            using a weighted least-squares (WLS) approach, which accounts
+This spike is caused by a sudden change in concentration.                       for heteroscedasticity in different types of data.60 This method
+   Inline Conductivity Probe Calibration. The LFS1107                           ensures that data points with higher measurement precision
+conductivity sensor was calibrated using 14 KCl stock solutions                 contribute more to the parameter estimation than those with
+between 0 and 100 mM. Once submerged in solution, the probe                     larger uncertainties.
+was given 10 s to stabilize, and the conductivity reading given on                 Let ŷr(t) = f(x(t), u(t), θ) represent the model prediction for
+the CN0359 conductivity board/EC EvalBoard LFS con-                             experimental observation yr(t) at time t, where x(t) assembles
+ductivity board was recorded. The probe was thoroughly rinsed                   state variables, u(t) are controlled experimental conditions, θ
+with deionized water between each stock solution measurement.                   include all model parameters, and r ∈ R indexes the type of
+Linear regression was used to obtain a calibration curve (SI                    response. The model assumes that measurement errors are
+Figure S1) with R2 values greater than 0.99. Using this                         independent and normally distributed but may exhibit non-
+calibration curve, the conductivity readings over the course of                 constant variance (heteroscedasticity) across different types of
+                                                                        12117                                                      https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

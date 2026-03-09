@@ -1,0 +1,1455 @@
+                                                                                                          pubs.acs.org/IECR                                                                                                                                    Article
+
+
+
+                                                                                                          Characterizing Transport Properties of Surface Charged
+                                                                                                          Nanofiltration Membranes via Model-Based Data Analytics
+                                                                                                          Published as part of Industrial & Engineering Chemistry Research special issue “Inverse Design of Materials and
+                                                                                                          Processes for Separations”.
+                                                                                                          Xinhong Liu, Laurianne Estrada, Jonathan A. Ouimet, Matthew McClure, David R. Latulippe,
+                                                                                                          William A. Phillip,* and Alexander W. Dowling*
+                                                                                                                Cite This: Ind. Eng. Chem. Res. 2025, 64, 12111−12130                            Read Online
+
+
+
+
+        Downloaded via UNIV OF NOTRE DAME on February 18, 2026 at 17:54:00 (UTC).
+                                                                                                          ACCESS                        Metrics & More                              Article Recommendations                *
+                                                                                                                                                                                                                           sı Supporting Information
+
+
+                                                                                                          ABSTRACT: This study presents an integrated framework for characterizing the transport
+                                                                                                          properties of surface-charged nanofiltration (NF) membranes through dynamic diafiltration
+                                                                                                          experiments and model-based data analytics. By incorporating startup dynamics, time corrections,
+                                                                                                          and the influence of water flux on solute permeation, the framework effectively captures key
+                                                                                                          transport properties governing membrane performance. A comparison of lag and overflow
+                                                                                                          experimental modes highlights the superior precision of the lag startup mode, improving parameter
+                                                                                                          estimates by 8%, 138%, and 83% as quantified by A-, D-, and E-optimality, respectively.
+                                                                                                          Diafiltration experiments in the diluting regime further enhance model discrimination, enabling the identification of dominant
+                                                                                                          transport mechanisms. This work marks a step toward developing self-driving laboratories (SDLs) that leverage model-based design
+                                                                                                          of experiments (MBDoE) to expedite the characterization and development of high-performance NF membranes. The framework
+                                                                                                          provides critical insights into transport phenomena, enabling the inverse design of membranes tailored to the demands of modern
+                                                                                                          separation systems.
+
+
+
+
+See https://pubs.acs.org/sharingguidelines for options on how to legitimately share published articles.
+                                                                                                          ■   INTRODUCTION
+                                                                                                          Membrane technologies can enhance the sustainability and
+                                                                                                                                                                                               Broader applications of NF membranes are constrained by
+                                                                                                                                                                                            trade-offs between their permeability and selectivity.15 Recent
+                                                                                                                                                                                            studies suggest that material innovations have led thin-film
+                                                                                                          energy efficiency of modern separation processes.1,2 Among
+                                                                                                                                                                                            composite (TFC) membranes to approach the upper bound of
+                                                                                                          these, nanofiltration (NF), a pressure-driven membrane
+                                                                                                                                                                                            water permeability.16,17 Thus, selectivity has become an
+                                                                                                          separation process, occupies a niche between ultrafiltration                      increasingly important criterion when screening membranes
+                                                                                                          (UF) and reverse osmosis (RO), offering unique selectivity for                    for practical applications, such as in the recovery of rare earth
+                                                                                                          multivalent ions,3 organic molecules,4 and small solutes.5 Unlike                 elements.18 Ongoing efforts to enhance membrane selectivity
+                                                                                                          UF, which primarily separates based on size, and RO, which can                    have primarily focused on two directions: the precise control of
+                                                                                                          reject most solutes including monovalent ions, NF membranes                       membrane nanostructure and the identification of chemical
+                                                                                                          provide selective separation through a combination of size and                    functionality that promotes the desired transport properties.19,20
+                                                                                                          charge effects. For example, the surface charge of NF                             Tailoring membrane surfaces to interact with specific solutes
+                                                                                                          membranes plays a crucial role in solute selectivity, allowing                    (e.g., through electrostatic interactions, hydrophobicity, or
+                                                                                                          them to reject charged species based on electrostatic                             specific binding sites) shows promise in controlling solute
+                                                                                                          interactions.6−9 With pore sizes on the order of 1−3 nm and                       transport properties.21−25 However, current research in this field
+                                                                                                          the ability to exploit both size exclusion and charge-based                       remains largely exploratory (i.e., driven by trial-and-error
+                                                                                                          mechanisms, NF membranes are effective for applications such                      approaches) and relies on traditional, human-driven exper-
+                                                                                                          as water hardness reduction,10 contaminant removal,11 and the                     imental approaches. While effective in certain contexts, these
+                                                                                                          recovery of critical materials12,13 from industrial streams. This                 approaches rely on simplified analysis, which often fails to
+                                                                                                          versatility makes NF applicable in diverse fields, including                      capture the intricate interplay of factors that influence
+                                                                                                          wastewater treatment, chemical separations, and environmental
+                                                                                                          remediation. The combination of relatively low energy                             Received: December 13, 2024
+                                                                                                          consumption, size selectivity, and charge-based rejection                         Revised: May 3, 2025
+                                                                                                          positions NF as a valuable and adaptable technology in                            Accepted: May 7, 2025
+                                                                                                          addressing global grand challenges such as equitable access to                    Published: June 3, 2025
+                                                                                                          clean water, affordable sustainable energy, and circular
+                                                                                                          economies.14
+                                                                                                                                                 © 2025 The Authors. Published by
+                                                                                                                                                       American Chemical Society                                                   https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                    12111                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                   pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 1. Pressure is first applied to both the diafiltrate tank and the head space of the stirred cell to bring the whole system to the initial pressure. The
+valve to the stirred cell is then closed and an increased pressure is applied to the diafiltrate tank (subscript d). The diafiltrate flows through the tubing
+into the stirred cell containing the feed solution (subscript f), with concentration cf monitored by an inline conductivity probe. The permeate initially
+enters the holdup region (subscript h) and then travels through a tube with volume, vtb, before being collected in scintillation vials resting on a balance.
+Time-series mass data, mv, are recorded, and the average permeate concentration, cv, is analyzed using inductively coupled plasma-optical emission
+spectroscopy (ICP-OES) Reproduced from Muetzel et al.54 Copyright 2022 American Chemical Society.
+
+transmembrane transport.26 As one example, the effect of solute-                      To create comprehensive data sets, innovations that can
+membrane interactions on diffusion and partitioning remains                        inform the design of experiments to generate mechanistic
+largely convoluted due to the lack of information contained                        insights are needed.34 Model-based design of experiments
+within measurements. Traditionally, the experiments used to                        (MBDoE) utilizes high-fidelity models grounded in scientific
+regress these coefficients rely on ex-situ solution analyses (e.g.,                principles to optimize experimental campaigns. MBDoE enables
+sorption27 and time-lag experiments,28 respectively) and have                      the discrimination between scientific hypotheses43,44�posed as
+changed little over the past 40 years. The statistical design of                   mathematical models�and improves the precision of parameter
+experiments (e.g., response surface methodology) provides a                        estimates.45−47 For instance, MBDoE has been used to
+systematic approach to planning experiments and identifying                        differentiate between candidate kinetic models in microreactor
+factors that influence membrane performance, but requires                          designs, increasing the information gained from experiments
+time-consuming and resource-intensive data collection before                       while reducing material costs and experimental time commit-
+valid conclusions can be drawn.29,30 Consequently, there is a                      ments.48 While MBDoE has been employed to understand many
+pressing need for more robust, adaptable experimentation                           processes (e.g., oxidation of methanol on silver catalysts,49
+methods, as well as sophisticated modeling techniques, to                          product formulation50), only a few of those applications (e.g.,
+accurately characterize and deconvolute transport properties                       electrodialysis51 and chromatographic separations52) come
+under a wide range of conditions.                                                  from the separations community. The emergence of new
+   Recent advancements in automation and artificial intelligence                   MBDoE software53 holds significant potential for optimizing the
+(AI) have introduced transformative approaches to material                         design of instruments and experiments. Building on these
+research through the development of self-driving laboratories                      advancements, parameter precision criteria from MBDoE have
+                                                                                   been applied to diafiltration experiments26,54,55 to optimize
+(SDLs) and digital twins.31−34 SDLs integrate experimental
+                                                                                   time-invariant experimental conditions in the system.56
+automation with AI-driven optimization, enabling the autono-
+                                                                                   Applying MBDoE enabled a quantitative comparison between
+mous execution of experiments, data collection, analysis, and
+                                                                                   traditional filtration and dynamic diafiltration experiments. The
+iterative refinement of experimental conditions. While SDLs can                    results demonstrated that diafiltration experiments enhanced
+revolutionize experimentation, they typically rely on classical                    parameter estimation and reduced the experimental time
+“black-box” approaches that fail to integrate mechanistic                          required to characterize the transport properties of TFC NF
+understanding,31,35,36 limiting their ability to generalize findings               membranes. By harnessing the power of MBDoE, researchers
+across complex membrane systems. Digital twins complement                          can systematically optimize experiments to maximize the
+SDLs by providing virtual representations of physical systems                      information gained, reducing the time and resources needed
+that enable predictive modeling, real-time system monitoring,                      for membrane development. The integration of data science
+and data-driven decision-making.37,38 This combination further                     techniques,47 science-based digital twins, and SDLs into
+enhanced the efficiency of SDLs in generating and analyzing                        membrane research creates a powerful pathway toward more
+experimental data.39−42 For NF applications, digital twins                         efficient experimentation, inverse design of materials, and the
+leveraging dynamic membrane characterization could simulate                        real-time optimization of processes.
+complex transport phenomena, predict membrane performance,                            In this work, we combine dynamic diafiltration experiments
+and optimize separation process conditions.13 These tools create                   with model-based data analytics techniques to systematically
+a valuable bridge between theoretical predictions and                              characterize the transport properties of charged NF membranes
+experimental validation. However, before future research efforts                   (i.e., NF270 membranes, which exhibit a negative surface charge
+in the membrane field can pair SDLs and digital twins, accurate                    for aqueous solutions above pH 3). By incorporating
+physics-based models and comprehensive data sets must be                           experimental startup dynamics and accounting for the delay
+available.                                                                         between when the permeate exits the membrane and when it is
+                                                                           12112                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                           Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                             Article
+
+
+
+
+Figure 2. Two startup modes in which diafiltration can be operated. (A) In lag mode, the diafiltrate does not enter the stirred cell immediately upon
+reaching operating pressure ΔPt at t0. Rather, the system acts as a filtration experiment for a period, t0 → tL. During this time, the solution begins to
+permeate and slowly fill the holdup region. After tL, drops of diafiltrate enter the stirred cell as drops of solution continue to permeate. (B) In overflow
+mode, a bolus of diafiltrate flushes into the stirred cell once the operating pressure has been reached. The time at which the diafiltrate bolus is detected
+by a spike in conductivity is denoted as tF.
+
+collected in scintillation vials, we develop a robust framework                   (variables denoted with a subscript d) is continuously pumped
+that accurately captures both process and membrane parame-                        under the action of applied pressure, ΔP, into a stirred cell
+ters. Namely, it was previously proposed that the experiments                     holding the feed solution (subscript f). The permeate product
+could be started in two distinct ways54: experiments can be                       directly under the membrane accumulates in the holdup region
+engineered such that (1) a lag occurs before diafiltrate is                       (subscript h), after which it is directed through a tube (subscript
+introduced into the stirred cell or (2) an overflow of diafiltrate                tb) to a series of scintillation vials (subscript v) for collection and
+enters the stirred cell at the beginning of the experiment. Here                  further analysis. The mass of the sample vial, mv, and the
+we identify which startup mode provides the largest amount of                     concentration of the retentate in the stirred cell, cf, are measured
+information. We also explore diafiltration experiments con-                       at a rate of 0.2 Hz. The permeate is collected in 1 g aliquots and
+ducted in the diluting regime and identify that these experiments                 the solution concentration in these scintillation vials, cv, is
+are uniquely able to discriminate between transport models.
+                                                                                  measured after the experiment has concluded.
+Importantly, the contributions of the diffusion coefficient and
+                                                                                     The system dynamics are governed by the volumetric flux of
+the partition coefficient to transport can be deconvoluted using
+the diafiltration system. Using these insights in advancing                       water, Jw, and the molar flux of the solute, Js. In this study,
+membrane characterization, we establish a pathway toward                          diafiltration experiments were conducted at constant applied
+integrating mathematical modeling with experimentation for the                    pressures with steadily changing feed concentrations, examining
+inverse design of membrane materials, offering a data-driven                      both concentrating and diluting regimes, 58 under the
+approach to optimize membrane properties for various                              assumption of a well-mixed feed solution. In the concentrating
+industrial and environmental applications. This study lays the                    regime, the retentate concentration in the stirred cell monotoni-
+groundwork for future advancements in membrane technology,                        cally increases as the solute flux into the stirred cell exceeds the
+providing scalable and efficient solutions for process optimiza-                  solute flux exiting in the permeate. In the diluting regime, the
+tion and the development of next-generation membrane-based                        opposite occurs, where the solute flux entering the stirred cell is
+separation systems.                                                               lower than the solute flux leaving with the permeate, resulting in
+                                                                                  a dilution of the retentate concentration over time.
+■    MATHEMATICAL MODELING
+The selective transport of ions across the NF270 membranes is
+                                                                                     Previous work26,54 (i.e., the model used in the DATA
+                                                                                  framework) assumed that the solution volume in the stirred cell
+                                                                                  remains constant over the course of the diafiltration experiment
+influenced by a combination of diffusion, convection, and
+                                                                                  (i.e., the rate of diafiltrate entering the stirred cell is equal to the
+electromigration, which are driven by gradients in concen-
+tration, pressure, and electric potential, respectively.57 To                     volumetric flow rate of the leaving permeate). However, careful
+accurately characterize the relevant transport mechanisms, we                     visual observations of the apparatus reveal changes in the feed
+employed a model-based data analytics approach that integrates                    solution volume within the stirred cell during startup processes,
+mathematical models with experimental data to provide a                           affecting the model initialization and subsequent predictions.
+comprehensive understanding of membrane behavior under                            The volume changes, occurring both during startup and
+varying operating conditions (i.e., feed-side or retentate                        throughout the experiment, introduce deviations from the initial
+concentration and pressure).                                                      equations of the diafiltration model, thereby affecting the
+   To investigate these transport mechanisms, dynamic                             accuracy of its predictions. In this work, we show that modeling
+diafiltration experiments26,54 were conducted. Figure 1 presents                  the system startup dynamics increases the information gained
+the automated diafiltration apparatus, where a diafiltrate                        from diafiltration experiments.
+                                                                          12113                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                          Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                     pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 3. Time corrections considered for the permeate solution collected in scintillation vials. The diafiltration apparatus is subject to a delay in the
+time associated with the collection of permeate in the scintillation vial due to the tube filling with mass mtb. tV − tH represents the time delay for the first
+drop of permeate collected in the first vial. Accounting for this delay allows the permeate and retentate solution concentrations to be correlated
+correctly over the course of the experiment.
+
+   Startup Modes: Lag and Overflow. Ideally, during                                   stirred cell marks the end of the overflow phase at time tF. In
+startup, the increase in pressure at t0 brings the diafiltrate                        overflow mode, for t0 ≤ t < tF, it is assumed that the diafiltrate
+exactly to the entrance of the stirred cell. To achieve this, the air                 bolus leaves the tube and enters the stirred cell at a constant rate
+in the tubing between the diafiltrate tank and the stirred cell (vtb,d                V̇ o, while permeation also occurs, represented by eqs 4 and 5:
+∼ 35 mL) and the air in the head space of the stirred cell (vhead ∼
+                                                                                         dmd
+7 mL) needs to be compress into the head of the stirred cell. If                             = Vo
+the experimental operating pressure is defined and it is assumed                          dt                                                                        (4)
+that the gas behaves ideally, the initial pressure that the tubing                       dm f        dmd
+must be pressurized to (ΔPi) can be calculated from the desired                               =                A m Jw =      Vo         A m Jw
+operating pressure (ΔPt) in eq 154:                                                       dt          dt                                                            (5)
+
+                v head              7            1                                    Afterward, the diafiltrate continues to enter the stirred cell at a
+     Pi =                 Pt               Pt =     Pt                                slower, steady rate for the remainder of the experiment.
+           v head + vtb,d       7 + 35           6                (1)                    Ideally, following the startup, the diafiltrate entering the
+   Pressurization of the tubing between the diafiltrate tank and                      stirred cell is equal to the permeate leaving the stirred cell. Albeit,
+stirred cell is accomplished through a series of valves. After the                    if the connection between the head and the body of the stirred
+initial pressurization of the tubing, the diafiltrate tank is                         cell is not airtight, air may slowly leak out. If this occurs,
+pressurized to the operating pressure ΔPt. The moment the                             diafiltrate enters the stirred cell and the solution volume in the
+applied pressure reaches the desired operating pressure, the                          stirred cell gradually increases in response to the changing air
+diafiltration experiment has begun and the dynamic modeling                           volume. We assume that the mass of the feed solution, mf,
+begins, marked as time t0. In practice, hitting the initial and                       changes at a constant rate, V̇ , throughout the experiment. V̇ can
+operating pressure precisely is difficult. As such, experiments are                   be estimated using the initial and final values of mf in eq 6.
+run in either lag mode or overflow mode as depicted in Figure 2.                      Therefore, for t ≥ tL or t ≥ tF:
+   In the lag mode, the initial system pressure is too large and the                     dm f        dmd
+desired operating pressure is not sufficient to bring the diafiltrate                         =                A m Jw = V
+                                                                                          dt          dt                                                            (6)
+to the entrance of the stirred cell. As such, this condition initially
+emulates a filtration experiment: solution permeates through the                      which implies eq 7:
+membrane, leading to a decrease in feed volume and an increase
+                                                                                         dmd
+in the feed concentration within the stirred cell. Therefore, for t0                         =      V      A m Jw
+≤ t < tL, the mass of the diafiltrate, md, remains constant, while                        dt                                                                        (7)
+the mass of the feed solution, mf, decreases due to the                                 The general solute balance in the stirred cell is given by eq 8:
+transmembrane flux, expressed by eqs 2 and 3:
+                                                                                         d(cf m f )           dmd
+    dmd                                                                                             =    cd         A m Js
+        =0                                                                                 dt                  dt                                                   (8)
+     dt                                                                 (2)
+                                                                                      which leads to the following expression for the change in feed
+    dm f        dmd                                                                   concentration, cf, in eq 9:
+         =                A m Jw =      A m Jw
+     dt          dt                                                     (3)
+                                                                                         dc f   1 ij    dm                             dmf yz
+where Am is the membrane area and ρ is the density of the                                     =    jj cd d          A m Js        cf        zz
+                                                                                         dt     mf k     dt                             dt {                        (9)
+solution. As the volume of the solution in the stirred cell
+decreases due to permeation, the volume of the air in the tube                           Time Correction for Permeate. Our model of the
+decreases. Once the air in the tube is incorporated into the                          experimental system can also be refined on the permeate side
+stirred cell, the first drop of diafiltrate enters the stirred cell,                  of the membrane. As illustrated in Figure 1, the holdup volume
+marking the end of the lag phase at time tL. The subsequent                           represents the volume under the membrane where the permeate
+dripping of diafiltrate into the stirred cell causes a steeper change                 accumulates. This volume is modeled as a perfectly mixed
+in the feed concentration, cf.                                                        reservoir.55 The tube connecting the stirred cell to the
+   In the overflow mode, the initial system pressure is too small                     scintillation vial is treated as a plug flow element, where the
+and a bolus of diafiltrate immediately enters the stirred cell. This                  salt solution is well-mixed in the radial direction. As shown in
+overflow of diafiltrate causes a sharp change in the feed                             Figure 3, after time t0, the holdup volume is filled first at tH,
+concentration. The moment the last drop of the bolus enters the                       followed by the tube filling until tV. The time tV marks the
+                                                                              12114                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                             Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                pubs.acs.org/IECR                                                          Article
+
+moment when the first drop of permeate appears in the                          mass minus the tube mass mtb was reached. These time
+scintillation vial, as recorded by the balance, which measures the             corrections ensure a direct comparison between the model-
+time-dependent weight of the vial. The time tH is estimated by                 predicted vial concentrations and the experimental measure-
+extrapolating the permeate mass data based on the time required                ments.
+to fill the tube (i.e., vtb ∼ 0.8 mL for a connecting tube with an                Concentration Polarization. Accounting for concentra-
+inner diameter of 2.2 mm, and length of 200 mm). There is no                   tion polarization on the feed side of the membrane is essential
+strict sequence between tH, and tL or tF; these times are                      for accurately determining membrane transport coefficients.
+determined based on experimental observations and incorpo-                     Namely, the solute concentration difference across the
+rated into the models accordingly.                                             membrane is represented by Δc = cin,f − ch, where cin,f is the
+   In our model, for t0 ≤ t < tH, the mass (mh) and concentration              feed-side concentration at the solution-membrane interface, and
+of the solution in the holdup region are given by eqs 10 and 11:               ch is the concentration in the holdup region, approximating the
+   dmh                                                                         permeate concentration at the membrane-solution interface. cin,f
+       = A m Jw                                                                accounts for the effect of concentration polarization, and is
+    dt                                                         (10)            related to bulk feed/retentate concentration cf, using the thin-
+   d(chmh)                                                                     film model as illustrated in eqs 18 and 19.59
+           =A m Js
+                                                                                  cin,f     ch           iJ y                           ij            yz i J y
+                                                                                                 = expjjjj w zzzz                                ch zzzexpjjjj w zzzz + ch
+      dt
+                                                                                                                              cin,f = jjjc f
+                                                                                   cf      ch                                            j             z
+       dch  A
+           = m (Js              chJw )                                                                   kk{                             k             { kk{
+       dt    mh                                                (11)                                                                                                          (18)
+                                                                                                           0.57               0.33
+For tH ≤ t < tV, the mass the solution in the holdup region no                    kb         ij bv 0 yz           ij yz                              (v )
+                                                                                                                                                         0 0.57
+                                                                                                                                                               Ds0.67
+                                                                                     = 0.23jjj        zz           jj zz                 k = 0.23
+longer changes, eq 12 and hence the concentration is derived as                   Ds                   z            jj D zz                               0.24 0.43
+                                                                                              k        {             k s{                                      b
+eq 13:
+                                                                                                                                                                             (19)
+   dmh
+       =0                                                                      where k is the mass transfer coefficient, b is the stirred cell
+    dt                                                         (12)            diameter, Ds is the diffusion coefficient of the solute in water, ν is
+   d(chmh)                                                                     the kinematic viscosity of water, and v0 is the average velocity
+            = A m Js chA m Jw                                                  within the system, defined as the product of the stir bar angular
+      dt                                                                       velocity and radius.
+       dc h    A                                                                  Membrane Transport Models. The transport properties of
+            = m (Js chJw )                                                     the membrane are characterized by modeling the solvent and
+       dt       mh                                             (13)
+                                                                               solute fluxes through the membrane. Specifically, the volumetric
+   In the model, we neglect the time delay associated with                     flux of water Jw is described as a function of the applied pressure
+transferring the permeate from the holdup volume to the                        difference across the membrane, eq 2057:
+scintillation vial and assume that the permeate within the
+                                                                                  Jw =Lp( P                        )
+scintillation vial is well-mixed. Therefore, for t ≥ tV, we have eqs
+14−17:
+                                                                                          =Lp( P           nRT c)                                                            (20)
+   dmh
+       =0
+    dt                                                         (14)            where Lp is the hydraulic permeability, a key parameter
+                                                                               quantifying the membrane’s ability to transport water, and σ is
+   dch  A                                                                      the reflection coefficient, a parameter related to the membrane’s
+       = m (Js         chJw )
+   dt    mh                                                    (15)            solute rejection properties. ΔP is the applied pressure in the
+                                                                               diafiltration experiment, and Δπ = nRTΔc is the osmotic
+   dm v                                                                        pressure, calculated using the van’t Hoff equation, where n is the
+        = A m Jw
+    dt                                                         (16)            number of dissolved species formed by the solute(s), R is the gas
+                                                                               constant, and T is the temperature, and Δc is the solute
+   d(c vm v )   dm v                                                           concentration difference across the membrane.
+              =      ch = A m Jw ch
+      dt         dt                                                               When ion transport across the membrane is governed by the
+                                                                               combined effects of convection and diffusion, the local solute
+       dc v                (c v        ch)                                     flux in the membrane, js, is mathematically described as eq 21:
+               = A m Jw
+       dt                         mv                           (17)
+                                                                                                 dc(z)
+where the efflux from the holdup volume is collected directly                     js =     Dm          + Jw c(z)
+                                                                                                  dz                                                                         (21)
+into the scintillation vial, eq 17.
+                                                                                                                                 dc(z)
+   The average concentrations of permeate collected in the                     where the first term, Dm dz , represents the diffusive
+scintillation vials are measured using inductively coupled                     contribution to the flux, which is driven by the concentration
+plasma-optical emission spectroscopy (ICP-OES) after the
+experiment. To account for the time delay introduced by the                    gradient, dc(z) , with Dm being the solute diffusion coefficient in
+                                                                                            dz
+connecting tube, the measurement time for the permeate                         the membrane phase. The second term, Jwc(z), corresponds to
+concentration is corrected by backtracking the time-series vial                the convective contribution to the flux, driven by the volumetric
+mass data to account for the permeate mass in the tube. For                    solvent flux, Jw, which carries the solute. Because the membrane
+example, instead of using the time stamp at the end of each vial               responds more rapidly than the rate at which the feed
+collection, we use the time corresponding to when the total vial               concentration changes, a pseudosteady-state approximation
+                                                                       12115                                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                                pubs.acs.org/IECR                                                         Article
+                                                                                                                   ÄÅ
+was applied. This assumption yields the following differential                                                      Å
+                                                                                                          = Jw ·ÅÅÅÅHf ·cin,f +
+                                                                                                                                 1
+equation for the solute concentration profile across the                                          Js                                (Hf ·cin,f                 Hp· cin,p)
+                                                                                                                    ÇÅ          e 1
+membrane, eq 22:
+                                                                                                                    e      ij Jw L           yz
+                dj                            d2c(z)                                                                        j             1zzz(Hf ·cin,f
+                                                                                                                          2j
+   dc(z)                                                  dc(z)                                                            jj                                  Hp·cin,p)
+         = 0, so s = 0                     Dm        + Jw       =0                                            (e        1) k Dm               z
+    dt          dz                             dz 2
+                                                           dz                                                                                 {
+                                                                                (22)                                                         2
+                                                                                                           e(1 + e) ijj Jw L                 yz
+which can be solved given boundary conditions on both sides of                                           +            jj                  1zzz (Hf ·cin,f        Hp·cin,p)
+the membrane with thickness L, eqs 23 and 24:                                                              2(e 1)3 jk Dm                      z
+                                                                                                                                              {
+                                                                                                                                                                        É
+            m
+   c(0) = cin,f = Hf · cin,f                                                                                         iji J L           yz
+                                                                                                                                         3                         yzÑÑÑÑ
+                                                                                                                      jjjj w                                        z
+                                                                                                                                    1zzz (Hf ·cin,f Hp·cin,p)zzzÑÑÑÑ
+                                                                                (23)
+                                                                                                               + jjjj
+                                                                                                                       jjj Dm           z                           zzÑÑ
+                                                                                                                        kk              {                            {ÑÖÑ
+            m
+   c(L) = cin,p = Hp· cin,p                                                     (24)
+                                                                                                               ÄÅ
+        m
+where cin,f          m
+               and cin,p are the boundary concentrations in the                                                 ÅÅ         Hf ·cin,f
+                                                                                                                 Å                                      1             e
+                                                                                                       = Jw ÅÅÅ                                    +
+membrane phase on the feed and permeate sides, respectively,                                                     ÅÅ Hf ·cin,f Hp·cin,p               e 1      (e 1)2
+                                                                                                                  ÅÇ
+and are related to the interface concentrations cin,f and cin,p by the
+                                                                                                          ij Jw L              yz
+partition coefficients Hf and Hp, which account for the solute                                             jj               1zzz
+partitioning at membrane surfaces on the feed and permeate                                                  jj D                z
+                                                                                                             k m                {
+sides, respectively.
+                                                                                                                                                                      3yÑ
+                                                                                                                                                                          É
+                                                                                                                                                 2    iji J L             ÑÑ
+   By solving for the concentration profile c(z) and applying eq                                         e(1 + e) ijj Jw L                  yz
+                                                                                                                                             zz + jjjjjj w
+                                                                                                                                                                 y
+                                                                                                                                                                 zz zzÑÑÑz
+21, an expression for the total molar flux of solute in terms of the                                   +                    j
+                                                                                                                            j             1   zz       jjjj D   1 z      z
+                                                                                                                                                                  zz zzÑÑÑ c
+                                                                                                         2(e 1)3 jk Dm                         {        jk m       { z{ÑÑÖÑ
+                       J L
+Peclet number, Pe = w , is developed:                                                                                                                   k                                (29)
+                             Dm
+              ij
+   Js = Jw ·jjj
+                              ( ) H ·c yzzzzzz
+               jj cin,f ·Hf ·exp Dw
+                jj
+                                   J L
+                                     m
+                                              p in,p
+                                                                                               Noticing the term representing the concentration difference
+                                                                                               within the membrane Δc = Hf·cin,f − Hp·cin,p in the series, this
+                                             z
+                              ( ) 1 zzzz{
+                 jj              J  L                                                          expression reveals an apparent solute permeability coefficient
+                  j         exp Dw                                                             that becomes dependent on feed-side concentration cin,f and
+                  k                 m                                           (25)
+                                                                                               water flux Jw:
+                                                 Dm
+  In diffusion-dominated regimes,                        Jw , convection be-
+                                                 L                                                                 Js =B(Jw , Hf , Hp , cin,f , cin,p) · c ,
+                                                              JL
+comes negligible compared to diffusion, and Dw                           0. Using a                                      ÄÅ
+                                                                                                                          ÅÅ        Hf cin,f
+                                                                                                                           Å
+                                                                m
+                                                                                                                                                         1
+Laurent series expansion in this limit, Js in eq 25 simplifies to eq                              B(Jw , Hf , Hp , =Jw ÅÅÅ                        +
+                                                                                                                           ÅÅ Hf cin,f Hpcin,p         e   1
+26:
+                                                                                                    cin,f , cin,p)          ÅÇ
+                                                                                                                                   e      ij Jw L     yz
+               ij                                                                                                                          j       1zzz
+                jj Hf ·cin,f Hp·cin,p         Hf · cin,f + Hp·cin,p                                                                     2j jj D        z
+   Js = Jw ·jjjj                         +                                                                                     (e 1) k m               {
+                 jj           Jw L
+                                                           2
+                  k            Dm
+                                                                                                                                       e(1 + e) ijj Jw L              yz
+                                                                                                                                                                           2
+                   Jw L
+                                                      iji J L y3yzyzzz                                                               +           3j
+                                                                                                                                                  jj D             1zzz
+                        (Hf ·cin,f Hp· cin,p)
+                                                       jj     zz                                                                       2(e 1) k m                      z
+                                               + jjjjjj w zzz zzzzzzz                                                                                           ÉÑ {
+                   Dm
+        +                                                                                                                                                        Ñ
+                                12                     jjj Dm z zzzz                                                                     iji J L        yz yzzÑÑ
+                                                                                                                                                          3
+                                                        kk    {{
+                                                                     {          (26)                                                      jj
+                                                                                                                                     + jjjjjj w      1zzz zzzÑÑÑÑ
+                                                                                                                                          jjj Dm         z zzÑÑ
+Approximating Js with the first term in the series, and assuming                                                                           kk            { {ÑÖÑ                          (30)
+Hf = Hp = H, we have eq 27:
+                                                                                               Most studies assume H ≈ Hf ≈ Hp, which allows for a single H to
+                   ij                y         i                  yz                           be extracted from eq 30. As shown in the results, we found
+                    jj cin,f cin,p zzz DmH jjjj                    zz
+         Jw ·H ·jjjj                 zz =                 cin,pzzzz
+                                               jjcin,f                                         maintaining distinct partition coefficients better explains the
+   Js                                 zz
+                     jj     Jw L
+                                       zz L jjjj                    zz
+                                                                     z
+                                                                                               experimental data. Next, we approximate the dependency of B
+                      k     Dm          {       k                    {          (27)           on concentration as
+                                                                         D H
+By defining a solute permeability coefficient,                       B = mL ,   the               B (Jw , Hf , Hp , cin,f , cin,p)               B(Jw , cin,f ) = Jw                    ci
+                                                                                                                                                                                       i in,f
+solute flux Js is expressed as eq 28:                                                                                                                                          i I
+                                                                                                                                                                                         (31)
+   Js = B c                                                                     (28)           where different polynomial orders, I ∈ [{0}, {0, − 0.5}, {0, 0.5},
+This linear relationship highlights how the solute flux depends                                {0, 1}, {0, 1, 2}, {0, 1, 2, 3}], are considered for eq 31, capturing
+on the concentration gradient across the membrane when                                         variations in permeability due to convective flux and solute-
+diffusion dominates. For instance, previously studied NF90                                     membrane interactions in a multiplicative form. This extended
+membranes exhibit transport properties that can be accurately                                  model B(Jw, cin,f) acknowledges that solute permeability is
+described by this form of the model.                                                           influenced by feed-side concentration, particularly in surface-
+   In regimes where diffusion and convection are both relevant                                 charged membranes, where electrostatic interactions alter solute
+                 J L                                                                           partitioning and transport rates.
+mechanisms, Dw            1. Here, Js in eq 25 can be approximate with                            Finally, the governing flux equations, coupled with the
+                   m
+Taylor series expansion, eq 29:                                                                ordinary differential equations (ODEs) that capture states in
+                                                                                       12116                                                         https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                 Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                                  Article
+
+the diafiltration experiment, form a system of differential-                    Table 1. Manipulated and Measured Variables in the
+algebraic equations (DAEs). This DAE model facilitates the                      Diafiltration Experiments
+simulation and prediction of diafiltration dynamics, enabling us
+                                                                                                description                      variable                value
+to comprehensively characterize membrane behavior under
+varying conditions, bridging fundamental transport mechanisms                                                      manipulated variables
+with experimental observations.                                                           initial feed concentration              cf(t0)       e.g., 15 mM
+                                                                                           diafiltrate concentration              cd           e.g., 120 mM
+
+■    MATERIALS AND METHODS
+   Materials. All experiments were conducted using NF270
+                                                                                            initial applied pressure
+                                                                                         applied operating pressure
+                                                                                            operating temperature
+                                                                                                                                  ΔPi
+                                                                                                                                  ΔPt
+                                                                                                                                  T
+                                                                                                                                               e.g., 8 psi
+                                                                                                                                               e.g., 60 psi
+                                                                                                                                               25 °C
+membranes supplied by DuPont. Every experiment was                                average velocity within the stirred cell        v0           41.89 cm·s−1
+conducted using a 10 mL Amicon stirred cell (Amicon,                                                                 measured variables
+Burlington, Massachusetts). An Omega PX409-100GUSBH                              mass of the solution in the scintillation        mv
+pressure transducer was used to monitor the pressure.                                                    vials
+Conductivity data was acquired using an LFS1107 conductivity                       concentration of the solution in the           cv
+                                                                                                 scintillation vials
+sensor (Innovative Sensor Technology, Las Vegas, Nevada)                            concentration of the feed solution            cf
+with one of two conductivity measurement boards, CN0359                           initial mass of the feed solution in the        mf(t0)       e.g., 10 g
+(Analog Devices Incorporated, Thief River Falls, Minnesota) or                                       stirred cell
+EC EvalBoard LFS (Innovative Sensor Technology, Las Vegas,                       final mass of the solution in the stirred        mf(tend)     e.g., 10 g
+Nevada). Mass data was recorded by an OHAUS Adventure                                                    cell
+Series Balance (OHAUS, Parsippany, New Jersey). Pressure,                                                             known constants
+conductivity, and mass data were recorded using an in-house                                     membrane area                     Am           4.1 cm2
+MATLAB code. Feed and diafiltrate solutions were prepared                          number of dissolved species for KCl            n            2
+using deionized water supplied by a Millipore water purification                    diffusion coefficient of K+ in water          Ds           1.960 × 10−5 cm2·s−1
+system (Milli-Q Advantage A10, Milli-Q, MA). Potassium                                  kinematic viscosity of water              ν            8.927 × 10−3 cm2·s−1
+chloride (KCl) along with nitric acid (HNO3) were purchased                                   density of the water                ρ            1 g·cm−3
+from Sigma-Aldrich (Aldrich, St. Louis, Missouri) with purities                          mass of solution in holdup               mh           0.25 g
+                                                                                volume of solution in the tube between vtb                     0.8 mL
+greater than 99% and 70%, respectively.                                              the stirred cell and scintillation vial
+   Diafiltration Experiments with Lag and Overflow                              volume of air between the diafiltrate tank vtb,d               35 mL
+Startups. Table 1 lists the manipulated and measured variables                                 and the stirred cell
+in a typical diafiltration experiment.                                          volume of the air in the headspace of the vhead                7 mL
+   Diafiltration experiments can be conducted in two startup                                         stirred cell
+modes, lag or overflow, by controlling the timing at which the
+diafiltrate enters the stirred cell. To achieve this control, an                the experiment can be related to the bulk concentration within
+initial pressure to the diafiltrate tank and the head space of the              the stirred cell.
+stirred cell is set at approximately 1/6 of the operating pressure                 ICP-OES Sample Preparation. A total of 14 solutions were
+(e.g., 10 psi for an operating pressure of 60 psi). In lag mode, the            collected in scintillation vials by the end of the experiment,
+initial pressure to the whole system is set slightly above this                 including 10 permeate vials, the initial feed, final retentate, final
+fraction at ∼12 psi. The valve to the stirred cell is then closed and           tube, and diafiltrate solutions. These samples were analyzed
+the diafiltrate tank is pressurized to the operating pressure. Due              using ICP-OES (PerkinElmer Avio 200). The solutions were
+to the compression of gas molecules within the stirred cell head                diluted so that the fixed concentration analyzed for ICP was
+space, the operating pressure is not sufficient to bring the                    approximately 10 ppm. For example, higher concentration
+diafiltrate to the entrance of the stirred cell. Consequently, this             samples such as the retentate and diafiltrate were prepared by
+condition allows the solution to permeate before diafiltrate                    diluting 0.012 mL of solution in 5 mL of 3% nitric acid. 0.12 mL
+enters the stirred cell, effectively resembling a filtration                    of the initial feed solution and 0.025 mL of the permeate
+experiment. During this phase, the concentration within the                     solutions were diluted in 5 mL of 3% nitric acid, according to
+stirred cell increases because of the finite rejection of the solute.           their respective concentrations.
+On the other hand, in overflow mode, the initial pressure in the                   Nonlinear Parameter Estimation and Uncertainty
+headspace is set below 1/6 of the operating pressure at ∼8 psi.                 Quantification. We now describe the model-based data
+Once the main valve to the stirred cell is closed, pressure is                  analytics workflow, which is summarized in Figure 4.
+applied to the diafiltrate tank and a bolus of diafiltrate enters the              Parameter estimation for the DAE models was performed
+stirred cell abruptly, which is detected as a spike in conductivity.            using a weighted least-squares (WLS) approach, which accounts
+This spike is caused by a sudden change in concentration.                       for heteroscedasticity in different types of data.60 This method
+   Inline Conductivity Probe Calibration. The LFS1107                           ensures that data points with higher measurement precision
+conductivity sensor was calibrated using 14 KCl stock solutions                 contribute more to the parameter estimation than those with
+between 0 and 100 mM. Once submerged in solution, the probe                     larger uncertainties.
+was given 10 s to stabilize, and the conductivity reading given on                 Let ŷr(t) = f(x(t), u(t), θ) represent the model prediction for
+the CN0359 conductivity board/EC EvalBoard LFS con-                             experimental observation yr(t) at time t, where x(t) assembles
+ductivity board was recorded. The probe was thoroughly rinsed                   state variables, u(t) are controlled experimental conditions, θ
+with deionized water between each stock solution measurement.                   include all model parameters, and r ∈ R indexes the type of
+Linear regression was used to obtain a calibration curve (SI                    response. The model assumes that measurement errors are
+Figure S1) with R2 values greater than 0.99. Using this                         independent and normally distributed but may exhibit non-
+calibration curve, the conductivity readings over the course of                 constant variance (heteroscedasticity) across different types of
+                                                                        12117                                                      https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                                                                               pubs.acs.org/IECR                                            Article
+
+                                                                                                                                                parameters while accounting for varying levels of uncertainty
+                                                                                                                                                and data abundance across experimental observations.
+                                                                                                                                                  The uncertainty in the parameter estimates θ̂ is quantified via
+                                                                                                                                                the covariance matrix Vθ̂,60 eq 36:
+
+                                                                                                                                                   V      (Q y T   y
+                                                                                                                                                                       1
+                                                                                                                                                                       Q y) 1 = (Q z T z 1Q z) 1                            (36)
+
+                                                                                                                                                where Qy is the matrix of local sensitivities of the model
+                                                                                                                                                predictions, i.e., partial derivatives of the model predictions with
+                                                                                                                                                respect to each parameter61 evaluated at the parameter estimate
+                                                                                                                                                θ̂. Σy is the covariance matrix of measurement errors, which is
+                                                                                                                                                diagonal under the independence assumption. The covariance
+                                                                                                                                                matrix can also be approximated by the sensitivity matrix of
+                                                                                                                                                scaled residuals with respect to the parameters Qz.
+                                                                                                                                                    Fisher Information Criteria for Parameter Precision.
+                                                                                                                                                We employed Fisher Information Matrix (FIM) analysis to
+                                                                                                                                                determine the most informative experimental conditions to
+                                                                                                                                                improve parameter estimation. The FIM, denoted as M,
+                                                                                                                                                quantifies the amount of information that an experiment
+                                                                                                                                                provides about the model parameters. For a model with
+Figure 4. Model-based data analytics workflow for characterizing                                                                                parameter vector θ, the FIM can be approximated as the inverse
+transport properties of surface-charged membranes.                                                                                              of the covariance matrix,45 eq 37:
+                                                                                                                                                              1
+                                                                                                                                                   M      V                                                                 (37)
+measurements. Specifically, the error, ϵr,i, associated with i-th                                                                                 In MBDoE, the FIM is employed to guide experimental
+observation, yr,i(ti), is described as eq 32:                                                                                                   design by selecting experimental conditions that maximize
+   yr , i (ti) = f (x(ti), u(ti),                                                      ) +         r ,i ,   r ,i   (0, sr2, i)
+                   ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ
+                                                 yr , i (ti)
+                                                                                                                                 (32)
+where (0, sr2, i) denotes a normal distribution with mean zero
+and variance s2r,i. The nonconstant variance is incorporated into
+the model by scaling the data or applying weights in the WLS
+method. In this study, the variance of mass data is assumed
+constant, based on instrument precision, (0.01 g)2, while the
+variance for concentration measurements is estimated from the
+instrument calibration curve. For instance, we assume that the                                                                                  Figure 5. Geometrical interpretation of the FIM metrics with
+standard deviation of the concentration measurement error is                                                                                    confidence ellipsoid (adapted from Franceschini and Macchietto).45
+proportional to the measurement magnitude, eq 33:                                                                                               The black dot represents parameter estimates θ̂, and the blue area
+                                                                                                                                                represents the confidence region of the parameter (in 2-D). A-
+   sr2, i =    2 2
+                yr , i                                                                                                           (33)           optimality evaluates the enclosing hyperbox of the confidence ellipsoid,
+                                                                                                                                                the gray dot-dashed area in 2-D. D-optimality evaluates the ellipsoid
+where α is a proportionality constant, 3% for ICP-OES                                                                                           hypervolume. E-optimality evaluates the major axis of the ellipsoid,
+concentration measurements, and 0.3% for concentration                                                                                          represented in a red dashed arrow.
+measurements via conductivity probe.
+  The scaled residuals zr,i are computed by dividing the residuals                                                                              specific metrics of M. Figure 5 illustrates the three most common
+by their corresponding assumed standard deviations s̃r,i, eq 34:                                                                                optimality criteria based on FIM45:
+              yr , i              yr , i                                                                                                           • A-optimal designs aim to maximize the trace of the FIM,
+   zr , i =                                                                                                                                            max tr(M), which approximately minimizes the average
+                       sr , i                                                                                                    (34)                  variance of the parameter estimates. This criterion is
+  The WLS objective function for nonlinear parameter                                                                                                   useful when the goal is to reduce the overall uncertainty
+estimation is then formulated as the sum of squared scaled                                                                                             across all parameters.
+residuals, normalized by the number of observations nr for each                                                                                    • D-optimal designs seek to maximize the determinant of
+response type r, eq 35:                                                                                                                                the FIM, max det(M), which corresponds to minimizing
+                                                                                                                                                       the volume (or hypervolume for higher dimensions in θ)
+                                                                        R                      n
+                                                                    1 r 2                                                                              of the parameter confidence region. It ensures that the
+      = arg min lb                                                        zr , i                                                                       parameter estimates are as precise as possible by
+                                                            ub
+                                                                   n
+                                                               r= 1 r i=1                                                        (35)
+                                                                                                                                                       maximizing the overall information content of the
+In this formulation, membrane property parameters are                                                                                                  experiment.
+constrained within specific bounds as θlb and θub: Lp ∈ [0.5,                                                                                      • E-optimal designs maximize the smallest eigenvalue of
+50] L·m−2·h−1·bar−1, B ∈ [0, 30] μm·s−1, and σ ∈ [0, 1].                                                                                               the FIM, max λmin(M), ensuring that the worst-case
+Minimizing objective function eq 35 allows for the estimation of                                                                                       parameter estimate (corresponding to the longest axis in
+                                                                                                                                        12118                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                       Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                       pubs.acs.org/IECR                                                              Article
+
+Table 2. Parameter Results Obtained by Fitting the Empirical Model B = Jw(β0 + β1cin,f)a
+     mode              parameters                 units                estimates           std. errors                                        correlation matrix
+                                                                                                                    ÄÅ                                                      É
+    lag                    Lp               L·m−2·h−1·bar−1            11.11               6.78 × 10−2               ÅÅ 1.00
+                                                                                                                      ÅÅ 0.91          0.91      0.88     0.95       0.90 ÑÑÑ
+                                                                                           5.92 × 10−2                 ÅÅ             1.00        0.97     0.83     0.74 ÑÑÑÑ
+                           β0               dimensionless               1.06                                            ÅÅ 0.88        0.97      1.00     0.88       0.65 ÑÑ
+                                                                                                                         ÅÅ 0.95                                     0.77 ÑÑÑ
+                                            mM−1                                           6.48 × 10−4                    ÅÅ           0.83      0.88     1.00
+                                                                                                                                                                    1.00 ÑÑÖÑ
+                           β1                                           0.0152                                             ÅÇÅ 0.90   0.74        0.65     0.77
+                           σ                dimensionless               1.00               1.25 × 10−2
+                           V̇               g·h−1                       0.17               4.67 × 10−2
+                                                                                                                    ÄÅ                                                                  É
+    overflow               Lp               L·m−2·h−1·bar−1            11.57               3.11 × 10−1               ÅÅ 1.00
+                                                                                                                      ÅÅ 0.99          0.99     0.99      1.00      0.32         0.95ÑÑÑ
+                                                                                           8.36 × 10−2                 ÅÅ             1.00       1.00      0.98      0.30       0.94 ÑÑÑÑ
+                           β0               dimensionless               0.34                                            ÅÅ 0.99        1.00     1.00      0.99      0.33         0.91ÑÑ
+                                                                                                                         ÅÅ 1.00                                                 0.93ÑÑÑÑ
+                           β1               mM−1                        0.0121             8.80 × 10−4                    ÅÅ           0.98     0.99      1.00      0.36
+                                                                                                                           ÅÅ 0.32     0.30     0.33      0.36      1.00         0.13ÑÑÑ
+                                                                                                                            ÅÅ 0.95                                             1.00 ÑÖÑ
+                           σ                dimensionless               1.00               3.03 × 10−2                       ÇÅ       0.94       0.91      0.93      0.13
+                           V̇ o             g·s−1                      −0.16               1.71 × 10−4
+                           V̇               g·h−1                      −0.99               8.83 × 10−2
+a
+ The parameters are regressed using a lag and an overflow experiment, respectively. Data are provided in Figure 6.
+
+          confidence ellipsoid) has as much precision as possible.                        We employed Akaike weights, which quantify the likelihood
+          This criterion is particularly useful for preventing                          of a particular model being the best among a set of candidate
+          situations where one parameter is estimated with                              models,63,64 to evaluate model probabilities. The Akaike weight
+          significantly less precision than others.                                     for model j is given by eq 40:
+  The selection of an optimality criterion depends on the                                                exp( 0.5 j)
+specific goals of the experiment. In this work, we evaluate all                            wj =                                       ,
+                                                                                                         C
+three optimality criteria to determine better experimental                                               c=1
+                                                                                                             exp(    0.5 c )
+operations that maximize the information content and improve
+the precision of parameter estimates.                                                        j = AICj         AICmin
+   Akaike Information Criterion for Model Selection. To                                       = AICj                AICmin
+compare different candidate models and select the one that best                                                                                                                        (40)
+describes the experimental data, we employed the Akaike
+Information Criterion (AIC).62 The AIC provides a robust                                where Δj is the AIC difference between model j and the
+method for model selection by balancing model fit with model                            minimum calculated AIC value, AICmin (or ΔAIC difference).
+complexity, thus preventing overfitting. Specifically, it penalizes                     When Δ < 2, the models are considered statistically
+models that include unnecessary parameters, ensuring the                                indistinguishable while Δ > 10 recommends that the model
+chosen model is both parsimonious and accurate.                                         with the lower AIC is strongly preferred.65 Thus, maximizing
+  The AIC is computed using the likelihood function of the                              Akaike weights serves as a criterion for discriminating between
+                                                                                        models and guiding experimental design.66
+model, ( |y), which denotes the probability of observing the
+                                                                                           In this work, AIC was used to compare different models for
+data y given the model parameters θ, eq 38:                                             the apparent solute permeability coefficient B (as defined in eq
+    AIC =       2ln( ( |y)) + 2k                                         (38)
+                                                                                        31). The model with the lowest ΔAIC was selected as the most
+                                                                                        parsimonious model for describing the experimental data,
+where k is a measure of model complexity. The first term rewards                        balancing the goodness-of-fit with model complexity.
+models that fit the data well, while the second term penalizes                             Computational Environment. The parameter estimation
+more complex models with a greater number of parameters. AIC                            and model simulations were implemented using the open-source
+provides a measure of the relative quality of different candidate                       Pyomo package (version 6.8.0)67 in Python (version 3.11.6).
+models (i.e., only differences in AIC are meaningful for model                          The DAEs describing the diafiltration experiment � eqs 2 and 3
+comparisons) for the same data set and is widely used for guiding                       (lag mode) or eqs 4 and 5 (overflow mode), eqs 10−20, and eq
+model selection. Using scaled residuals zr,i, and assuming each                         31 � were numerically integrated using the backward finite
+type of measurement has an independent and identical error                              difference method provided by Pyomo.DAE.68 These open-
+structure for R types of measurements, the AIC can be                                   source packages enable transferable and reproducible model
+reformulated in a more convenient form ΔAIC in eq 39 by                                 implementation, while also providing access to advanced data
+dropping the constant term:                                                             analysis tools and state-of-the-art optimization algorithms. For
+                                                                                        optimization, we utilized the Ipopt solver (version 3.13.2),69
+                 R  ij ij 1 nr                 yzyzz                                    paired with the HSL MA97 linear solver,70 both distributed via
+                     jj jj
+     AIC =            jjnr lnjj      zr2, i zzzzzzz + 2k , k = p + R                    the IDAES-PSE package.71 This combination of tools allowed us
+                       jj j nr                  zzz
+                r=1 k         k i = 1 {{                                 (39)           to efficiently solve the complex DAE system involved in the
+where the model complexity, k,is the sum of the number of                               simulations. To improve initialization and avoid potential
+model parameters, p, and the number of error structure types                            division by zero errors, ch·mh and cv·mv were selected as
+assumed (associated with types of measurements), R. This form                           combined state variables. Initial conditions for the DAE model
+is equivalent to evaluating ΔAIC for original residual yr,i − ŷr,i                     were set as follows:
+(see SI for derivations). The ΔAIC formula shows that a model                              • mf: initialized based on the initial mass of the solution in
+with lower residual squares will have a lower AIC value, but                                 the stirred cell.
+adding more parameters (increasing k) will increase the AIC
+unless the additional parameters significantly improve the model                           • cf: initialized from the retentate concentration measured
+fit.                                                                                         by the conductivity probe at the start of the experiment.
+
+                                                                                12119                                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 6. Plots comparing predictions (solid lines and red triangles) from diafiltration models (eqs 18−31) and experimental measurements (dots and
+squares). For simplicity, the error bars associated with experimental data are not included. For mass, ICP, and conductivity data, the error corresponds
+to the precision of the device (i.e., 0.01 g, ∼3%, 0.3%, respectively). The time stamps for vial concentration measurements were corrected using the
+approach outlined in the section Time Correction for Permeate. Diafiltration experiments were performed at 60 psi with 15 mM/120 mM KCl feed/
+diafiltrate solutions. Both experiments characterize the same NF270 membrane sample. (A−C) correspond to an experiment run in lag mode (refer to
+A.0 in the SI) and (D−F) correspond to an experiment run in overflow mode (refer to C.1 in the SI). Model parameters are reported in Table 2.
+
+    • mh and mv: approximated as the mass of a single drop of                   will be shown later, the most appropriate polynomial model for
+      solution (∼0.05 g).                                                       the solute permeability coefficient is B = Jw(β0 + β1cin,f) model.
+    • ch·mh and cv·mv: initialized to zero.                                     For this specific model, the fitted parameters and their
+                                                                                uncertainties are reported in Table 2 for both a lag and an
+During the simulation, when vials were swapped, the model                       overflow experiment operating in the concentrating regime.
+variables were reinitialized to maintain continuity. Specifically,              Fitted parameters for all solute permeability models are included
+mf, cf, ch·mh, and cv·mv were set to the final conditions of the                in the SI Table S1. The general form of the model allows this
+previous vial, while mv was reset to the mass of one drop. A time-              work to be directly compared with results reported in the
+scaling strategy72 was applied to the DAEs for each vial                        literature. As one example, solute permeability coefficient of KCl
+integration, significantly improving computational efficiency by                through NF270 membranes for feed concentrations of 67, 134,
+normalizing each time interval to 1. This approach dramatically                 and 201 mM KCl were reported to be 20.8, 30.2, and 36.7 μm·
+reduced the computational load, achieving a simulation time of                  s−1, respectively. While the empirically derived model in this
+less than 1 s for a typical diafiltration experiment (compared to               work is distinct because it accounts for the effects of convection,
+over 10 min without time scaling) on a standard laptop with an                  the permeability coefficients regressed by the B = Jw(β0 + β1cin,f)
+Intel Core i7−1065G7 CPU @ 1.30 GHz, 32 GB of RAM, and                          model encompass those provided by Al-Zoubi et al.73 The
+Windows 10 64-bit operating system. The combined use of                         estimates of hydraulic permeability Lp from both experiments
+advanced numerical methods, initialization strategies, and time-                align well with the manufacturer’s data, 13 L·m−2·h−1·bar−1 and
+scaling ensured robust and efficient model performance.                         characterization results from the literature, which report a
+
+■   RESULTS AND DISCUSSION
+   Empirical Correlations Effectively Model the Concen-
+                                                                                hydraulic permeability between 8.5 and 17 L·m−2·h−1·
+                                                                                bar−1.74−78
+                                                                                   The overflow mode, including an additional model parameter
+tration-Dependent Permeability. Both the lag and overflow                       (the mass flow rate of the initial bolus of diafiltrate), V̇ o, results in
+models, combined with empirical correlations for concen-                        higher uncertainties in all model parameters compared to the lag
+tration-dependent solute permeability coefficient, successfully                 mode. The correlation matrices for both modes demonstrate
+captured the transport performance of the surface-charged                       strong interparameter correlations, particularly between Lp, β0,
+membranes through diafiltration experiments. The experimental                   and β1, which highlights the complexity of disentangling their
+conditions (i.e., diafiltrate concentration, applied pressure, and              individual contributions to the overall model performance.
+number of vial) were optimized using MBDoE to ensure the                        Notably, the higher parameter correlations obtained from the
+estimability of the parameters, as detailed in previous work.56 As              overflow experiment may originate from the loss of information
+                                                                        12120                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                        Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                       Article
+
+Table 3. AIC Ranking with a Diafiltration Experiment Conducted in the Concentrating Regimea
+                          B form                      WLS objective              complexity k            Δ            Akaike weights                 rank
+    B = const.                                           94.91                       7                144.16           2.67 × 10−32                    5
+    Bi = const.                                          74.47                       16               −117.95
+    B = Jw ∑i∈Iβiciin,f            I = {0}               108.42                      7                317.93           4.92 × 10−70                    7
+                                   I = {0, − 0.5}        95.06                       8                94.93            1.30 × 10−21                    4
+                                   I = {0, 0.5}          93.56                       8                28.11            4.23 × 10−7                     3
+                                   I = {0, 1}            92.62                       8                0                0.54                            1
+                                   I = {0, 1, 2}         89.83                       9                0.30             0.46                            2
+                                   I = {0, 1, 2, 3}      83.28                       10               147.41           5.25 × 10−33                    6
+a
+ Bi = const. corresponds to discrete B value for each vial collection.
+
+at low retentate concentrations. For charged membranes,                          region. The model performance further reinforces lag mode as a
+electrostatics will have the greatest effect in low ionic-strength               preferred startup mode for diafiltration.
+solutions; therefore, we hypothesize that collecting information                    SI Figures S2−S6 provide additional diafiltration experiments
+at low retentate concentrations, as is accomplished by running a                 validating the empirical correlation for the apparent solute
+lag experiment, is particularly important in characterizing                      permeability coefficient based on lag mode results shown in
+membrane transport. Consequently, the lag mode, which                            Table 2. B(Jw, cin,f) aligns well with the experimental mass and
+features fewer parameters, lower parameter correlation, and                      concentration measurements, with bias in permeate prediction
+reduced uncertainties, is the preferred experimental operation                   observed only at low concentrations and low pressures. This bias
+for membrane characterization.                                                   may be due to limitations where the diffusive rate becomes faster
+    Figure 6 presents the three types of measurements from                       than the convective rate in low-pressure experiments or in the
+diafiltration experiments. The red dots represent the mass of                    assumption of a constant reflection coefficient, σ, used in the
+permeate collected in each scintillation vial (mv), the magenta                  model. In surface-charged membranes such as the NF270, the
+squares show the concentration of the retentate in the stirred cell              reflection coefficient may also vary with operating conditions
+(cf), and the cyan squares depict the final concentration of                     due to changes in electrostatic interactions with ionic strength.
+permeate in each vial (cv), with the time delay corrected for the                At low concentrations, stronger electrostatic repulsion enhances
+filling of the connecting tube (as described in the Mathematical                 solute rejection, while at higher concentrations, charge shielding
+Modeling section). The solid lines in Figure 6 are continuous                    reduces the influence of the membrane surface charge.
+predictions from the calibrated models for state variables mv                    Extending the model to include a concentration-dependent
+(blue in Figure 6A,C), cf (green in Figure 6B,E), ch (red in Figure              reflection coefficient could provide more accurate predictions,
+6B,E) and mf (blue in Figure 6C,F). Only the predictions of cv at                particularly for low-concentration regions, by capturing non-
+the end of each vial collection were plotted to facilitate                       linear rejection behavior and dynamic solute-membrane
+comparison with post-experiment ICP-OES measurements.                            interactions. Incorporating more flexible membrane parameter
+Figure 6A,B shows data from an experiment conducted in lag                       models is an important area for future work, especially when
+                                                                                 scaling up to larger systems or working with more complex
+mode. Here, the model predictions closely match all three types
+                                                                                 membrane structures.
+of experimental data, particularly in capturing the time-varying
+                                                                                    Diafiltration in the Diluting Regime Improves In-
+concentrations. In Figure 6C, the mass of the feed solution in the
+                                                                                 formation Gain for Model Discrimination. Prior to fitting a
+stirred cell, mf, initially decreases as no diafiltrate enters
+                                                                                 concentration-dependent solute permeability model, such as eqs
+(resembling a filtration experiment). After the lag, diafiltrate                 30 and 31, we estimated discrete solute permeability values for
+begins to enter, interrupting the decrease in mf. The later slight               each permeate vial collection during the experiments. The
+increase in mf is due to air leakage. Next, for overflow mode, as                estimates revealed broadly spread B values ranging between 4
+shown by the concentration data in Figure 6D,E, the model                        and 30 μm·s−1 (30 μm·s−1 was set as the upper bound) across
+overestimates the vial concentration at the beginning and                        different ranges between 15 and 120 mM of feed-side solution-
+underestimates it toward the end of the experiment. In Figure                    membrane interface concentrations, as shown in SI Figure S7A.
+6F, the rapid increase in the feed solution mass during the first                To investigate the potential impact of water flux Jw on solute
+few seconds reflects the rapid influx of diafiltrate. However, the               permeability, we normalized the solute fluxes Js by Jw and plotted
+∼2 g overflow mass prediction overshoots the actual volume of                    them against the interface concentration in SI Figure S7B. The
+the bolus, which could be attributed to a slight delay in the                    resulting trends converged toward a common concentration-
+conductivity probe response or incomplete solution mixing                        dependent relationship, indicating that solute permeability is
+during overflow. The overflow process may have been too rapid                    influenced by both water flux Jw and feed-side concentration.
+for the well-mixed feed assumption to hold, introducing errors in                Based on this observation and the Taylor series expansion in eq
+measuring retentate concentration and determining the time cut                   29, we postulated concentration-dependent permeability
+for overflow (i.e., tF). The parameter estimates for β0 and β1 in                relationships eq 31, and employed the AIC to compare
+the overflow mode were slightly lower than those in the lag                      alternative models.
+mode, whose estimates with lower uncertainties would be more                        Table 3 presents the AIC rankings for various forms of B, eq
+reliable in describing the concentration-dependent solute                        31, fitted to data from a lag mode diafiltration experiment
+permeability with higher solute flux across the membrane. In                     conducted in the concentrating regime (Figure 6A,B). Although
+Figure 6B,E, the sharp increase in the red lines at time 0 indicates             more complex models provide a better fit in terms of the WLS
+that the diafiltration model is robust, especially with the                      objective, their higher complexity leads to a penalty in the AIC
+initialization of the direct permeate concentration in the holdup                ranking. The model that assigns a discrete B value to each vial
+                                                                         12121                                          https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                    Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                                                                                                                                                                        Article
+
+Table 4. AIC Ranking with a Diafiltration Experiment Conducted in the Diluting Regime
+                           B form                    WLS objective            complexity k                                                                  Δ                                                 Akaike weight                                                                          rank
+    B = Jw ∑i∈Iβiciin, f            I = {0, − 0.5}       88.23                     8                                                          1740.82                                                          0                                                                                       4
+                                    I = {0, 0.5}         83.83                     8                                                          830.96                                                           3.62 × 10−181                                                                           2
+                                    I = {0, 1}           82.04                     8                                                          0                                                                1                                                                                       1
+                                    I = {0, 1, 2}        79.23                     9                                                          968.13                                                           5.94 × 10−211                                                                           3
+
+collection, has the most parameters but suffers from estimability                Data-Driven Model Identifies the Interfacial and
+issues due to limited information associated with a single vial               Transport Phenomena. To mechanistically interpret the
+collection. Consequently, despite achieving a better fit, this                concentration-dependent relationship observed in eq 31, we fit
+model is not considered a viable option in the ranking. The first-            the convection-diffusion model described in eq 25. The
+and second-order polynomials for B rank 1 and 2, respectively,                incorporation of the convective term within the model was
+with Akaike weights of 0.54 and 0.46, and a Δ value of 0.30,                  motivated by the large degree of swelling observed in polyamide
+indicating that these two models are statistically indistinguish-             nanofiltration membranes that are exposed to humid atmos-
+able when using just the concentrating regime diafiltration                   pheres (up to 40−50% in polyamide membranes fabricated
+experimental data. While the concentrating diafiltration experi-              using a layer-by-layer polymerization).79,80 This high degree of
+ment presented in Figure 6A,B provides sufficient information                 swelling and associated water uptake can result in diffusion-
+for parameter estimation, it falls short for complete model                   engendered convection (i.e., frame-of-reference corrections).
+discrimination. In contrast, Table 4 reports AIC rankings from a              The high-fidelity state estimations from the empirical model in
+diafiltration experiment conducted in the diluting regime, which              the previous subsection provided a robust foundation for further
+demonstrates enhanced model discrimination capability. This                   exploration of the relevant concentration-dependent factors in
+experimental design significantly improves the information for                the convection-diffusion model. By leveraging simulated time
+model selection, as evidenced by the higher Akaike weight of the              series data for Jw, cin,f, cin,p(≈ch), and Js from the empirical model,
+                                                                              as illustrated in Figure 7A−C (see Figure S8 for Js vs time), we fit
+top-ranked model and larger Δ values between competing
+                                                                              the convection-diffusion model for a lag experiment, as shown in
+models. Specifically, in the diluting diafiltration, the model B =
+                                                                              Figure 6. For this analysis, we ignore the data from the first 100 s
+Jw(β0 + β1cin,f) provides the best fit, with an Akaike weight of 1,
+                                                                              to avoid start-up dynamics.
+whereas the more complex model fails to offer a substantial                      Specifically, motivated by the empirical model, we assume the
+improvement in the fit.                                                       partition coefficients Hf and Hp change linearly with the interface
+   This improvement in model discrimination achieved by                       concentrations, eq 41:
+operating in the diluting regime likely stems from the greater
+number of data points collected at low retentate concentrations.                 Hf = h0 + h1· cin,f , Hp = h0 + h1·cin,p                                                                                                                                                                                  (41)
+For example, when diluting experiments are conducted with a 30
+mM/1 mM KCl feed/diafiltrate solution, the retentate                            Next, we substitute these expressions into eq 25 and rearrange
+concentration gradually decreases from 30 to 15 mM KCl                        to obtain eq 42:
+over the 40 min experiment (Figure S6, E.1). In contrast,                         Js       (h0 + h1·cin,f )· cin,f · exp(Pe)                                                                      (h0 + h1·cin,p)cin,p
+concentrating regime experiments use a high-concentration                              =
+                                                                                  Jw                                                                             exp(Pe)                          1
+diafiltrate, allowing the retentate concentration to increase                                         2                                                                   2
+                                                                                  Js                cin,f exp(Pe)                                                       cin,p                           cin,f exp(Pe)                                                       cin,p
+rapidly but reducing the amount of time spent at each                                  = h1· (                                                                                            ) + h0 · (                                                                                             )
+                                                                                  Jw                             exp(Pe)                                             1                                                exp(Pe)                                            1
+concentration. For instance, the lag experiment shown in Figure                   ß           ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ        ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ
+6 traverses the 15−30 mM KCl range in under 10 min.                                y                                                         x1                                                                                                 x0                                                         (42)
+Consequently, the concentrating regime produces approx-
+imately 75% fewer data points across this critical concentration                 If we assume a constant Peclet number for an experiment,
+                                                                              then h0 and h1 can be estimated via linear regression using eq 42
+range. As will be highlighted in the subsequent section, data at
+                                                                              with input features x0 and x1 and output measurements y. Figure
+retentate concentrations below the charge density of the
+                                                                              8 reports the regressed parameters h0 and h1 for Peclet numbers
+membrane may be particularly important, as electrostatic
+                                                                              from 10−3 to 102. This plot shows two clear local minima for Pe
+interactions dominate transport in this regime. Therefore,                    ≈ 10−3 and Pe ≥ 5, with the latter resulting in a modestly lower
+although diluting experiments proceed more slowly, they yield                 mean squared error. We originally attempted to simultaneously
+more information in the concentration range where solute                      fit h0, h1, and Pe with nonlinear regression, but found the
+permeability is more sensitive to feed concentration�                         estimates sensitive to the initial guess and parameter bounds.
+enhancing their ability to discriminate between competing                     Reformulating this as a linear regression problem and perform-
+models.                                                                       ing a sensitivity analysis was more insightful. For example, it
+   Previous studies have mainly focused on using MBDoE to                     reveals the regression objective becomes insensitive for Pe ≥ 5
+improve parameter precision in concentrating diafiltration                    and the coefficients converge to h0 = 0.595 and h1 = 0.0011 mM.
+experiments,56 while the AIC results here emphasize the                          The coefficient H, which is expressed in terms of the
+potential of diafiltration in the diluting regime�used in                     parameters h0 and h1, reflects how solute partitions at the
+conjunction with MBDoE�to optimize experimental con-                          membrane-solution interfaces. For surface-charged NF270
+ditions for model discrimination. In cases where a larger set of              membranes, electrostatic interactions and steric hindrance are
+candidate models is involved, MBDoE can further enhance the                   hypothesized to control this partitioning. Regarding steric
+identification of the dominant transport mechanism by selecting               hindrance, the ratio of the hydrated size of K+ (0.66 nm81) to the
+operating conditions that maximize Δ or Akaike weight,                        size of the void elements in the NF270 membrane ranges from
+particularly within the diluting regime of diafiltration.                     0.61 to 0.85,75,77,81−84 leading to calculated hindrance factors of
+                                                                      12122                                                                                                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 7. Plots illustrating the fitting of the convection−diffusion
+model (eq 25) to simulated data from the empirical model (eq 31).
+Solid lines in panels (A) cin,f and ch, (B) Jw, and (C) Js represent
+                                                                                  Figure 8. Mean squared error (A) and partition coefficient correlation
+simulated data from the empirical model for a lag diafiltration
+                                                                                  coefficients h0 (B) and h1 (C) are estimated as a function of Pe.
+experiment. The red dashed line in panel (C) depicts the solute flux
+                                                                                  Standard errors for these regressed parameters are smaller than the line
+Js obtained from the convection-diffusion model fit with respect to the
+                                                                                  thickness. We caution against overinterpreting these standard errors, as
+interface concentration. Corresponding model parameters are reported
+                                                                                  they do not consider uncertainty in the experimental data propagated
+in Table 2 and Figure 8. Because the permeate holdup volume is small,
+                                                                                  through the empirical model.
+we assume that ch is approximately cin,p.
+
+                                                                                  as a function of the fixed charged density χ (see derivation in SI,
+0.044−0.28.77,85 These values are consistent with the order of                    where χ is estimated using zeta potential measurements and the
+magnitude of H established by the fitted values of h0 and h1. The                 Gouy−Chapman equation86). The analysis of the Donnan
+influence of electrostatic interactions on ion partitioning can be                equilibrium relationship for the co-ion concentration in the
+observed through the h1 factor. At low concentrations, the                        membrane phase demonstrates that h1 should be proportional to
+electrostatic repulsion between the negatively charged mem-                       Hsteric/χ. Using h0 as an approximation of the steric contribution
+brane surface and the co-ion Cl− results in reduced partitioning,                 to partitioning along with a value of χ determined from zeta
+yielding lower H values. As the solute concentration increases,                   potential measurements, 140 mM, h0/χ = 0.0043 mM−1, which
+the buildup of counterions near the membrane surface (charge                      aligns well with the fitted value of h1. This agreement reinforces
+shielding) mitigates these repulsive interactions, leading to                     the significance of steric hindrance and electrostatic interactions
+higher solute partitioning at the interface. This dynamic                         in determining ion partitioning in NF270 membranes.
+interplay between electrostatic forces and solute concentration                      Next, we consider the value of the solute diffusion coefficient
+is effectively captured through a first-order relationship.                       in the membrane inferred from the Pe = 5 result. Jw ranges from 7
+Furthermore, this first-order relationship is consistent with the                 to 10 μm·s−1 in the reported experiment. This implies Dm/L is
+Donnan equilibrium, where the partition coefficient is described                  between 1.4 and 2.0 μm ·s−1. Moreover, the reported active layer
+                                                                          12123                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                         Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                               pubs.acs.org/IECR                                             Article
+
+Table 5. Model Predictions Analyzed for a Lag and an Overflow Experimenta
+
+
+
+
+a
+ Two important experimental factors can be incorporated in the various models: (1) the startup data and (2) the time correction for permeate vial
+concentrations. The four possible combinations are examined as models M1 to M4. M1 and M2 leverage the data associated with the startup
+processes and consider the time-varying mass in the stirred cell. Models M3 and M4 analyze truncated data sets that do not include the startup
+processes and assume a constant mass in the stirred cell. With regard to permeate vial concentration data, models M1 and M3 incorporate a time
+correction for permeate measurements. M2 and M4 do not account for this correction. All four models were used to analyze a lag and an overflow
+experiment.
+
+thicknesses for NF270 membranes are between 18 and 800                        the startup process and accounting for the time-varying feed
+nm.74−77,87 Thus, assuming Pe = 5 results in Dm estimates for                 mass. Similarly, in the overflow mode, M1 results in a WLS
+KCl between 3 × 10−10 and 2 × 10−8 cm2·s−1, which aligns with                 objective of 37.60 for truncated data, compared to M3 with
+the expected range for KCl with restricted mobility in dense                  98.48, and M4 with 76.47. This difference indicates that
+polymer phases.88−90 Delving into a more mechanistic under-                   including the lag or overflow model enables a better fit to
+standing of the Dm and H estimate will require further systematic             truncated diafiltration data while maintaining similar prediction
+studies.                                                                      quality for additional retentate concentration data during the
+   One of the key advantages of fitting the convection-diffusion              startup process. For instance, in the lag mode, M1’s objective for
+model based on the empirical model simulations lies in its                    truncated data is 48.25, and the original objective value is 46.23,
+significant computational efficiency. Unlike the empirical model              showing consistency in model performance across both data
+fitting in the previous subsection, which required solving a                  sets. Incorporating time correction in M1 significantly improves
+system of DAEs to account for the time-varying concentration                  the permeate objective in the lag mode, reducing it from 50.38
+profiles, the convection-diffusion model calibration bypasses                 (in M2) to 2.69. However, in the overflow mode, time
+this computational burden. By directly fitting to simulated data,             correction did not produce significant improvements. This
+it eliminates the need for explicit ODE integration, reducing                 may be due to the overshooting in feed mass predictions, leading
+parameter estimation time from over 20 min to less than 5 s.                  to an overestimation of permeate concentration, which
+This two-step approach is particularly beneficial when screening              subsequently aligns with the concentration in later stages.
+multiple phenomenological models to mechanistically identify                     Table 6 presents the FIM metrics, illustrating the information
+the phenomena that control membrane transport. It strikes a                   gain by including startup modes in the model. The A-, D-, and E-
+balance between physical accuracy and computational effi-
+ciency, making it a valuable tool for large-scale process design,             Table 6. Information Improvements (with Respect to
+real-time optimization, and process control in membrane-based                 Parameters Lp, β0, β1, and σ) from Modeling Two Startup
+applications.                                                                 Modes
+    Modeling Startups Improves Information Gain from
+                                                                                                                             metrics of FIM
+Dynamic Diafiltration Experiments. Incorporating the two
+startup modes (lag and overflow) and accounting for the time-                   mode           model              A                D                     E
+varying mass of the feed solution in the stirred cell significantly                                                                                 minimal
+improves the performance of the diafiltration model. Table 5                                                    trace        determinant           eigenvalue
+compares the alignment of model predictions with experimental                               M1                2.36 × 108      5.30 × 1020           1023.311
+measurements using the WLS objectives for two experiments                      lag          improvement       8%              138%                  83%
+performed under lag and overflow modes. Four different data                                 M3                2.18 × 108      2.23 × 1020           560.680
+analysis methods were evaluated. M1 and M2 incorporate data                                 M1                2.78 × 109      4.11 × 1021           164.016
+from the process startup and use the lag or overflow model. In                 overflow     improvement       −8%             −9%                   13%
+contrast, M3 and M4 do not model startup (i.e., they analyze                                M3                3.01 × 109      4.51 × 1021           144.867
+truncated data collected after the first drop of permeate
+appeared in the scintillation vial, t ≥ tV) and assume a constant             optimality metrics (trace, determinant, and minimal eigenvalue
+feed solution mass. Additionally, M1 and M3 include time                      of the FIM, respectively) quantify the information gain for
+correction for permeate measurements, while M2 and M4 do                      parameter estimation. In the lag mode, M1, which includes
+not. M1 provides the model predictions shown in Figure 6. In                  startup data and time correction, shows an 8% improvement in
+both lag and overflow modes, M1 and M2 yield smaller WLS                      A-optimality, a 138% improvement in D-optimality, and an 83%
+objective values for truncated data compared to M3 and M4, as                 increase in E-optimality compared to M3, which excludes
+well as lower objectives for individual measurement types. For                startup data. These improvements highlight the enhanced ability
+example, in the lag mode, M1 achieves a WLS objective of 48.25                to infer model parameters from multiple perspectives when
+for the truncated data, which is significantly lower than M3 with             startup processes are modeled. In the overflow mode, however,
+246.20 and M4 with 217.26, illustrating the benefits of modeling              only the E-optimality metric shows improvement, with a 13%
+                                                                      12124                                                 https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                        Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                            pubs.acs.org/IECR                                           Article
+
+increase, while A- and D-optimality metrics show slight
+decreases when startup data are included. This suggests that
+the overflow model does not capture the startup process as
+accurately as the relative steady dynamics of the following
+experiment, leading to a reduction in the effective information
+gain.
+   The results in Table 6 underscore the significant role of
+modeling the startup processes. Lag mode experiments that
+model startup (i.e, M1) are the most informative. Overflow
+experiments or lag experiments that do not model startup
+processes (e.g., prior work26) provide comparable amounts of
+information. As such, accurately capturing the early stage
+dynamics of lag experiments allows for more precise parameter
+estimation, ultimately leading to a better understanding of solute
+transport mechanisms. This information gain exemplifies the
+synergistic feedback between experimental design, model
+development, and data analysis, driving more informed and
+efficient advancements in membrane characterization.
+
+■    IMPACTS AND OPPORTUNITIES
+One key component toward the inverse design of materials lies
+in the ability to model, and subsequently identify, the
+mechanisms that dominate solute transport. Diafiltration
+experiments illustrate how researchers can identify the key                  Figure 9. Modeling the dynamics of diafiltration experiments helps
+factors that govern transport behavior by leveraging dynamic                 elucidate the relevant solute transport phenomena. (A) Lag mode
+measurements to explore wide concentration spaces. Specifi-                  diafiltration experiments that model the startup processes contain
+cally, Figure 9 summarizes the key benefits of dynamic modeling              ∼138% more information (quantified by D-optimality) than baseline
+and data analytics for this study. By capturing dynamic system               prior work, which used lag mode experiments that do not consider
+behaviors and indiscriminately weighing the effects of transport             startup dynamics. In comparison, overflow mode experiments are
+                                                                             slightly less informative than this prior baseline, even with modeling
+phenomena (e.g., diffusion, convection, and solute partitioning),            startup dynamics. (B) Box plots show the distribution of weighted
+data-driven frameworks can provide a detailed understanding of               residuals zi / nr , see eqs 34 and 35, for the three measurements in a
+how membrane structure and operating conditions affect                       concentrating experiment. The diffusion-only model considers a
+material properties and performance. These frameworks lay                    constant B, whereas the convention−diffusion model uses the best B
+the groundwork for systematically optimizing membranes for                   polynomial correlation identified in this work. Accounting for
+diverse applications (e.g., water desalination, biomedical                   convention and the concentration dependence of B enhances the
+separations, chemical production, wastewater treatment)                      accuracy of the permeate concentration predictions.
+where precise control over membrane properties is critical to
+achieve specific performance goals, providing a direct pathway
+to optimize selectivity, permeability, and long-term performance             ing and in-line analytics within SDL systems further enhance
+in complex industrial environments.                                          experimentation by providing immediate feedback for process
+   Building on the gains from diafiltration experiments and data-            adjustments.
+driven modeling, advanced experimental design and automation                    The integration of MBDoE, automation, and SDL systems in
+present opportunities to accelerate membrane innovations.                    diafiltration experiments could catalyze high-throughput, data-
+Advanced optimization techniques, such as MBDoE, allow                       rich investigations into membrane behavior. For instance, faster
+systematic exploration of membrane structure−property−                       experimental cycles, informed by MBDoE, support the system-
+performance relationships by optimizing conditions like feed                 atic exploration of advanced material features like dynamic
+concentration profiles, operating pressures, and permeate flux.              covalent interactions within the polymer backbone or functional
+Faster, targeted experiments informed by MBDoE not only                      group distribution across multiple length scales.
+reduce resource demands needed for elucidating transport                        Another key opportunity is embedding diafiltration-driven
+mechanisms, but also enable precise fine-tuning of materials to              models into process-scale optimization frameworks.91,92 The
+meet specific application needs, such as ion-selective separations           polynomial expressions for concentration-dependence perform-
+and molecular sieving.                                                       ance can act as computationally efficient reduced-order scale-
+   Automation amplifies these capabilities by enabling high-                 bridging models34,93 to facilitate rigorous optimization of
+throughput experimentation with minimal human intervention.                  multiple design and operational scenarios to identify the optimal
+Looking ahead, incorporating additional solute−solute and                    membrane system configurations. Moreover, such multiscale
+solute-membrane interactions can further expand the exper-                   optimization approaches can facilitate bidirectional feedback
+imental design space. For instance, automated systems equipped               loops across materials, devices, and process systems.13 For
+with multiple diafiltrate tanks can switch between concentrating,            example, the proposed diafiltration experimental apparatus and
+diluting, and critical regimes.58 In a similar manner, experiments           modeling framework can rapidly distinguish between dominant
+can possess time-varying applied pressures. In this way, flexible            transport phenomena and identify predictive science-based
+experiments that systematically vary operating conditions can                models with quantified uncertainty. These models can then be
+provide information-rich data sets that promote a deeper                     embedded in process and system optimization frameworks to
+understanding of membrane performance. Real-time monitor-                    assess the technical, economic, and environmental performance
+                                                                     12125                                             https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                   Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                             pubs.acs.org/IECR                                       Article
+
+of novel materials deployed at the infrastructure scale. Similarly,
+said process and infrastructure models can identify realistic
+                                                                              ■   AUTHOR INFORMATION
+                                                                              Corresponding Authors
+operating conditions and quantitative materials performance                     William A. Phillip − Department of Chemical and Biomolecular
+targets to guide molecular engineering endeavors. These are just                  Engineering, University of Notre Dame, Notre Dame, Indiana
+a few examples of how bottom-up and top-down guidance can                         46556, United States; orcid.org/0000-0001-8871-585X;
+accelerate the development of impactful membrane technolo-                        Email: wphillip@nd.edu
+gies to address challenging separations such as sustainable water               Alexander W. Dowling − Department of Chemical and
+treatment, industrial separations, environmental remediation,                     Biomolecular Engineering, University of Notre Dame, Notre
+and critical mineral recycling.                                                   Dame, Indiana 46556, United States; orcid.org/0000-
+
+■    CONCLUSIONS
+In this work, we demonstrated the use of dynamic diafiltration
+                                                                                  0001-9383-7499; Email: adowling@nd.edu
+                                                                              Authors
+                                                                                Xinhong Liu − Department of Chemical and Biomolecular
+experiments, combined with model-based data analytic frame-
+                                                                                  Engineering, University of Notre Dame, Notre Dame, Indiana
+works, to characterize the transport properties of surface-
+                                                                                  46556, United States; orcid.org/0000-0002-9051-2469
+charged NF membranes. By incorporating startup dynamics,
+                                                                                Laurianne Estrada − Department of Chemical and
+time corrections, and empirical correlations between concen-
+                                                                                  Biomolecular Engineering, University of Notre Dame, Notre
+tration and solute permeability, the proposed models provide
+                                                                                  Dame, Indiana 46556, United States
+quantitative insights into membrane behavior under various
+                                                                                Jonathan A. Ouimet − Department of Chemical and
+conditions. Notably, the lag startup mode outperformed the
+                                                                                  Biomolecular Engineering, University of Notre Dame, Notre
+overflow mode in parameter precision, improving model
+                                                                                  Dame, Indiana 46556, United States; orcid.org/0000-
+accuracy and information gain by 8%, 138%, and 83% through
+                                                                                  0001-7545-3176
+A-, D-, and E-optimality, respectively. The improved parameter
+                                                                                Matthew McClure − Department of Chemical Engineering,
+estimability stems from the ability to capture low-concentration
+                                                                                  McMaster University, Hamilton, ON L8S 4L8, Canada
+retentate conditions, consequently modeling larger ranges of the
+                                                                                David R. Latulippe − Department of Chemical Engineering,
+feed concentration. Additionally, the integration of empirical
+                                                                                  McMaster University, Hamilton, ON L8S 4L8, Canada;
+and convection-diffusion models with a two-stage computa-
+                                                                                    orcid.org/0000-0003-2873-0606
+tional approach enabled efficient model screening without
+solving complex DAEs, offering mechanistic insights into                      Complete contact information is available at:
+concentration-dependent transport phenomena. Diafiltration                    https://pubs.acs.org/10.1021/acs.iecr.4c04763
+experiments in the diluting regime proved effective for model
+discrimination, surpassing original concentrating regime diafil-              Notes
+tration approaches used in distinguishing dominant transport                  The authors declare no competing financial interest.
+mechanisms. While this study focused on posthoc model
+selection using AIC, future work could leverage MBDoE to
+proactively optimize experimental conditions for discriminating
+                                                                              ■   ACKNOWLEDGMENTS
+                                                                              This work was supported by the National Science Foundation
+between competing transport models, improving data efficiency.                (NSF) under award CBET-2147605, and we gratefully
+   Beyond characterization, this framework supports the system-               acknowledge this support. L.E. acknowledges funding from the
+atic exploration of structure−property−performance relation-                  Graduate Assistance in Areas of National Need fellowship
+ships, enabling the tailoring of membrane material design for                 provided by the U.S. Department of Education (grant
+specific applications, such as ion-selective separations and                  P200A210048) and the Remick Graduate Fellowship in
+organic solvent filtration. Automation and real-time system                   Engineering at the University of Notre Dame. J.A.O. thanks
+monitoring into SDLs, including MBDoE approaches, could                       the University of Notre Dame for the Patrick and Jana Eilers
+further accelerate membrane development by facilitating high-                 Graduate Student Fellowship for Energy Related Research and
+throughput experimentation and rapid experimental refinement.                 the CEST/Bayer Predoctoral Fellowship. The authors acknowl-
+These advancements pave the way for robust, high-performance                  edge the Notre Dame Center for Research Computing (CRC)
+membranes designed for industrial separations and environ-                    for computing resources, and the Center for Environmental
+mental remediation. Ultimately, this study establishes a                      Engineering and Technology (CEST) for the use of instruments
+foundational framework that combines dynamic diafiltration                    to perform experiments.
+experiments, advanced modeling, and optimization to accelerate
+the development of next-generation NF membranes. These
+findings advance our understanding of transport mechanisms
+                                                                              ■   NOMENCLATURE
+                                                                              Abbreviations
+governing membrane performance while fostering innovations
+in material design and resource-efficient separations.                        AIC     Akaike information criterion
+                                                                              DAE     differential-algebraic equation
+
+■
+*
+    ASSOCIATED CONTENT
+sı Supporting Information
+                                                                              DATA
+                                                                              FIM
+                                                                                      diafiltration apparatus for high-throughput analysis
+                                                                                      Fisher information matrix
+                                                                              ICP-OES inductively coupled plasma-optical emission spec-
+The Supporting Information is available free of charge at                             troscopy
+https://pubs.acs.org/doi/10.1021/acs.iecr.4c04763.                            MBDoE model-based design of experiments
+                                                                              NF      nanofiltration
+      Model derivation, membrane charge density estimation,                   ODE     ordinary differential equation
+      instrument calibration, and transport properties verifica-              RO      reverse osmosis
+      tion with additional data sets (PDF)                                    SDL     self-driving laboratory
+                                                                      12126                                         https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                              pubs.acs.org/IECR                                           Article
+
+TFC        thin-film composite                                                 cv      concentration of the solution in scintillation vial, μmol·
+UF         ultrafiltration                                                             cm−3, mM
+WLS        weighted least-squares                                              cin,f   concentration at the feed-side solution-membrane inter-
+                                                                                       face, μmol·cm−3, mM
+Data analytics                                                                 cmin,f  concentration in the membrane phase at the feed-side
+α       proportionality constant                                                       boundary, μmol·cm−3, mM
+θ̂
+                                                                                 m
+        model parameter estimate                                               cin,p concentration in the membrane phase at the permeate-
+θ       model parameter vector                                                         side boundary, μmol·cm−3, mM
+θlb     lower bounds for model parameters                                      Dm diffusion coefficient of the solute in the membrane, cm2 ·
+θub     upper bounds for model parameters                                              s−1
+M       Fisher information matrix                                              Ds      diffusion coefficient of the solute in the solvent, cm2 ·s−1
+Qy      sensitivity matrix of model predictions                                H       partition coefficient of the solute, dimensionless
+Qz      sensitivity matrix of scaled residuals                                 h       factors of polynomials in partition coefficient
+u       constant/controlled experimental condition vector                      Hf      partition coefficient of the solute at feed side,
+Vθ̂     parameter covariance matrix                                                    dimensionless
+x       experimental state variable vector                                     Hp      partition coefficient of the solute at permeate side,
+y       experimental observation vector                                                dimensionless
+ΔAIC AIC dropping constant terms                                               Hsteric partition coefficient attribute to steric hindrance,
+Δ       AIC difference                                                                 dimensionless
+ϵ       experimental observation error                                         I       polynomial order sets
+ŷ      model prediction variable                                              Js      solute flux across the membrane, μmol·cm−2·s−1
+λmin(·) smallest eigenvalue of a matrix                                        js      local solute flux in the membrane, μmol·cm−2·s−1
+   (·) likelihood function                                                     Jw      volumetric water flux, cm·s−1
+   (·) normal distribution                                                     k       mass transfer coefficient, cm·s−1
+Σy      covariance matrix of measurement errors                                Lp      hydraulic permeability coefficient, cm·bar−1 ·s−1
+Σz      covariance matrix of scaled measurement errors                         md      mass of the diafiltrate, g
+tr(·) trace of a matrix                                                        mf      mass of the feed solution in stirred cell, g
+det(·) determinant of a matrix                                                 mh      mass of solution in holdup, g
+s̃      assumed standard deviation                                             mv      mass of the solution in scintillation vial, g
+f(·)    differential or algebraic equations                                    mtb mass of solution in the connecting tube, g
+k       model complexity                                                       n       number of dissolved species, dimensionless
+nr      number of experimental observations for response r                     Pe      Peclet number ,dimensionless
+p       number of model parameters                                             R       gas constant, cm3·bar·μmol−1·K−1
+p(·)    probability distribution function                                      T       temperature, K
+R       number of response types                                               t0      time stamp denotes applied pressure reaching target
+R2      coefficient of determination                                                   operating pressure, s
+s       standard deviation                                                     tF      time stamp denotes the end of overflow, s
+y       experimental observation variable                                      tH      time stamp denotes that holdup volume is filled with
+z       scaled residual                                                                permeate, s
+                                                                               tL      time stamp denotes the end of lag, s
+Model Variables and parameters                                                 tV      time stamp denotes that connecting tube is filled with
+β      factors of polynomials in solute permeability coefficient                       permeate, s
+χ      volumetric charge density of the membrane, meq·L−1                      v0      average velocity within the stirred cell, cm·s−1
+Δπ     osmotic pressure, bar                                                   vhead volume of the air in the headspace of the stirred cell, mL
+Δc     solute concentration difference across the membrane,                    vtb,d of air between the diafiltrate tank and the stirred cell, mL
+       μmol·cm−3, mM                                                           vtb     volume of solution in the tube between the stirred cell
+ΔP     applied pressure, bar                                                           and scintillation vial, mL
+ΔPi    initial applied pressure, bar                                           Δμ chemical potential difference, J·mol−1
+ΔPt    applied operating pressure, bar                                         ΔϕD electrostatic potential difference, V
+V̇ o   overflow rate of diafiltrate bolus entering the stirred cell,           F       Faraday constant, C·mol−1
+       g·s−1                                                                   L       membrane thickness, cm
+V̇     rate of the feed solution mass change in the stirred cell, g·           z       valency of the ion, dimensionless
+       s−1
+ν      kinematic viscosity of the solvent, cm2 ·s−1
+ρ
+σ
+Am
+       density of the solution, g·cm−3
+       reflection coefficient, dimensionless
+       area of the membrane, cm2
+                                                                               ■    REFERENCES
+                                                                                (1) Elimelech, M.; Phillip, W. A. The future of seawater desalination:
+                                                                               energy, technology, and the environment. Science 2011, 333, 712−717.
+B      solute permeability coefficient, cm·s−1                                  (2) Koros, W. J.; Lively, R. P. Water and beyond: expanding the
+b      diameter of the stirred cell, cm                                        spectrum of large-scale energy efficient separation processes. AIChE J.
+c      solute concentration, μmol·cm−3, mM                                     2012, 58, 2624.
+cd     concentration in the diafiltrate solution, μmol·cm−3, mM                 (3) Van der Bruggen, B.; Koninckx, A.; Vandecasteele, C. Separation
+cf     concentration of the feed solution, μmol·cm−3, mM                       of monovalent and divalent ions from aqueous solution by electro-
+ch     concentration within hold-up volume, μmol·cm−3, mM                      dialysis and nanofiltration. Water Res. 2004, 38, 1347−1353.
+
+                                                                       12127                                             https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                     Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                      pubs.acs.org/IECR                                            Article
+
+ (4) Van der Bruggen, B.; Schaep, J.; Wilms, D.; Vandecasteele, C. A                    (24) Geise, G. M.; Paul, D. R.; Freeman, B. D. Fundamental water and
+comparison of models to describe the maximal retention of organic                     salt transport properties of polymeric materials. Prog. Polym. Sci. 2014,
+molecules in nanofiltration. Sep. Sci. Technol. 2000, 35, 169−182.                    39, 1−42.
+ (5) Zhao, Y.; Tong, T.; Wang, X.; Lin, S.; Reid, E. M.; Chen, Y.                       (25) Yaroshchuk, A.; Bruening, M. L.; Zholkovskiy, E. Modelling
+Differentiating solutes with precise nanofiltration for next generation               nanofiltration of electrolyte solutions. Adv. Colloid Interface Sci. 2019,
+environmental separations: a review. Environ. Sci. Technol. 2021, 55,                 268, 39−63.
+1359−1376.                                                                              (26) Ouimet, J. A.; Liu, X.; Brown, D. J.; Eugene, E. A.; Popps, T.;
+ (6) Cheng, W.; Liu, C.; Tong, T.; Epsztein, R.; Sun, M.; Verduzco, R.;               Muetzel, Z. W.; Dowling, A. W.; Phillip, W. A. Data: Diafiltration
+Ma, J.; Elimelech, M. Selective removal of divalent cations by                        apparatus for high-throughput analysis. J. Membr. Sci. 2022, 641,
+polyelectrolyte multilayer nanofiltration membrane: Role of polyelec-                 No. 119743.
+trolyte charge, ion size, and ionic strength. J. Membr. Sci. 2018, 559, 98−             (27) Geise, G. M.; Falcon, L. P.; Freeman, B. D.; Paul, D. R. Sodium
+106.                                                                                  chloride sorption in sulfonated polymers for membrane applications. J.
+ (7) Soyekwo, F.; Zhang, Q.; Qu, Y.; Lin, Z.; Wu, X.; Zhu, A.; Liu, Q.                Membr. Sci. 2012, 423, 195−208.
+Tetraamminezinc complex integrated interpenetrating polymer net-                        (28) Cussler, E.; Yang, C. Reactive barrier films. Paper Film Foil
+                                                                                      Convert. 2000, 74, 96.
+work nanocomposite membrane for phosphorous recovery. AIChE J.
+                                                                                        (29) Yeong, Y. F.; Abdullah, A. Z.; Ahmad, A. L.; Bhatia, S. Process
+2019, 65, 755−765.
+                                                                                      optimization studies of p-xylene separation from binary xylene mixture
+ (8) Geise, G. M. Experimental characterization of polymeric
+                                                                                      over silicalite-1 membrane using response surface methodology. J.
+membranes for selective ion transport. Current Opinion in Chemical                    Membr. Sci. 2009, 341, 96−108.
+Engineering 2020, 28, 36−42.                                                            (30) Wee, S. L.; Tye, C. T.; Bhatia, S. Process optimization studies for
+ (9) Yang, W.-S.; Qiu, Z.-L.; Yu, W.-H.; Fang, L.-F.; Zhu, B.-K.                      the dehydration of alcohol−water system by inorganic membrane
+Integrating binary organic phosphonic acid into nanofiltration                        based pervaporation separation using design of experiments (DOE).
+membrane for high precision separation of mono-/divalent anions.                      Sep. Purif. Technol. 2010, 71, 192−199.
+Sep. Purif. Technol. 2024, 336, No. 126287.                                             (31) Häse, F.; Roch, L. M.; Aspuru-Guzik, A. Next-generation
+ (10) Shahmansouri, A.; Bellona, C. Nanofiltration technology in water                experimentation with self-driving laboratories. Trends in Chemistry
+treatment and reuse: applications and costs. Water Sci. Technol. 2015,                2019, 1, 282−291.
+71, 309−319.                                                                            (32) MacLeod, B. P.; et al. A self-driving laboratory advances the
+ (11) Mahmoud, A. E. D.; Mostafa, E. Nanofiltration Membranes for                     Pareto front for material properties. Nat. Commun. 2022, 13, 995.
+the Removal of Heavy Metals from Aqueous Solutions: Preparations                        (33) Mo̷ ller, J. K.; Goranović, G.; Brath, P.; Madsen, H. A data-driven
+and Applications. Membranes 2023, 13, 789.                                            digital twin for water ultrafiltration. Commun. Eng. 2022, 1, 23.
+ (12) Wang, R.; He, R.; He, T.; Elimelech, M.; Lin, S. Performance                      (34) Dowling, A. W. Artificial Intelligence and Machine Learning for
+metrics for nanofiltration-based selective separation for resource                    Sustainable Molecular-to-Systems Engineering. Syst. Control Trans.
+extraction and recovery. Nature Water 2023, 1, 291−300.                               2024, 3, 22−31.
+ (13) Lair, L.; Ouimet, J. A.; Dougher, M.; Boudouris, B. W.; Dowling,                  (35) Moosavi, S. M.; Jablonka, K. M.; Smit, B. The role of machine
+A. W.; Phillip, W. A. Critical Mineral Separations: Opportunities for                 learning in the understanding and design of materials. J. Am. Chem. Soc.
+Membrane Materials and Processes to Advance Sustainable Economies                     2020, 142, 20273−20287.
+and Secure Supplies. Annu. Rev. Chem. Biomol. Eng. 2024, 15, 243−266.                   (36) Tom, G.; Schmid, S. P.; Baird, S. G.; Cao, Y.; Darvish, K.; Hao,
+ (14) Agi, D. T.; Jones, K. D.; Watson, M. J.; Lynch, H. G.; Dougher,                 H.; Lo, S.; Pablo-García, S.; Rajaonson, E. M.; Skreta, M.; et al. Self-
+M.; Chen, X.; Carlozo, M. N.; Dowling, A. W. Computational toolkits                   driving laboratories for chemistry and materials science. Chem. Rev.
+for model-based design and optimization. Current Opinion in Chemical                  2024, 124, 9633−9732.
+Engineering 2024, 43, No. 100994.                                                       (37) Grieves, M.; Vickers, J. Digital twin: Mitigating unpredictable,
+ (15) Park, H. B.; Kamcev, J.; Robeson, L. M.; Elimelech, M.; Freeman,                undesirable emergent behavior in complex systems. Transdisciplinary
+B. D. Maximizing the right stuff: The trade-off between membrane                      Perspectives on Complex Systems: New Findings and Approaches 2017,
+permeability and selectivity. Science 2017, 356, No. eaab0530.                        85−113.
+ (16) Werber, J. R.; Deshmukh, A.; Elimelech, M. The critical need for                  (38) Emmert-Streib, F. Defining a digital twin: A data science-based
+increased selectivity, not increased water permeability, for desalination             unification. Machine Learning and Knowledge Extraction 2023, 5, 1036−
+membranes. Environmental Science & Technology Letters 2016, 3, 112−                   1054.
+                                                                                        (39) Echtermeyer, A.; Amar, Y.; Zakrzewski, J.; Lapkin, A. Self-
+120.
+                                                                                      optimization and model-based design of experiments for developing a
+ (17) Yang, Z.; Guo, H.; Tang, C. Y. The upper bound of thin-film
+                                                                                      C−H activation flow process. Beilstein journal of organic chemistry 2017,
+composite (TFC) polyamide membranes for desalination. J. Membr.
+                                                                                      13, 150−163.
+Sci. 2019, 590, No. 117297.                                                             (40) Waldron, C.; Pankajakshan, A.; Quaglio, M.; Cao, E.; Galvanin,
+ (18) Noble, R. D.; Agrawal, R. Separations research needs for the 21st
+                                                                                      F.; Gavriilidis, A. An autonomous microreactor platform for the rapid
+century. Ind. Eng. Chem. Res. 2005, 44, 2887−2892.                                    identification of kinetic models. Reaction Chemistry & Engineering 2019,
+ (19) Hoffman, J. R.; Phillip, W. A. 100th anniversary of macro-                      4, 1623−1636.
+molecular science viewpoint: integrated membrane systems. ACS                           (41) Barz, T.; Kager, J.; Herwig, C.; Neubauer, P.; Bournazou, M. N.
+Macro Lett. 2020, 9, 1267−1279.                                                       C.; Galvanin, F. Simulation and Optimization in Process Engineering;
+ (20) Sadeghi, I.; Kaner, P.; Asatekin, A. Controlling and expanding the              Elsevier 2022, 273−319.
+selectivity of filtration membranes. Chem. Mater. 2018, 30, 7328−7354.                  (42) Agunloye, E.; Petsagkourakis, P.; Yusuf, M.; Labes, R.;
+ (21) Qu, S.; Dilenschneider, T.; Phillip, W. A. Preparation of                       Chamberlain, T.; Muller, F. L.; Bourne, R. A.; Galvanin, F. Automated
+chemically-tailored copolymer membranes with tunable ion transport                    kinetic model identification via cloud services using model-based design
+properties. ACS Appl. Mater. Interfaces 2015, 7, 19746−19754.                         of experiments. Reaction Chemistry & Engineering 2024, 9, 1859−1876.
+ (22) Kochkodan, V.; Hilal, N. A comprehensive review on surface                        (43) Tillmann, M. T.; Galvanin, F. Development of a holistic Python
+modified polymer membranes for biofouling mitigation. Desalination                    package for optimal selection of experimental design criteria in kinetic
+2015, 356, 187−207.                                                                   model discrimination. Comput.-Aided Chem. Eng. 2023, 52, 631−636.
+ (23) Guo, H.; Deng, Y.; Yao, Z.; Yang, Z.; Wang, J.; Lin, C.; Zhang, T.;               (44) Liu, X.; Ouimet, J. A.; Hoffman, J. R.; Xu, J.; Phillip, W. A.;
+Zhu, B.; Tang, C. Y. A highly selective surface coating for enhanced                  Dowling, A. W. Optimization of Reactive Ink Formulation for
+membrane rejection of endocrine disrupting compounds: Mechanistic                     Controlled Additive Manufacturing of Copolymer Membrane
+insights and implications. Water Res. 2017, 121, 197−203.                             Functionalization. ACS Appl. Mater. Interfaces 2024, 16, 59216−59233.
+
+                                                                              12128                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                              Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                                      pubs.acs.org/IECR                                             Article
+
+  (45) Franceschini, G.; Macchietto, S. Model-based design of                           (66) Michalik, C.; Stuckert, M.; Marquardt, W. Optimal experimental
+experiments for parameter precision: State of the art. Chem. Eng. Sci.                design for discriminating numerous model candidates: the AWDC
+2008, 63, 4846−4872.                                                                  criterion. Ind. Eng. Chem. Res. 2010, 49, 913−919.
+  (46) Liu, X.; De, R.; Pérez, A.; Hoffman, J. R.; Phillip, W. A.; Dowling,             (67) Bynum, M. L.; Hackebeil, G. A.; Hart, W. E.; Laird, C. D.;
+A. W. Mathematical Modelling of Reactive Inks for Additive                            Nicholson, B. L.; Siirola, J. D.; Watson, J.-P.; Woodruff, D. L. Pyomo-
+Manufacturing of Charged Membranes. Comput.-Aided Chem. Eng.                          Optimization Modeling in Python; Springer, 2021; Vol. 67.
+2022, 49, 1063−1068.                                                                    (68) Nicholson, B.; Siirola, J. D.; Watson, J.-P.; Zavala, V. M.; Biegler,
+  (47) Befort, B. J.; Garciadiego, A.; Wang, J.; Wang, K.; Franco, G.;                L. T. pyomo. dae: A modeling and automatic discretization framework
+Maginn, E. J.; Dowling, A. W. Data science for thermodynamic                          for optimization with differential and algebraic equations. Mathematical
+modeling: Case study for ionic liquid and hydrofluorocarbon                           Programming Computation 2018, 10, 187−223.
+refrigerant mixtures. Fluid Phase Equilib. 2023, 572, No. 113833.                       (69) Wächter, A.; Biegler, L. T. On the implementation of an interior-
+  (48) Schaber, S. D.; Born, S. C.; Jensen, K. F.; Barton, P. I. Design,              point filter line-search algorithm for large-scale nonlinear programming.
+execution, and analysis of time-varying experiments for model                         Mathematical Programming 2006, 106, 25−57.
+discrimination and parameter estimation in microreactors. Org. Process                  (70) HSL. A collection of Fortran codes for large scale scientific
+Res. Dev. 2014, 18, 1461−1467.                                                        computation. 2024; http://www.hsl.rl.ac.uk, Release Date: 2024.05.15.
+  (49) Galvanin, F.; Cao, E.; Al-Rifai, N.; Dua, V.; Gavriilidis, A.                    (71) Lee, A.; Ghouse, J. H.; Eslick, J. C.; Laird, C. D.; Siirola, J. D.;
+Optimal design of experiments for the identification of kinetic models                Zamarripa, M. A.; Gunter, D.; Shinn, J. H.; Dowling, A. W.;
+of methanol oxidation over silver catalyst. Chim. Oggi-Chem. Today                    Bhattacharyya, D.; et al. The IDAES process modeling framework
+2015, 33, 51−56.                                                                      and model library�Flexibility for process simulation and optimization.
+  (50) Cao, L.; Russo, D.; Lapkin, A. A. Automated robotic platforms in               J. Adv. Manuf. Process. 2021, 3, No. e10095.
+design and development of formulations. AIChE J. 2021, 67,                              (72) Wang, H.; Liu, X.; Gatzke, E. P. Time scaling transformation
+No. e17248.                                                                           avoiding sensitivity discontinuity for nonlinear optimal control. Ind.
+  (51) Galvanin, F.; Marchesini, R.; Barolo, M.; Bezzo, F.; Fidaleo, M.               Eng. Chem. Res. 2023, 62, 14407−14426.
+Optimal design of experiments for parameter identification in                           (73) Al-Zoubi, H.; Hilal, N.; Darwish, N. A.; Mohammad, A. W.
+electrodialysis models. Chemical engineering research and design 2016,                Rejection and modelling of sulphate and potassium salts by nano-
+105, 107−119.                                                                         filtration membranes: neural network and Spiegler−Kedem model.
+  (52) Katsoulas, K.; Galvanin, F.; Mazzei, L.; Besenhard, M.; Sorensen,              Desalination 2007, 206, 42−60.
+E. Model-based design of experiments for efficient and accurate                         (74) Boussu, K.; De Baerdemaeker, J.; Dauwe, C.; Weber, M.; Lynn,
+isotherm model identification in High Performance Liquid Chroma-                      K. G.; Depla, D.; Aldea, S.; Vankelecom, I. F.; Vandecasteele, C.; Van
+tography. Comput. Chem. Eng. 2025, 195, No. 109021.                                   der Bruggen, B. Physico-chemical characterization of nanofiltration
+  (53) Wang, J.; Dowling, A. W. Pyomo.DOE: An open-source package
+                                                                                      membranes. ChemPhysChem 2007, 8, 370−379.
+for model-based design of experiments in Python. AIChE J. 2022, 68,
+                                                                                        (75) Semião, A. J.; Schäfer, A. I. Removal of adsorbing estrogenic
+No. e17813.
+                                                                                      micropollutants by nanofiltration membranes. Part A�Experimental
+  (54) Muetzel, Z. W.; Ouimet, J. A.; Phillip, W. A. Device for the
+                                                                                      evidence. J. Membr. Sci. 2013, 431, 244−256.
+Acquisition of Dynamic Data Enables the Rapid Characterization of
+                                                                                        (76) Semião, A. J.; Foucher, M.; Schäfer, A. I. Removal of adsorbing
+Polymer Membranes. ACS Applied Polymer Materials 2022, 4, 3438−
+                                                                                      estrogenic micropollutants by nanofiltration membranes: Part B�
+3447.
+  (55) Ouimet, J. A.; Al-Badani, F.; Liu, X.; Lair, L.; Muetzel, Z.;                  Modeldevelopment. J. Membr. Sci. 2013, 431, 257−266.
+                                                                                        (77) Micari, M.; Diamantidou, D.; Heijman, B.; Moser, M.; Haidari,
+Dowling, A. W.; Phillip, W. A. Automated Membrane Characterization:
+                                                                                      A.; Spanjers, H.; Bertsch, V. Experimental and theoretical character-
+In-situ Monitoring of the Permeate and Retentate Solutions using a 3D
+Printed Permeate Probe Device. Journal of Membrane Science Letters                    ization of commercial nanofiltration membranes for the treatment of
+2024, 4, No. 100087.                                                                  ion exchange spent regenerant. J. Membr. Sci. 2020, 606, No. 118117.
+  (56) Liu, X.; Wang, J.; Ouimet, J. A.; Phillip, W. A.; Dowling, A. W.                 (78) Tomczak, W. The application of the nanofiltration membrane
+Membrane Characterization with Model-Based Design of Experiments.                     NF270 for separation of fermentation broths. Membranes 2022, 12,
+Comput.-Aided Chem. Eng. 2022, 49, 859−864.                                           1263.
+  (57) Kedem, O.; Katchalsky, A. Thermodynamic analysis of the                          (79) Chan, E. P.; Young, A. P.; Lee, J.-H.; Chung, J. Y.; Stafford, C. M.
+permeability of biological membranes to non-electrolytes. Biochim.                    Swelling of ultrathin crosslinked polyamide water desalination
+Biophys. Acta 1958, 27, 229−246.                                                      membranes. J. Polym. Sci., Part B: Polym. Phys. 2013, 51, 385−391.
+  (58) Kilmartin, C. P.; Ouimet, J. A.; Dowling, A. W.; Phillip, W. A.                  (80) Chan, E. P.; Young, A. P.; Lee, J.-H.; Stafford, C. M. Swelling of
+Staged diafiltration cascades provide opportunities to execute highly                 Ultrathin Molecular Layer-by-Layer Polyamide Water Desalination
+selective separations. Ind. Eng. Chem. Res. 2021, 60, 15706−15719.                    Membranes. J. Polym. Sci., Part B: Polym. Phys. 2013, 51, 1647−1655.
+  (59) Zeman, L. J.; Zydney, A. L. Microfiltration and ultrafiltration:                 (81) Nightingale, E., Jr Phenomenological theory of ion solvation.
+principles and applications; Routledge, 2017.                                         Effective radii of hydrated ions. J. Phys. Chem. 1959, 63, 1381−1387.
+  (60) Bates, D. M. Nonlinear regression analysis and its applications;                 (82) Lin, Y.-L.; Chiang, P.-C.; Chang, E.-E. Removal of small
+Wiley series in probability and mathematical statistics; Applied                      trihalomethane precursors from aqueous solution by nanofiltration.
+probability and statistics; Wiley: New York, 1988.                                    Journal of Hazardous Materials 2007, 146, 20−29.
+  (61) Asprey, S. P.; Naka, Y. Mathematical problems in fitting kinetic                 (83) Dalwani, M.; Benes, N. E.; Bargeman, G.; Stamatialis, D.;
+models�some new perspectives. J. Chem. Eng. Jpn. 1999, 32, 328−337.                   Wessling, M. Effect of pH on the performance of polyamide/
+  (62) Akaike, H. A new look at the statistical model identification. IEEE            polyacrylonitrile based thin film composite membranes. J. Membr. Sci.
+Transactions on Automatic Control 1974, 19, 716−723.                                  2011, 372, 228−238.
+  (63) Burnham, K. P.; Anderson, D. R. Model selection and multimodel                   (84) Oatley, D. L.; Llenas, L.; Pérez, R.; Williams, P. M.; Martínez-
+inference: a practical information-theoretic approach; Springer, 2002.                Lladó, X.; Rovira, M. Review of the dielectric properties of
+  (64) Wagenmakers, E.-J.; Farrell, S. AIC model selection using Akaike               nanofiltration membranes and verification of the single oriented layer
+weights. Psychonomic Bulletin & Review 2004, 11, 192−196.                             approximation. Adv. Colloid Interface Sci. 2012, 173, 1−11.
+  (65) Galipaud, M.; Gillingham, M. A.; Dechaume-Moncharmont, F.-                       (85) Dechadilok, P.; Deen, W. M. Hindrance factors for diffusion and
+X. A farewell to the sum of Akaike weights: The benefits of alternative               convection in pores. Ind. Eng. Chem. Res. 2006, 45, 6953−6959.
+metrics for variable importance estimations in model selection. Methods                 (86) Bolt, G. Analysis of the validity of the Gouy-Chapman theory of
+in Ecology and Evolution 2017, 8, 1668−1678.                                          the electric double layer. Journal of Colloid Science 1955, 10, 206−218.
+
+                                                                              12129                                                https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+Industrial & Engineering Chemistry Research                                            pubs.acs.org/IECR                                   Article
+
+  (87) Freger, V. Swelling and morphology of the skin layer of
+polyamide composite membranes: an atomic force microscopy study.
+Environ. Sci. Technol. 2004, 38, 3168−3175.
+  (88) Wang, J.; Zhang, L.; Xue, J.; Hu, G. Ion diffusion coefficient
+measurements in nanochannels at various concentrations. Biomicro-
+fluidics 2014, 8, No. 024118.
+  (89) Kamcev, J.; Paul, D. R.; Manning, G. S.; Freeman, B. D. Ion
+diffusion coefficients in ion exchange membranes: significance of
+counterion condensation. Macromolecules 2018, 51, 5519−5529.
+  (90) Harris, J. K.; Ratcliff, E. L. Ion diffusion coefficients in poly (3-
+alkylthiophenes) for energy conversion and biosensing: role of side-
+chain length and microstructure. Journal of Materials Chemistry C 2020,
+8, 13319−13327.
+  (91) Wamble, N. P.; Eugene, E. A.; Phillip, W. A.; Dowling, A. W.
+Optimal diafiltration membrane cascades enable green recycling of
+spent lithium-ion batteries. ACS Sustainable Chem. Eng. 2022, 10,
+12207−12225.
+  (92) Ovalle, D.; Tran, N.; Laird, C. D.; Grossmann, I. E. Optimal
+Membrane Cascade Design for Critical Mineral Recovery Through
+Logic-based Superstructure Optimization. Syst. Control Trans. 2024, 3,
+853−859.
+  (93) Rall, D.; Schweidtmann, A. M.; Kruse, M.; Evdochenko, E.;
+Mitsos, A.; Wessling, M. Multi-scale membrane process optimization
+with high-fidelity ion transport models through machine learning. J.
+Membr. Sci. 2020, 608, No. 118208.
+
+
+
+
+                                                                               12130                           https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                           Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

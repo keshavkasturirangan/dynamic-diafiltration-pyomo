@@ -1,0 +1,77 @@
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                                                                                                                                                                        Article
+
+Table 4. AIC Ranking with a Diafiltration Experiment Conducted in the Diluting Regime
+                           B form                    WLS objective            complexity k                                                                  Δ                                                 Akaike weight                                                                          rank
+    B = Jw ∑i∈Iβiciin, f            I = {0, − 0.5}       88.23                     8                                                          1740.82                                                          0                                                                                       4
+                                    I = {0, 0.5}         83.83                     8                                                          830.96                                                           3.62 × 10−181                                                                           2
+                                    I = {0, 1}           82.04                     8                                                          0                                                                1                                                                                       1
+                                    I = {0, 1, 2}        79.23                     9                                                          968.13                                                           5.94 × 10−211                                                                           3
+
+collection, has the most parameters but suffers from estimability                Data-Driven Model Identifies the Interfacial and
+issues due to limited information associated with a single vial               Transport Phenomena. To mechanistically interpret the
+collection. Consequently, despite achieving a better fit, this                concentration-dependent relationship observed in eq 31, we fit
+model is not considered a viable option in the ranking. The first-            the convection-diffusion model described in eq 25. The
+and second-order polynomials for B rank 1 and 2, respectively,                incorporation of the convective term within the model was
+with Akaike weights of 0.54 and 0.46, and a Δ value of 0.30,                  motivated by the large degree of swelling observed in polyamide
+indicating that these two models are statistically indistinguish-             nanofiltration membranes that are exposed to humid atmos-
+able when using just the concentrating regime diafiltration                   pheres (up to 40−50% in polyamide membranes fabricated
+experimental data. While the concentrating diafiltration experi-              using a layer-by-layer polymerization).79,80 This high degree of
+ment presented in Figure 6A,B provides sufficient information                 swelling and associated water uptake can result in diffusion-
+for parameter estimation, it falls short for complete model                   engendered convection (i.e., frame-of-reference corrections).
+discrimination. In contrast, Table 4 reports AIC rankings from a              The high-fidelity state estimations from the empirical model in
+diafiltration experiment conducted in the diluting regime, which              the previous subsection provided a robust foundation for further
+demonstrates enhanced model discrimination capability. This                   exploration of the relevant concentration-dependent factors in
+experimental design significantly improves the information for                the convection-diffusion model. By leveraging simulated time
+model selection, as evidenced by the higher Akaike weight of the              series data for Jw, cin,f, cin,p(≈ch), and Js from the empirical model,
+                                                                              as illustrated in Figure 7A−C (see Figure S8 for Js vs time), we fit
+top-ranked model and larger Δ values between competing
+                                                                              the convection-diffusion model for a lag experiment, as shown in
+models. Specifically, in the diluting diafiltration, the model B =
+                                                                              Figure 6. For this analysis, we ignore the data from the first 100 s
+Jw(β0 + β1cin,f) provides the best fit, with an Akaike weight of 1,
+                                                                              to avoid start-up dynamics.
+whereas the more complex model fails to offer a substantial                      Specifically, motivated by the empirical model, we assume the
+improvement in the fit.                                                       partition coefficients Hf and Hp change linearly with the interface
+   This improvement in model discrimination achieved by                       concentrations, eq 41:
+operating in the diluting regime likely stems from the greater
+number of data points collected at low retentate concentrations.                 Hf = h0 + h1· cin,f , Hp = h0 + h1·cin,p                                                                                                                                                                                  (41)
+For example, when diluting experiments are conducted with a 30
+mM/1 mM KCl feed/diafiltrate solution, the retentate                            Next, we substitute these expressions into eq 25 and rearrange
+concentration gradually decreases from 30 to 15 mM KCl                        to obtain eq 42:
+over the 40 min experiment (Figure S6, E.1). In contrast,                         Js       (h0 + h1·cin,f )· cin,f · exp(Pe)                                                                      (h0 + h1·cin,p)cin,p
+concentrating regime experiments use a high-concentration                              =
+                                                                                  Jw                                                                             exp(Pe)                          1
+diafiltrate, allowing the retentate concentration to increase                                         2                                                                   2
+                                                                                  Js                cin,f exp(Pe)                                                       cin,p                           cin,f exp(Pe)                                                       cin,p
+rapidly but reducing the amount of time spent at each                                  = h1· (                                                                                            ) + h0 · (                                                                                             )
+                                                                                  Jw                             exp(Pe)                                             1                                                exp(Pe)                                            1
+concentration. For instance, the lag experiment shown in Figure                   ß           ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ        ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ
+6 traverses the 15−30 mM KCl range in under 10 min.                                y                                                         x1                                                                                                 x0                                                         (42)
+Consequently, the concentrating regime produces approx-
+imately 75% fewer data points across this critical concentration                 If we assume a constant Peclet number for an experiment,
+                                                                              then h0 and h1 can be estimated via linear regression using eq 42
+range. As will be highlighted in the subsequent section, data at
+                                                                              with input features x0 and x1 and output measurements y. Figure
+retentate concentrations below the charge density of the
+                                                                              8 reports the regressed parameters h0 and h1 for Peclet numbers
+membrane may be particularly important, as electrostatic
+                                                                              from 10−3 to 102. This plot shows two clear local minima for Pe
+interactions dominate transport in this regime. Therefore,                    ≈ 10−3 and Pe ≥ 5, with the latter resulting in a modestly lower
+although diluting experiments proceed more slowly, they yield                 mean squared error. We originally attempted to simultaneously
+more information in the concentration range where solute                      fit h0, h1, and Pe with nonlinear regression, but found the
+permeability is more sensitive to feed concentration�                         estimates sensitive to the initial guess and parameter bounds.
+enhancing their ability to discriminate between competing                     Reformulating this as a linear regression problem and perform-
+models.                                                                       ing a sensitivity analysis was more insightful. For example, it
+   Previous studies have mainly focused on using MBDoE to                     reveals the regression objective becomes insensitive for Pe ≥ 5
+improve parameter precision in concentrating diafiltration                    and the coefficients converge to h0 = 0.595 and h1 = 0.0011 mM.
+experiments,56 while the AIC results here emphasize the                          The coefficient H, which is expressed in terms of the
+potential of diafiltration in the diluting regime�used in                     parameters h0 and h1, reflects how solute partitions at the
+conjunction with MBDoE�to optimize experimental con-                          membrane-solution interfaces. For surface-charged NF270
+ditions for model discrimination. In cases where a larger set of              membranes, electrostatic interactions and steric hindrance are
+candidate models is involved, MBDoE can further enhance the                   hypothesized to control this partitioning. Regarding steric
+identification of the dominant transport mechanism by selecting               hindrance, the ratio of the hydrated size of K+ (0.66 nm81) to the
+operating conditions that maximize Δ or Akaike weight,                        size of the void elements in the NF270 membrane ranges from
+particularly within the diluting regime of diafiltration.                     0.61 to 0.85,75,77,81−84 leading to calculated hindrance factors of
+                                                                      12122                                                                                                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

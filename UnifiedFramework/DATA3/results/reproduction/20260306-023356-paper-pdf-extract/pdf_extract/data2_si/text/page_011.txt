@@ -1,0 +1,36 @@
+        Table S1: Estimated model parameters for diﬀerent variations of the solute transport equation used in Table 3 and 4. Values
+        correspond to the best-fit parameters obtained from the lag experiment in Figure S2.
+
+                                                                                        Parameters
+                                                                                          Units
+              B Form
+                                                 Lp                                        B                                     σ             V̇
+                                     L·m   −2
+                                                · h−1 · bar−1                           µm · s−1                            dimensionless   g · h−1
+             B = const.                         10.11                                      16.42                                1.00         0.10
+                                                                                            6.50
+                                                                                           18.47
+                                                                                           14.64
+                                                                                           13.82
+                                                                                           13.47
+            Bi = const.                         10.15                                                                           1.00         0.06
+                                                                                           12.71
+                                                                                           16.61
+SI-11                                                                                      18.97
+                                                                                           19.93
+                                                                                           21.82
+
+                              i                  Lp                  β0                β1             β2          β3             σ             V̇
+         B = Jw       i∈I βi cin,f                                                   0.5/−0.5/−1
+                                     L·m   −2
+                                                · h−1 · bar−1   dimensionless   mM                   mM−2        mM−3       dimensionless   g · h−1
+                  4
+
+
+              I = {0}                            9.95               2.20             -                  -           -           1.00         0.10
+           I = {0, −0.5}                        10.10               3.30         -9.9137                -           -           1.00         0.08
+            I = {0, 0.5}                        10.15               0.30          0.2033                -           -           1.00         0.09
+             I = {0, 1}                         10.17               1.00          0.0135                -           -           1.00         0.10
+            I = {0, 1, 2}                       10.21               1.85         -0.0187            2.41×10−4       -           1.00         0.11
+           I = {0, 1, 2, 3}                     10.18               -1.42         0.1777           -3.08×10−3   1.69×10−5       1.00         0.09
+

@@ -1,0 +1,77 @@
+Industrial & Engineering Chemistry Research                                              pubs.acs.org/IECR                                           Article
+
+TFC        thin-film composite                                                 cv      concentration of the solution in scintillation vial, μmol·
+UF         ultrafiltration                                                             cm−3, mM
+WLS        weighted least-squares                                              cin,f   concentration at the feed-side solution-membrane inter-
+                                                                                       face, μmol·cm−3, mM
+Data analytics                                                                 cmin,f  concentration in the membrane phase at the feed-side
+α       proportionality constant                                                       boundary, μmol·cm−3, mM
+θ̂
+                                                                                 m
+        model parameter estimate                                               cin,p concentration in the membrane phase at the permeate-
+θ       model parameter vector                                                         side boundary, μmol·cm−3, mM
+θlb     lower bounds for model parameters                                      Dm diffusion coefficient of the solute in the membrane, cm2 ·
+θub     upper bounds for model parameters                                              s−1
+M       Fisher information matrix                                              Ds      diffusion coefficient of the solute in the solvent, cm2 ·s−1
+Qy      sensitivity matrix of model predictions                                H       partition coefficient of the solute, dimensionless
+Qz      sensitivity matrix of scaled residuals                                 h       factors of polynomials in partition coefficient
+u       constant/controlled experimental condition vector                      Hf      partition coefficient of the solute at feed side,
+Vθ̂     parameter covariance matrix                                                    dimensionless
+x       experimental state variable vector                                     Hp      partition coefficient of the solute at permeate side,
+y       experimental observation vector                                                dimensionless
+ΔAIC AIC dropping constant terms                                               Hsteric partition coefficient attribute to steric hindrance,
+Δ       AIC difference                                                                 dimensionless
+ϵ       experimental observation error                                         I       polynomial order sets
+ŷ      model prediction variable                                              Js      solute flux across the membrane, μmol·cm−2·s−1
+λmin(·) smallest eigenvalue of a matrix                                        js      local solute flux in the membrane, μmol·cm−2·s−1
+   (·) likelihood function                                                     Jw      volumetric water flux, cm·s−1
+   (·) normal distribution                                                     k       mass transfer coefficient, cm·s−1
+Σy      covariance matrix of measurement errors                                Lp      hydraulic permeability coefficient, cm·bar−1 ·s−1
+Σz      covariance matrix of scaled measurement errors                         md      mass of the diafiltrate, g
+tr(·) trace of a matrix                                                        mf      mass of the feed solution in stirred cell, g
+det(·) determinant of a matrix                                                 mh      mass of solution in holdup, g
+s̃      assumed standard deviation                                             mv      mass of the solution in scintillation vial, g
+f(·)    differential or algebraic equations                                    mtb mass of solution in the connecting tube, g
+k       model complexity                                                       n       number of dissolved species, dimensionless
+nr      number of experimental observations for response r                     Pe      Peclet number ,dimensionless
+p       number of model parameters                                             R       gas constant, cm3·bar·μmol−1·K−1
+p(·)    probability distribution function                                      T       temperature, K
+R       number of response types                                               t0      time stamp denotes applied pressure reaching target
+R2      coefficient of determination                                                   operating pressure, s
+s       standard deviation                                                     tF      time stamp denotes the end of overflow, s
+y       experimental observation variable                                      tH      time stamp denotes that holdup volume is filled with
+z       scaled residual                                                                permeate, s
+                                                                               tL      time stamp denotes the end of lag, s
+Model Variables and parameters                                                 tV      time stamp denotes that connecting tube is filled with
+β      factors of polynomials in solute permeability coefficient                       permeate, s
+χ      volumetric charge density of the membrane, meq·L−1                      v0      average velocity within the stirred cell, cm·s−1
+Δπ     osmotic pressure, bar                                                   vhead volume of the air in the headspace of the stirred cell, mL
+Δc     solute concentration difference across the membrane,                    vtb,d of air between the diafiltrate tank and the stirred cell, mL
+       μmol·cm−3, mM                                                           vtb     volume of solution in the tube between the stirred cell
+ΔP     applied pressure, bar                                                           and scintillation vial, mL
+ΔPi    initial applied pressure, bar                                           Δμ chemical potential difference, J·mol−1
+ΔPt    applied operating pressure, bar                                         ΔϕD electrostatic potential difference, V
+V̇ o   overflow rate of diafiltrate bolus entering the stirred cell,           F       Faraday constant, C·mol−1
+       g·s−1                                                                   L       membrane thickness, cm
+V̇     rate of the feed solution mass change in the stirred cell, g·           z       valency of the ion, dimensionless
+       s−1
+ν      kinematic viscosity of the solvent, cm2 ·s−1
+ρ
+σ
+Am
+       density of the solution, g·cm−3
+       reflection coefficient, dimensionless
+       area of the membrane, cm2
+                                                                               ■    REFERENCES
+                                                                                (1) Elimelech, M.; Phillip, W. A. The future of seawater desalination:
+                                                                               energy, technology, and the environment. Science 2011, 333, 712−717.
+B      solute permeability coefficient, cm·s−1                                  (2) Koros, W. J.; Lively, R. P. Water and beyond: expanding the
+b      diameter of the stirred cell, cm                                        spectrum of large-scale energy efficient separation processes. AIChE J.
+c      solute concentration, μmol·cm−3, mM                                     2012, 58, 2624.
+cd     concentration in the diafiltrate solution, μmol·cm−3, mM                 (3) Van der Bruggen, B.; Koninckx, A.; Vandecasteele, C. Separation
+cf     concentration of the feed solution, μmol·cm−3, mM                       of monovalent and divalent ions from aqueous solution by electro-
+ch     concentration within hold-up volume, μmol·cm−3, mM                      dialysis and nanofiltration. Water Res. 2004, 38, 1347−1353.
+
+                                                                       12127                                             https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                     Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

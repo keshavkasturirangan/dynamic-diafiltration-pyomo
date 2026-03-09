@@ -1,0 +1,41 @@
+Mass Retentate Permeate
+
+A
+= 8 8
+a o o
+qa qa qa
+20 40 60 80 20 40 60 80 20 40 60 80
+cr(t=0) [mM] ¢r(t=0) [mM] cr(t=0) [mM]
+B
+8 8 8
+a a a
+a a qa
+cg [mM] cg [mM] ca [mM]
+Cc
+= = -
+a a i
+a a a
+5 fh 5
+a a a
+qa a qa
+ca [mM] ca [mM] ca [mM]
+D
+8 8 8
+a a a
+qa a a
+20 40 60 80
+cg [mM] cag [mM] ca [mM]
+
+Fig. S7: Filtration and diafiltration experiments were modeled under varying initial feed or diafiltrate concentrations and
+applied pressures to determine the conditions necessary to differentiate reflection coefficients with a precision equal to 0.1.
+Panel A models a filtration experiment where the initial feed concentration and applied pressure are varied. Panels B, C, and
+D vary the applied pressure and diafiltrate concentration of a diafiltration experiment run with an initial feed concentration of
+5mM. Panels B, C, and D correspond to the data gathered after the 1**, 5#”, and 10¢” vials, respectively. The contours are
+generated using the Ly), B, o values from Membrane A & M1 presented in Table 2. he contours represent the difference in
+model predictions via equations (7),(5), and (S9) from two different sigma values (i.e., 9 = 0.9 and o = 1) normalized by the
+precision of the measuring instruments. Thus the contour lines are dimensionless. The shaded area in the bottom right of the
+graphs correspond to non-physical systems in which the flux is equal to or less than zero (i.e., the osmotic pressure is equal to
+
+or greater than the applied pressure.)
+
+SI-10

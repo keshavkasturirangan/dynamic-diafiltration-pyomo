@@ -1,0 +1,14 @@
+cell_index,image_index,file,width,height,preceding_markdown
+4,0,cell004_img00.png,389,376,# NF270-Lag
+4,1,cell004_img01.png,395,379,# NF270-Lag
+6,0,cell006_img00.png,389,376,### B per vial
+6,1,cell006_img01.png,395,376,### B per vial
+6,2,cell006_img02.png,384,376,### B per vial
+8,0,cell008_img00.png,389,376,### polynomial orders
+8,1,cell008_img01.png,395,376,### polynomial orders
+8,2,cell008_img02.png,384,376,### polynomial orders
+12,0,cell012_img00.png,389,376,# NF270-Overflow
+12,1,cell012_img01.png,395,376,# NF270-Overflow
+13,0,cell013_img00.png,389,376,# NF270-Overflow
+13,1,cell013_img01.png,395,376,# NF270-Overflow
+13,2,cell013_img02.png,384,381,# NF270-Overflow

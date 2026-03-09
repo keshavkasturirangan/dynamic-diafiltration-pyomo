@@ -1,0 +1,40 @@
+       The pressure is ramped from 600 mbar to 200 mbar and the voltage along the pressure
+       ramp is recorded. Using voltage, pressure, conductivity, and viscosity of the solution, a zeta
+       potential is calculated. This sequence is repeated three times at pH values ranging from 2
+1265   to 11.
+
+
+       Surface Charge Density and Partition Coeﬃcient Analysis
+
+       Figure S9 depicts the zeta potential measurements for an NF270 membrane. Diafiltration
+       experiments were conducted at the unadjusted pH of the KCl solutions (∼pH 6). Taking
+       the zeta potential measurement at pH 6, the Gouy-Chapman equation 86 can be used to
+1270   calculate the surface charge density. Assuming the charge is uniformly distributed within
+       the void volume of the pores, an eﬀective volumetric charge density (χ) of 140 mM was
+       calculated for the NF270 membranes.
+          Ion partitioning into nanofiltration membranes is impacted by a number of energetic
+       considerations. Here, for the NF270 membranes, it is assumed that steric hindrance and
+1275   electrostatic interactions are the dominant factors determining partitioning. Therefore, as-
+       suming equilibrium at the membrane-solution interface, and equating the electrochemical
+       potential for each ion i inside and outside of the membrane:
+
+
+                                 RT ln(cm                             s
+                                        i ) + zi F ∆φD + ∆µi = RT ln(ci )                      (S23)
+
+
+       where cm is the solution-membrane interface concentration in the membrane phase, cs is the
+       interface concentration in the solution phase, z is the valency of the ion, F is the Faraday
+1280   constant, ∆φD is the electrostatic potential diﬀerence and ∆µ is the chemical potential
+       diﬀerence of the ion. This can be rearranged as
+
+                                         cm
+                                          i            −zi F ∆µi
+                                           s
+                                             = Hi exp(           )                             (S24)
+                                         ci              RT
+
+       where Hi is the individual ion partition coeﬃcient determined by the extent of steric hin-
+
+                                                   SI-8
+

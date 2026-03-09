@@ -1,0 +1,58 @@
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                             Article
+
+
+
+
+Figure 2. Two startup modes in which diafiltration can be operated. (A) In lag mode, the diafiltrate does not enter the stirred cell immediately upon
+reaching operating pressure ΔPt at t0. Rather, the system acts as a filtration experiment for a period, t0 → tL. During this time, the solution begins to
+permeate and slowly fill the holdup region. After tL, drops of diafiltrate enter the stirred cell as drops of solution continue to permeate. (B) In overflow
+mode, a bolus of diafiltrate flushes into the stirred cell once the operating pressure has been reached. The time at which the diafiltrate bolus is detected
+by a spike in conductivity is denoted as tF.
+
+collected in scintillation vials, we develop a robust framework                   (variables denoted with a subscript d) is continuously pumped
+that accurately captures both process and membrane parame-                        under the action of applied pressure, ΔP, into a stirred cell
+ters. Namely, it was previously proposed that the experiments                     holding the feed solution (subscript f). The permeate product
+could be started in two distinct ways54: experiments can be                       directly under the membrane accumulates in the holdup region
+engineered such that (1) a lag occurs before diafiltrate is                       (subscript h), after which it is directed through a tube (subscript
+introduced into the stirred cell or (2) an overflow of diafiltrate                tb) to a series of scintillation vials (subscript v) for collection and
+enters the stirred cell at the beginning of the experiment. Here                  further analysis. The mass of the sample vial, mv, and the
+we identify which startup mode provides the largest amount of                     concentration of the retentate in the stirred cell, cf, are measured
+information. We also explore diafiltration experiments con-                       at a rate of 0.2 Hz. The permeate is collected in 1 g aliquots and
+ducted in the diluting regime and identify that these experiments                 the solution concentration in these scintillation vials, cv, is
+are uniquely able to discriminate between transport models.
+                                                                                  measured after the experiment has concluded.
+Importantly, the contributions of the diffusion coefficient and
+                                                                                     The system dynamics are governed by the volumetric flux of
+the partition coefficient to transport can be deconvoluted using
+the diafiltration system. Using these insights in advancing                       water, Jw, and the molar flux of the solute, Js. In this study,
+membrane characterization, we establish a pathway toward                          diafiltration experiments were conducted at constant applied
+integrating mathematical modeling with experimentation for the                    pressures with steadily changing feed concentrations, examining
+inverse design of membrane materials, offering a data-driven                      both concentrating and diluting regimes, 58 under the
+approach to optimize membrane properties for various                              assumption of a well-mixed feed solution. In the concentrating
+industrial and environmental applications. This study lays the                    regime, the retentate concentration in the stirred cell monotoni-
+groundwork for future advancements in membrane technology,                        cally increases as the solute flux into the stirred cell exceeds the
+providing scalable and efficient solutions for process optimiza-                  solute flux exiting in the permeate. In the diluting regime, the
+tion and the development of next-generation membrane-based                        opposite occurs, where the solute flux entering the stirred cell is
+separation systems.                                                               lower than the solute flux leaving with the permeate, resulting in
+                                                                                  a dilution of the retentate concentration over time.
+■    MATHEMATICAL MODELING
+The selective transport of ions across the NF270 membranes is
+                                                                                     Previous work26,54 (i.e., the model used in the DATA
+                                                                                  framework) assumed that the solution volume in the stirred cell
+                                                                                  remains constant over the course of the diafiltration experiment
+influenced by a combination of diffusion, convection, and
+                                                                                  (i.e., the rate of diafiltrate entering the stirred cell is equal to the
+electromigration, which are driven by gradients in concen-
+tration, pressure, and electric potential, respectively.57 To                     volumetric flow rate of the leaving permeate). However, careful
+accurately characterize the relevant transport mechanisms, we                     visual observations of the apparatus reveal changes in the feed
+employed a model-based data analytics approach that integrates                    solution volume within the stirred cell during startup processes,
+mathematical models with experimental data to provide a                           affecting the model initialization and subsequent predictions.
+comprehensive understanding of membrane behavior under                            The volume changes, occurring both during startup and
+varying operating conditions (i.e., feed-side or retentate                        throughout the experiment, introduce deviations from the initial
+concentration and pressure).                                                      equations of the diafiltration model, thereby affecting the
+   To investigate these transport mechanisms, dynamic                             accuracy of its predictions. In this work, we show that modeling
+diafiltration experiments26,54 were conducted. Figure 1 presents                  the system startup dynamics increases the information gained
+the automated diafiltration apparatus, where a diafiltrate                        from diafiltration experiments.
+                                                                          12113                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                          Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

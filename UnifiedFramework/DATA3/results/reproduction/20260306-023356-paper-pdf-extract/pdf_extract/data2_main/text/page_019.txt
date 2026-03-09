@@ -1,0 +1,82 @@
+Industrial & Engineering Chemistry Research                                                      pubs.acs.org/IECR                                             Article
+
+  (45) Franceschini, G.; Macchietto, S. Model-based design of                           (66) Michalik, C.; Stuckert, M.; Marquardt, W. Optimal experimental
+experiments for parameter precision: State of the art. Chem. Eng. Sci.                design for discriminating numerous model candidates: the AWDC
+2008, 63, 4846−4872.                                                                  criterion. Ind. Eng. Chem. Res. 2010, 49, 913−919.
+  (46) Liu, X.; De, R.; Pérez, A.; Hoffman, J. R.; Phillip, W. A.; Dowling,             (67) Bynum, M. L.; Hackebeil, G. A.; Hart, W. E.; Laird, C. D.;
+A. W. Mathematical Modelling of Reactive Inks for Additive                            Nicholson, B. L.; Siirola, J. D.; Watson, J.-P.; Woodruff, D. L. Pyomo-
+Manufacturing of Charged Membranes. Comput.-Aided Chem. Eng.                          Optimization Modeling in Python; Springer, 2021; Vol. 67.
+2022, 49, 1063−1068.                                                                    (68) Nicholson, B.; Siirola, J. D.; Watson, J.-P.; Zavala, V. M.; Biegler,
+  (47) Befort, B. J.; Garciadiego, A.; Wang, J.; Wang, K.; Franco, G.;                L. T. pyomo. dae: A modeling and automatic discretization framework
+Maginn, E. J.; Dowling, A. W. Data science for thermodynamic                          for optimization with differential and algebraic equations. Mathematical
+modeling: Case study for ionic liquid and hydrofluorocarbon                           Programming Computation 2018, 10, 187−223.
+refrigerant mixtures. Fluid Phase Equilib. 2023, 572, No. 113833.                       (69) Wächter, A.; Biegler, L. T. On the implementation of an interior-
+  (48) Schaber, S. D.; Born, S. C.; Jensen, K. F.; Barton, P. I. Design,              point filter line-search algorithm for large-scale nonlinear programming.
+execution, and analysis of time-varying experiments for model                         Mathematical Programming 2006, 106, 25−57.
+discrimination and parameter estimation in microreactors. Org. Process                  (70) HSL. A collection of Fortran codes for large scale scientific
+Res. Dev. 2014, 18, 1461−1467.                                                        computation. 2024; http://www.hsl.rl.ac.uk, Release Date: 2024.05.15.
+  (49) Galvanin, F.; Cao, E.; Al-Rifai, N.; Dua, V.; Gavriilidis, A.                    (71) Lee, A.; Ghouse, J. H.; Eslick, J. C.; Laird, C. D.; Siirola, J. D.;
+Optimal design of experiments for the identification of kinetic models                Zamarripa, M. A.; Gunter, D.; Shinn, J. H.; Dowling, A. W.;
+of methanol oxidation over silver catalyst. Chim. Oggi-Chem. Today                    Bhattacharyya, D.; et al. The IDAES process modeling framework
+2015, 33, 51−56.                                                                      and model library�Flexibility for process simulation and optimization.
+  (50) Cao, L.; Russo, D.; Lapkin, A. A. Automated robotic platforms in               J. Adv. Manuf. Process. 2021, 3, No. e10095.
+design and development of formulations. AIChE J. 2021, 67,                              (72) Wang, H.; Liu, X.; Gatzke, E. P. Time scaling transformation
+No. e17248.                                                                           avoiding sensitivity discontinuity for nonlinear optimal control. Ind.
+  (51) Galvanin, F.; Marchesini, R.; Barolo, M.; Bezzo, F.; Fidaleo, M.               Eng. Chem. Res. 2023, 62, 14407−14426.
+Optimal design of experiments for parameter identification in                           (73) Al-Zoubi, H.; Hilal, N.; Darwish, N. A.; Mohammad, A. W.
+electrodialysis models. Chemical engineering research and design 2016,                Rejection and modelling of sulphate and potassium salts by nano-
+105, 107−119.                                                                         filtration membranes: neural network and Spiegler−Kedem model.
+  (52) Katsoulas, K.; Galvanin, F.; Mazzei, L.; Besenhard, M.; Sorensen,              Desalination 2007, 206, 42−60.
+E. Model-based design of experiments for efficient and accurate                         (74) Boussu, K.; De Baerdemaeker, J.; Dauwe, C.; Weber, M.; Lynn,
+isotherm model identification in High Performance Liquid Chroma-                      K. G.; Depla, D.; Aldea, S.; Vankelecom, I. F.; Vandecasteele, C.; Van
+tography. Comput. Chem. Eng. 2025, 195, No. 109021.                                   der Bruggen, B. Physico-chemical characterization of nanofiltration
+  (53) Wang, J.; Dowling, A. W. Pyomo.DOE: An open-source package
+                                                                                      membranes. ChemPhysChem 2007, 8, 370−379.
+for model-based design of experiments in Python. AIChE J. 2022, 68,
+                                                                                        (75) Semião, A. J.; Schäfer, A. I. Removal of adsorbing estrogenic
+No. e17813.
+                                                                                      micropollutants by nanofiltration membranes. Part A�Experimental
+  (54) Muetzel, Z. W.; Ouimet, J. A.; Phillip, W. A. Device for the
+                                                                                      evidence. J. Membr. Sci. 2013, 431, 244−256.
+Acquisition of Dynamic Data Enables the Rapid Characterization of
+                                                                                        (76) Semião, A. J.; Foucher, M.; Schäfer, A. I. Removal of adsorbing
+Polymer Membranes. ACS Applied Polymer Materials 2022, 4, 3438−
+                                                                                      estrogenic micropollutants by nanofiltration membranes: Part B�
+3447.
+  (55) Ouimet, J. A.; Al-Badani, F.; Liu, X.; Lair, L.; Muetzel, Z.;                  Modeldevelopment. J. Membr. Sci. 2013, 431, 257−266.
+                                                                                        (77) Micari, M.; Diamantidou, D.; Heijman, B.; Moser, M.; Haidari,
+Dowling, A. W.; Phillip, W. A. Automated Membrane Characterization:
+                                                                                      A.; Spanjers, H.; Bertsch, V. Experimental and theoretical character-
+In-situ Monitoring of the Permeate and Retentate Solutions using a 3D
+Printed Permeate Probe Device. Journal of Membrane Science Letters                    ization of commercial nanofiltration membranes for the treatment of
+2024, 4, No. 100087.                                                                  ion exchange spent regenerant. J. Membr. Sci. 2020, 606, No. 118117.
+  (56) Liu, X.; Wang, J.; Ouimet, J. A.; Phillip, W. A.; Dowling, A. W.                 (78) Tomczak, W. The application of the nanofiltration membrane
+Membrane Characterization with Model-Based Design of Experiments.                     NF270 for separation of fermentation broths. Membranes 2022, 12,
+Comput.-Aided Chem. Eng. 2022, 49, 859−864.                                           1263.
+  (57) Kedem, O.; Katchalsky, A. Thermodynamic analysis of the                          (79) Chan, E. P.; Young, A. P.; Lee, J.-H.; Chung, J. Y.; Stafford, C. M.
+permeability of biological membranes to non-electrolytes. Biochim.                    Swelling of ultrathin crosslinked polyamide water desalination
+Biophys. Acta 1958, 27, 229−246.                                                      membranes. J. Polym. Sci., Part B: Polym. Phys. 2013, 51, 385−391.
+  (58) Kilmartin, C. P.; Ouimet, J. A.; Dowling, A. W.; Phillip, W. A.                  (80) Chan, E. P.; Young, A. P.; Lee, J.-H.; Stafford, C. M. Swelling of
+Staged diafiltration cascades provide opportunities to execute highly                 Ultrathin Molecular Layer-by-Layer Polyamide Water Desalination
+selective separations. Ind. Eng. Chem. Res. 2021, 60, 15706−15719.                    Membranes. J. Polym. Sci., Part B: Polym. Phys. 2013, 51, 1647−1655.
+  (59) Zeman, L. J.; Zydney, A. L. Microfiltration and ultrafiltration:                 (81) Nightingale, E., Jr Phenomenological theory of ion solvation.
+principles and applications; Routledge, 2017.                                         Effective radii of hydrated ions. J. Phys. Chem. 1959, 63, 1381−1387.
+  (60) Bates, D. M. Nonlinear regression analysis and its applications;                 (82) Lin, Y.-L.; Chiang, P.-C.; Chang, E.-E. Removal of small
+Wiley series in probability and mathematical statistics; Applied                      trihalomethane precursors from aqueous solution by nanofiltration.
+probability and statistics; Wiley: New York, 1988.                                    Journal of Hazardous Materials 2007, 146, 20−29.
+  (61) Asprey, S. P.; Naka, Y. Mathematical problems in fitting kinetic                 (83) Dalwani, M.; Benes, N. E.; Bargeman, G.; Stamatialis, D.;
+models�some new perspectives. J. Chem. Eng. Jpn. 1999, 32, 328−337.                   Wessling, M. Effect of pH on the performance of polyamide/
+  (62) Akaike, H. A new look at the statistical model identification. IEEE            polyacrylonitrile based thin film composite membranes. J. Membr. Sci.
+Transactions on Automatic Control 1974, 19, 716−723.                                  2011, 372, 228−238.
+  (63) Burnham, K. P.; Anderson, D. R. Model selection and multimodel                   (84) Oatley, D. L.; Llenas, L.; Pérez, R.; Williams, P. M.; Martínez-
+inference: a practical information-theoretic approach; Springer, 2002.                Lladó, X.; Rovira, M. Review of the dielectric properties of
+  (64) Wagenmakers, E.-J.; Farrell, S. AIC model selection using Akaike               nanofiltration membranes and verification of the single oriented layer
+weights. Psychonomic Bulletin & Review 2004, 11, 192−196.                             approximation. Adv. Colloid Interface Sci. 2012, 173, 1−11.
+  (65) Galipaud, M.; Gillingham, M. A.; Dechaume-Moncharmont, F.-                       (85) Dechadilok, P.; Deen, W. M. Hindrance factors for diffusion and
+X. A farewell to the sum of Akaike weights: The benefits of alternative               convection in pores. Ind. Eng. Chem. Res. 2006, 45, 6953−6959.
+metrics for variable importance estimations in model selection. Methods                 (86) Bolt, G. Analysis of the validity of the Gouy-Chapman theory of
+in Ecology and Evolution 2017, 8, 1668−1678.                                          the electric double layer. Journal of Colloid Science 1955, 10, 206−218.
+
+                                                                              12129                                                https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

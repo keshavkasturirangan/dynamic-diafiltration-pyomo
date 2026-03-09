@@ -1,0 +1,64 @@
+Industrial & Engineering Chemistry Research                                               pubs.acs.org/IECR                                             Article
+
+Table 5. Model Predictions Analyzed for a Lag and an Overflow Experimenta
+
+
+
+
+a
+ Two important experimental factors can be incorporated in the various models: (1) the startup data and (2) the time correction for permeate vial
+concentrations. The four possible combinations are examined as models M1 to M4. M1 and M2 leverage the data associated with the startup
+processes and consider the time-varying mass in the stirred cell. Models M3 and M4 analyze truncated data sets that do not include the startup
+processes and assume a constant mass in the stirred cell. With regard to permeate vial concentration data, models M1 and M3 incorporate a time
+correction for permeate measurements. M2 and M4 do not account for this correction. All four models were used to analyze a lag and an overflow
+experiment.
+
+thicknesses for NF270 membranes are between 18 and 800                        the startup process and accounting for the time-varying feed
+nm.74−77,87 Thus, assuming Pe = 5 results in Dm estimates for                 mass. Similarly, in the overflow mode, M1 results in a WLS
+KCl between 3 × 10−10 and 2 × 10−8 cm2·s−1, which aligns with                 objective of 37.60 for truncated data, compared to M3 with
+the expected range for KCl with restricted mobility in dense                  98.48, and M4 with 76.47. This difference indicates that
+polymer phases.88−90 Delving into a more mechanistic under-                   including the lag or overflow model enables a better fit to
+standing of the Dm and H estimate will require further systematic             truncated diafiltration data while maintaining similar prediction
+studies.                                                                      quality for additional retentate concentration data during the
+   One of the key advantages of fitting the convection-diffusion              startup process. For instance, in the lag mode, M1’s objective for
+model based on the empirical model simulations lies in its                    truncated data is 48.25, and the original objective value is 46.23,
+significant computational efficiency. Unlike the empirical model              showing consistency in model performance across both data
+fitting in the previous subsection, which required solving a                  sets. Incorporating time correction in M1 significantly improves
+system of DAEs to account for the time-varying concentration                  the permeate objective in the lag mode, reducing it from 50.38
+profiles, the convection-diffusion model calibration bypasses                 (in M2) to 2.69. However, in the overflow mode, time
+this computational burden. By directly fitting to simulated data,             correction did not produce significant improvements. This
+it eliminates the need for explicit ODE integration, reducing                 may be due to the overshooting in feed mass predictions, leading
+parameter estimation time from over 20 min to less than 5 s.                  to an overestimation of permeate concentration, which
+This two-step approach is particularly beneficial when screening              subsequently aligns with the concentration in later stages.
+multiple phenomenological models to mechanistically identify                     Table 6 presents the FIM metrics, illustrating the information
+the phenomena that control membrane transport. It strikes a                   gain by including startup modes in the model. The A-, D-, and E-
+balance between physical accuracy and computational effi-
+ciency, making it a valuable tool for large-scale process design,             Table 6. Information Improvements (with Respect to
+real-time optimization, and process control in membrane-based                 Parameters Lp, β0, β1, and σ) from Modeling Two Startup
+applications.                                                                 Modes
+    Modeling Startups Improves Information Gain from
+                                                                                                                             metrics of FIM
+Dynamic Diafiltration Experiments. Incorporating the two
+startup modes (lag and overflow) and accounting for the time-                   mode           model              A                D                     E
+varying mass of the feed solution in the stirred cell significantly                                                                                 minimal
+improves the performance of the diafiltration model. Table 5                                                    trace        determinant           eigenvalue
+compares the alignment of model predictions with experimental                               M1                2.36 × 108      5.30 × 1020           1023.311
+measurements using the WLS objectives for two experiments                      lag          improvement       8%              138%                  83%
+performed under lag and overflow modes. Four different data                                 M3                2.18 × 108      2.23 × 1020           560.680
+analysis methods were evaluated. M1 and M2 incorporate data                                 M1                2.78 × 109      4.11 × 1021           164.016
+from the process startup and use the lag or overflow model. In                 overflow     improvement       −8%             −9%                   13%
+contrast, M3 and M4 do not model startup (i.e., they analyze                                M3                3.01 × 109      4.51 × 1021           144.867
+truncated data collected after the first drop of permeate
+appeared in the scintillation vial, t ≥ tV) and assume a constant             optimality metrics (trace, determinant, and minimal eigenvalue
+feed solution mass. Additionally, M1 and M3 include time                      of the FIM, respectively) quantify the information gain for
+correction for permeate measurements, while M2 and M4 do                      parameter estimation. In the lag mode, M1, which includes
+not. M1 provides the model predictions shown in Figure 6. In                  startup data and time correction, shows an 8% improvement in
+both lag and overflow modes, M1 and M2 yield smaller WLS                      A-optimality, a 138% improvement in D-optimality, and an 83%
+objective values for truncated data compared to M3 and M4, as                 increase in E-optimality compared to M3, which excludes
+well as lower objectives for individual measurement types. For                startup data. These improvements highlight the enhanced ability
+example, in the lag mode, M1 achieves a WLS objective of 48.25                to infer model parameters from multiple perspectives when
+for the truncated data, which is significantly lower than M3 with             startup processes are modeled. In the overflow mode, however,
+246.20 and M4 with 217.26, illustrating the benefits of modeling              only the E-optimality metric shows improvement, with a 13%
+                                                                      12124                                                 https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                        Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

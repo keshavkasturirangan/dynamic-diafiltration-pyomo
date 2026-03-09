@@ -1,0 +1,80 @@
+J.A. Ouimet et al.                                                                                               Journal of Membrane Science 641 (2022) 119743
+
+
+                                                                               preconceived hypotheses and dismiss skewed results such as the notion
+   Nomenclature
+                                                                               that the high separation efficiency of some COF membranes were
+    𝛥𝜋                  Osmotic pressure (bar)                                 governed by rejection rather than adsorptive processes [15].
+    𝛥𝑃                  Applied pressure (bar)                                     Improved characterization techniques would also benefit instances
+    𝜈                   Kinematic viscosity of the solvent (cm2 s−1 )          where the interaction between solutes in complex feed streams impact
+                                                                               transport mechanisms. In one example, it has been shown that the
+    𝜌                   Density of the solution (g cm−3 )
+                                                                               negative rejection of potassium chloride within mixed salt systems
+    𝜎                   Thermodynamic reflection coefficient (di-
+                                                                               increases as a function of the ionic strength [28]. Additionally, in sepa-
+                        mensionless)
+                                                                               rations where the pores and solutes are similar in size, the solutes may
+    𝐴𝑚                  Area of the membrane (cm2 )
+                                                                               compete for entry into the pore [29]. This can lead to a decrease in the
+    𝐵                   Solute permeability coefficient (cm s−1 )              permeation of one species in the presence of a competing solute which
+    𝑏                   Diameter of the stirred cell (cm)                      possesses a higher affinity towards the membrane [18]. Intermolecular
+    𝑐𝑑                  Concentration in the feed solution                     binding between solutes can also effect the efficiency of separations.
+                        (μmol cm−3 , mM)                                       For example, strong attractive interactions between albumin and a
+    𝑐𝑓                  Dynamic concentration in the feed solution             contaminating D-tryptophan impurity lead to a significant increase
+                        (μmol cm−3 , mM)                                       in the volume of diafiltrate required to obtain a product with the
+    𝑐ℎ                  Dynamic concentration within hold-up vol-              desired purity [30]. These examples illustrate how the advances in
+                        ume (μmol cm−3 , mM)                                   characterization of membranes deployed in complex multi-component
+    𝑐𝑣                  Dynamic concentration in the sample vial               feed streams, where solute–solute and solute-membrane interactions
+                        (μmol cm−3 , mM)                                       convolute the performance otherwise observed within single solute
+    𝑐𝑖𝑛                 Dynamic concentration at the feed-side                 experiments, can benefit material and process development. For in-
+                        solution–membrane interface (μmol cm−3 ,               stance, Ghosh et al. [31,32] demonstrated that pulsed sample injection
+                        mM)                                                    techniques can systematically scan experimental parameters to identify
+    𝐷                   Diffusion coefficient of the solute in the             optimal operating conditions for solute fractionation. This advanced
+                        solvent (cm2 s−1 )                                     scanning technique was used to create a complete profile of the ob-
+    𝐽𝑠                  Solute    flux    across    the    membrane            served sieving coefficient as a function of pH. The trends observed
+                        (μmol cm−2 s−1 )                                       highlighted the dependence of protein conformation and protein dimer-
+    𝐽𝑤                  Water flux across the membrane (cm s−1 )               ization on transport phenomena. In turn, this insight reduced the time
+    𝑘                   Mass transfer coefficient (cm s−1 )                    and resources necessary to determine process parameters.
+                                                                                   The tools of data science can guide the design and optimization
+    𝐿𝑝                  Hydraulic       permeability       coefficient
+                                                                               of the membrane-based separation processes [33]. For example, non-
+                        (cm bar−1 s−1 )
+                                                                               linear parameter estimation is becoming increasingly important to
+    𝑚𝑑                  Mass of the diafiltrate reservoir (g)
+                                                                               validate mathematical models and characterize membrane performance
+    𝑚𝑓                  Mass of the filtration cell (g)
+                                                                               in complex environments (e.g., mixed electrolyte solutions) [34–36].
+    𝑚ℎ                  Mass of solution in holdup (g)                         Additionally, the emergence of techniques including model based de-
+    𝑚𝑣                  Mass of the sample vial (g)                            sign of experiments (MBDoE) enables the design of instruments to
+    𝑁                   Number of measurements for a vial (dimen-              better characterize the performance of separation devices as a function
+                        sionless)                                              of solute concentration and in complex feed streams. As such, these
+    𝑛                   Number of dissolved species (dimension-                techniques can calculate the optimal conditions under which exper-
+                        less)                                                  iments must be run [37]. These results can be used to discriminate
+    𝑅                   Gas constant (cm3 bar μmol−1 K−1 )                     between alternative models [38–40] and provide key insight into how
+    𝑠                   Precision for different measurements (g or             molecular level changes impact macroscopic system performance. In
+                        mM)                                                    recent applications, MBDoE was used to propose a sequence of experi-
+    𝑇                   Temperature (K)                                        ments that minimized the experimental time and the resources required
+    𝑣0                  Average velocity within the stirred cell               while improving the precision of parameter estimates for electrodialysis
+                        (cm s−1 )                                              model identification [41]. Similarly, it has been shown that MBDoE can
+    𝑤                   Weight for residual squared (g−2 or mM−2 )             design one set of experiments to simultaneously improve parameter
+                                                                               estimation as well as discriminate between competing kinetic mod-
+                                                                               els [42]. In order to use these tools to their full potential, we require
+                                                                               models, based on first principles, and the ability to produce large
+affect macroscopic transport properties. In turn, this knowledge can           amounts of data in an energy and time efficient way.
+inform the design of higher performance membranes. As one example,                 Traditional experimental campaigns with dead end filtration cells
+there exists a trade-off between the magnitude of the solute-membrane          and cross flow devices are time consuming when used to elucidate
+affinity and the efficacy of the desired separation mechanism [8,24].          membrane performance as a function of concentration. Furthermore,
+When attractive forces are large, the membrane functions like an               they typically infer the retentate concentration from the permeate
+adsorbent binding the target solute molecules tightly, which provides          concentration, implicitly assuming that solutes do not adsorb onto the
+minimal flux enhancements. Weak interactions lead to transport prop-           membrane. Additionally, by running at near zero percent recoveries,
+erties that are similar to those of size-selective filtration membranes.       they fail to capture the finite recoveries that commercial processes
+At an optimal, intermediate affinity, the flux of the target solute can        operate under. As a result, many experiments are necessary in order to
+be enhanced dramatically. On the other end of the spectrum, strong             capture membrane performance as the feed concentration changes over
+repulsive interactions increase the activation energy at the entrance of       the course of an experiment. To exacerbate these limitations, traditional
+the pore and lead to solute rejection [26,27]. Distinguishing between          analyses, ones in which the local slope is linearly regressed from
+this array of potential transport mechanisms requires new methods that         limited data sets, are unable to capture nonlinear trends well. These
+are better able to quantify membrane performance as a function of              dynamic systems and corresponding time-series data must be modeled
+changing feed conditions. Developing these techniques will challenge           and analyzed with more advanced methods (e.g., differential algebraic
+
+                                                                           2
+

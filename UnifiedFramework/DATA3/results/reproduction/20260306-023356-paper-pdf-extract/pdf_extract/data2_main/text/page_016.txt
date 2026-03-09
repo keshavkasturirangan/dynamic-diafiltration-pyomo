@@ -1,0 +1,98 @@
+Industrial & Engineering Chemistry Research                                             pubs.acs.org/IECR                                       Article
+
+of novel materials deployed at the infrastructure scale. Similarly,
+said process and infrastructure models can identify realistic
+                                                                              ■   AUTHOR INFORMATION
+                                                                              Corresponding Authors
+operating conditions and quantitative materials performance                     William A. Phillip − Department of Chemical and Biomolecular
+targets to guide molecular engineering endeavors. These are just                  Engineering, University of Notre Dame, Notre Dame, Indiana
+a few examples of how bottom-up and top-down guidance can                         46556, United States; orcid.org/0000-0001-8871-585X;
+accelerate the development of impactful membrane technolo-                        Email: wphillip@nd.edu
+gies to address challenging separations such as sustainable water               Alexander W. Dowling − Department of Chemical and
+treatment, industrial separations, environmental remediation,                     Biomolecular Engineering, University of Notre Dame, Notre
+and critical mineral recycling.                                                   Dame, Indiana 46556, United States; orcid.org/0000-
+
+■    CONCLUSIONS
+In this work, we demonstrated the use of dynamic diafiltration
+                                                                                  0001-9383-7499; Email: adowling@nd.edu
+                                                                              Authors
+                                                                                Xinhong Liu − Department of Chemical and Biomolecular
+experiments, combined with model-based data analytic frame-
+                                                                                  Engineering, University of Notre Dame, Notre Dame, Indiana
+works, to characterize the transport properties of surface-
+                                                                                  46556, United States; orcid.org/0000-0002-9051-2469
+charged NF membranes. By incorporating startup dynamics,
+                                                                                Laurianne Estrada − Department of Chemical and
+time corrections, and empirical correlations between concen-
+                                                                                  Biomolecular Engineering, University of Notre Dame, Notre
+tration and solute permeability, the proposed models provide
+                                                                                  Dame, Indiana 46556, United States
+quantitative insights into membrane behavior under various
+                                                                                Jonathan A. Ouimet − Department of Chemical and
+conditions. Notably, the lag startup mode outperformed the
+                                                                                  Biomolecular Engineering, University of Notre Dame, Notre
+overflow mode in parameter precision, improving model
+                                                                                  Dame, Indiana 46556, United States; orcid.org/0000-
+accuracy and information gain by 8%, 138%, and 83% through
+                                                                                  0001-7545-3176
+A-, D-, and E-optimality, respectively. The improved parameter
+                                                                                Matthew McClure − Department of Chemical Engineering,
+estimability stems from the ability to capture low-concentration
+                                                                                  McMaster University, Hamilton, ON L8S 4L8, Canada
+retentate conditions, consequently modeling larger ranges of the
+                                                                                David R. Latulippe − Department of Chemical Engineering,
+feed concentration. Additionally, the integration of empirical
+                                                                                  McMaster University, Hamilton, ON L8S 4L8, Canada;
+and convection-diffusion models with a two-stage computa-
+                                                                                    orcid.org/0000-0003-2873-0606
+tional approach enabled efficient model screening without
+solving complex DAEs, offering mechanistic insights into                      Complete contact information is available at:
+concentration-dependent transport phenomena. Diafiltration                    https://pubs.acs.org/10.1021/acs.iecr.4c04763
+experiments in the diluting regime proved effective for model
+discrimination, surpassing original concentrating regime diafil-              Notes
+tration approaches used in distinguishing dominant transport                  The authors declare no competing financial interest.
+mechanisms. While this study focused on posthoc model
+selection using AIC, future work could leverage MBDoE to
+proactively optimize experimental conditions for discriminating
+                                                                              ■   ACKNOWLEDGMENTS
+                                                                              This work was supported by the National Science Foundation
+between competing transport models, improving data efficiency.                (NSF) under award CBET-2147605, and we gratefully
+   Beyond characterization, this framework supports the system-               acknowledge this support. L.E. acknowledges funding from the
+atic exploration of structure−property−performance relation-                  Graduate Assistance in Areas of National Need fellowship
+ships, enabling the tailoring of membrane material design for                 provided by the U.S. Department of Education (grant
+specific applications, such as ion-selective separations and                  P200A210048) and the Remick Graduate Fellowship in
+organic solvent filtration. Automation and real-time system                   Engineering at the University of Notre Dame. J.A.O. thanks
+monitoring into SDLs, including MBDoE approaches, could                       the University of Notre Dame for the Patrick and Jana Eilers
+further accelerate membrane development by facilitating high-                 Graduate Student Fellowship for Energy Related Research and
+throughput experimentation and rapid experimental refinement.                 the CEST/Bayer Predoctoral Fellowship. The authors acknowl-
+These advancements pave the way for robust, high-performance                  edge the Notre Dame Center for Research Computing (CRC)
+membranes designed for industrial separations and environ-                    for computing resources, and the Center for Environmental
+mental remediation. Ultimately, this study establishes a                      Engineering and Technology (CEST) for the use of instruments
+foundational framework that combines dynamic diafiltration                    to perform experiments.
+experiments, advanced modeling, and optimization to accelerate
+the development of next-generation NF membranes. These
+findings advance our understanding of transport mechanisms
+                                                                              ■   NOMENCLATURE
+                                                                              Abbreviations
+governing membrane performance while fostering innovations
+in material design and resource-efficient separations.                        AIC     Akaike information criterion
+                                                                              DAE     differential-algebraic equation
+
+■
+*
+    ASSOCIATED CONTENT
+sı Supporting Information
+                                                                              DATA
+                                                                              FIM
+                                                                                      diafiltration apparatus for high-throughput analysis
+                                                                                      Fisher information matrix
+                                                                              ICP-OES inductively coupled plasma-optical emission spec-
+The Supporting Information is available free of charge at                             troscopy
+https://pubs.acs.org/doi/10.1021/acs.iecr.4c04763.                            MBDoE model-based design of experiments
+                                                                              NF      nanofiltration
+      Model derivation, membrane charge density estimation,                   ODE     ordinary differential equation
+      instrument calibration, and transport properties verifica-              RO      reverse osmosis
+      tion with additional data sets (PDF)                                    SDL     self-driving laboratory
+                                                                      12126                                         https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

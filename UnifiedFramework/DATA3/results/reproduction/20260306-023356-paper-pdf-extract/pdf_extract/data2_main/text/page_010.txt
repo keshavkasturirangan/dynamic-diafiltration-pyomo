@@ -1,0 +1,47 @@
+Industrial & Engineering Chemistry Research                                                pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 6. Plots comparing predictions (solid lines and red triangles) from diafiltration models (eqs 18−31) and experimental measurements (dots and
+squares). For simplicity, the error bars associated with experimental data are not included. For mass, ICP, and conductivity data, the error corresponds
+to the precision of the device (i.e., 0.01 g, ∼3%, 0.3%, respectively). The time stamps for vial concentration measurements were corrected using the
+approach outlined in the section Time Correction for Permeate. Diafiltration experiments were performed at 60 psi with 15 mM/120 mM KCl feed/
+diafiltrate solutions. Both experiments characterize the same NF270 membrane sample. (A−C) correspond to an experiment run in lag mode (refer to
+A.0 in the SI) and (D−F) correspond to an experiment run in overflow mode (refer to C.1 in the SI). Model parameters are reported in Table 2.
+
+    • mh and mv: approximated as the mass of a single drop of                   will be shown later, the most appropriate polynomial model for
+      solution (∼0.05 g).                                                       the solute permeability coefficient is B = Jw(β0 + β1cin,f) model.
+    • ch·mh and cv·mv: initialized to zero.                                     For this specific model, the fitted parameters and their
+                                                                                uncertainties are reported in Table 2 for both a lag and an
+During the simulation, when vials were swapped, the model                       overflow experiment operating in the concentrating regime.
+variables were reinitialized to maintain continuity. Specifically,              Fitted parameters for all solute permeability models are included
+mf, cf, ch·mh, and cv·mv were set to the final conditions of the                in the SI Table S1. The general form of the model allows this
+previous vial, while mv was reset to the mass of one drop. A time-              work to be directly compared with results reported in the
+scaling strategy72 was applied to the DAEs for each vial                        literature. As one example, solute permeability coefficient of KCl
+integration, significantly improving computational efficiency by                through NF270 membranes for feed concentrations of 67, 134,
+normalizing each time interval to 1. This approach dramatically                 and 201 mM KCl were reported to be 20.8, 30.2, and 36.7 μm·
+reduced the computational load, achieving a simulation time of                  s−1, respectively. While the empirically derived model in this
+less than 1 s for a typical diafiltration experiment (compared to               work is distinct because it accounts for the effects of convection,
+over 10 min without time scaling) on a standard laptop with an                  the permeability coefficients regressed by the B = Jw(β0 + β1cin,f)
+Intel Core i7−1065G7 CPU @ 1.30 GHz, 32 GB of RAM, and                          model encompass those provided by Al-Zoubi et al.73 The
+Windows 10 64-bit operating system. The combined use of                         estimates of hydraulic permeability Lp from both experiments
+advanced numerical methods, initialization strategies, and time-                align well with the manufacturer’s data, 13 L·m−2·h−1·bar−1 and
+scaling ensured robust and efficient model performance.                         characterization results from the literature, which report a
+
+■   RESULTS AND DISCUSSION
+   Empirical Correlations Effectively Model the Concen-
+                                                                                hydraulic permeability between 8.5 and 17 L·m−2·h−1·
+                                                                                bar−1.74−78
+                                                                                   The overflow mode, including an additional model parameter
+tration-Dependent Permeability. Both the lag and overflow                       (the mass flow rate of the initial bolus of diafiltrate), V̇ o, results in
+models, combined with empirical correlations for concen-                        higher uncertainties in all model parameters compared to the lag
+tration-dependent solute permeability coefficient, successfully                 mode. The correlation matrices for both modes demonstrate
+captured the transport performance of the surface-charged                       strong interparameter correlations, particularly between Lp, β0,
+membranes through diafiltration experiments. The experimental                   and β1, which highlights the complexity of disentangling their
+conditions (i.e., diafiltrate concentration, applied pressure, and              individual contributions to the overall model performance.
+number of vial) were optimized using MBDoE to ensure the                        Notably, the higher parameter correlations obtained from the
+estimability of the parameters, as detailed in previous work.56 As              overflow experiment may originate from the loss of information
+                                                                        12120                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                        Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

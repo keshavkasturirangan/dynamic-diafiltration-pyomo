@@ -1,0 +1,87 @@
+Industrial & Engineering Chemistry Research                                                       pubs.acs.org/IECR                                                              Article
+
+Table 2. Parameter Results Obtained by Fitting the Empirical Model B = Jw(β0 + β1cin,f)a
+     mode              parameters                 units                estimates           std. errors                                        correlation matrix
+                                                                                                                    ÄÅ                                                      É
+    lag                    Lp               L·m−2·h−1·bar−1            11.11               6.78 × 10−2               ÅÅ 1.00
+                                                                                                                      ÅÅ 0.91          0.91      0.88     0.95       0.90 ÑÑÑ
+                                                                                           5.92 × 10−2                 ÅÅ             1.00        0.97     0.83     0.74 ÑÑÑÑ
+                           β0               dimensionless               1.06                                            ÅÅ 0.88        0.97      1.00     0.88       0.65 ÑÑ
+                                                                                                                         ÅÅ 0.95                                     0.77 ÑÑÑ
+                                            mM−1                                           6.48 × 10−4                    ÅÅ           0.83      0.88     1.00
+                                                                                                                                                                    1.00 ÑÑÖÑ
+                           β1                                           0.0152                                             ÅÇÅ 0.90   0.74        0.65     0.77
+                           σ                dimensionless               1.00               1.25 × 10−2
+                           V̇               g·h−1                       0.17               4.67 × 10−2
+                                                                                                                    ÄÅ                                                                  É
+    overflow               Lp               L·m−2·h−1·bar−1            11.57               3.11 × 10−1               ÅÅ 1.00
+                                                                                                                      ÅÅ 0.99          0.99     0.99      1.00      0.32         0.95ÑÑÑ
+                                                                                           8.36 × 10−2                 ÅÅ             1.00       1.00      0.98      0.30       0.94 ÑÑÑÑ
+                           β0               dimensionless               0.34                                            ÅÅ 0.99        1.00     1.00      0.99      0.33         0.91ÑÑ
+                                                                                                                         ÅÅ 1.00                                                 0.93ÑÑÑÑ
+                           β1               mM−1                        0.0121             8.80 × 10−4                    ÅÅ           0.98     0.99      1.00      0.36
+                                                                                                                           ÅÅ 0.32     0.30     0.33      0.36      1.00         0.13ÑÑÑ
+                                                                                                                            ÅÅ 0.95                                             1.00 ÑÖÑ
+                           σ                dimensionless               1.00               3.03 × 10−2                       ÇÅ       0.94       0.91      0.93      0.13
+                           V̇ o             g·s−1                      −0.16               1.71 × 10−4
+                           V̇               g·h−1                      −0.99               8.83 × 10−2
+a
+ The parameters are regressed using a lag and an overflow experiment, respectively. Data are provided in Figure 6.
+
+          confidence ellipsoid) has as much precision as possible.                        We employed Akaike weights, which quantify the likelihood
+          This criterion is particularly useful for preventing                          of a particular model being the best among a set of candidate
+          situations where one parameter is estimated with                              models,63,64 to evaluate model probabilities. The Akaike weight
+          significantly less precision than others.                                     for model j is given by eq 40:
+  The selection of an optimality criterion depends on the                                                exp( 0.5 j)
+specific goals of the experiment. In this work, we evaluate all                            wj =                                       ,
+                                                                                                         C
+three optimality criteria to determine better experimental                                               c=1
+                                                                                                             exp(    0.5 c )
+operations that maximize the information content and improve
+the precision of parameter estimates.                                                        j = AICj         AICmin
+   Akaike Information Criterion for Model Selection. To                                       = AICj                AICmin
+compare different candidate models and select the one that best                                                                                                                        (40)
+describes the experimental data, we employed the Akaike
+Information Criterion (AIC).62 The AIC provides a robust                                where Δj is the AIC difference between model j and the
+method for model selection by balancing model fit with model                            minimum calculated AIC value, AICmin (or ΔAIC difference).
+complexity, thus preventing overfitting. Specifically, it penalizes                     When Δ < 2, the models are considered statistically
+models that include unnecessary parameters, ensuring the                                indistinguishable while Δ > 10 recommends that the model
+chosen model is both parsimonious and accurate.                                         with the lower AIC is strongly preferred.65 Thus, maximizing
+  The AIC is computed using the likelihood function of the                              Akaike weights serves as a criterion for discriminating between
+                                                                                        models and guiding experimental design.66
+model, ( |y), which denotes the probability of observing the
+                                                                                           In this work, AIC was used to compare different models for
+data y given the model parameters θ, eq 38:                                             the apparent solute permeability coefficient B (as defined in eq
+    AIC =       2ln( ( |y)) + 2k                                         (38)
+                                                                                        31). The model with the lowest ΔAIC was selected as the most
+                                                                                        parsimonious model for describing the experimental data,
+where k is a measure of model complexity. The first term rewards                        balancing the goodness-of-fit with model complexity.
+models that fit the data well, while the second term penalizes                             Computational Environment. The parameter estimation
+more complex models with a greater number of parameters. AIC                            and model simulations were implemented using the open-source
+provides a measure of the relative quality of different candidate                       Pyomo package (version 6.8.0)67 in Python (version 3.11.6).
+models (i.e., only differences in AIC are meaningful for model                          The DAEs describing the diafiltration experiment � eqs 2 and 3
+comparisons) for the same data set and is widely used for guiding                       (lag mode) or eqs 4 and 5 (overflow mode), eqs 10−20, and eq
+model selection. Using scaled residuals zr,i, and assuming each                         31 � were numerically integrated using the backward finite
+type of measurement has an independent and identical error                              difference method provided by Pyomo.DAE.68 These open-
+structure for R types of measurements, the AIC can be                                   source packages enable transferable and reproducible model
+reformulated in a more convenient form ΔAIC in eq 39 by                                 implementation, while also providing access to advanced data
+dropping the constant term:                                                             analysis tools and state-of-the-art optimization algorithms. For
+                                                                                        optimization, we utilized the Ipopt solver (version 3.13.2),69
+                 R  ij ij 1 nr                 yzyzz                                    paired with the HSL MA97 linear solver,70 both distributed via
+                     jj jj
+     AIC =            jjnr lnjj      zr2, i zzzzzzz + 2k , k = p + R                    the IDAES-PSE package.71 This combination of tools allowed us
+                       jj j nr                  zzz
+                r=1 k         k i = 1 {{                                 (39)           to efficiently solve the complex DAE system involved in the
+where the model complexity, k,is the sum of the number of                               simulations. To improve initialization and avoid potential
+model parameters, p, and the number of error structure types                            division by zero errors, ch·mh and cv·mv were selected as
+assumed (associated with types of measurements), R. This form                           combined state variables. Initial conditions for the DAE model
+is equivalent to evaluating ΔAIC for original residual yr,i − ŷr,i                     were set as follows:
+(see SI for derivations). The ΔAIC formula shows that a model                              • mf: initialized based on the initial mass of the solution in
+with lower residual squares will have a lower AIC value, but                                 the stirred cell.
+adding more parameters (increasing k) will increase the AIC
+unless the additional parameters significantly improve the model                           • cf: initialized from the retentate concentration measured
+fit.                                                                                         by the conductivity probe at the start of the experiment.
+
+                                                                                12119                                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                               Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

@@ -1,0 +1,18 @@
+Creator:         TexpadTeX CoreGraphicsOutputContext backend: 841
+Producer:        macOS Version 15.4.1 (Build 24E263) Quartz PDFContext
+CreationDate:    Sat May  3 12:18:57 2025 EDT
+ModDate:         Sat May  3 12:18:57 2025 EDT
+Custom Metadata: no
+Metadata Stream: no
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           20
+Encrypted:       no
+Page size:       612 x 792 pts (letter)
+Page rot:        0
+File size:       2653477 bytes
+Optimized:       no
+PDF version:     1.4

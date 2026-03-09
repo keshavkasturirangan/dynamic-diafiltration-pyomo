@@ -1,2 +1,0 @@
-target_id,panel_id,active,paper_csv,unified_csv,x_col_paper,y_col_paper,x_col_unified,y_col_unified,x_min,x_max,notes
-D2-M-F7,panel_A,false,docs/validation/nightly/digitized_baselines/paper/data2_f7_panelA.csv,docs/validation/nightly/digitized_baselines/unified/data2_f7_panelA.csv,x,y,x,y,,,Template row: set active=true after adding files

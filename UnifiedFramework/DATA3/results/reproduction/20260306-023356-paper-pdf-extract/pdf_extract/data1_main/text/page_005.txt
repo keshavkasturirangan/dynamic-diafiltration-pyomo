@@ -1,0 +1,70 @@
+J.A. Ouimet et al.                                                                                                  Journal of Membrane Science 641 (2022) 119743
+
+
+to minimize overflow of diafiltrate into the stirred cell. To pressurize         3.7. Calibration of inline conductivity probe
+the system , valve 1 (V1) was opened, valve 2 (V2) was opened, and
+valve 3 (V3) was closed. The tank and stirred cell were pressurized to               The LFS 1107 conductivity sensor was calibrated with 7 KCl stock
+1/6 of the operating pressure. Valve 1 was left open, valve 2 was closed         solutions spaced between 0 mM and 100 mM. The probe was sub-
+and valve 3 was opened. The system was then subject to the operating             merged into the stock solution, given 5 s to stabilize and the amplitude
+pressure of 60 psi. This pressure pushed the diafiltrate solution up into        of the voltage drop was recorded from the GwInStek GDS 1054B oscil-
+the tubing and towards the stirred cell. The small bolus of diafiltrate          loscope. The probe was rinsed with DI water after each measurement.
+that enters the stirred cell, termed the overflow, is measured to be the         The resulting data were linearly regressed to produce a calibration
+difference in mass between the initial feed solution (before start-up)           curve that has a correlation coefficients greater than 0.99 (Fig. S1). The
+and the retentate (end of experiment after shut-down). With known                calibration curve was used to relate the conductivity readings to the
+feed and diafiltrate concentrations, this information is used to calculate       internal concentration of the stirred cell.
+the concentration of the feed at the start of the experiment. The initial
+concentration is also corroborated by the measurement taken by the               4. Results and discussion
+inline conductivity probe.
+    Immediately after increasing the pressure to the operating pressure,         4.1. Experimental filtration data sets
+the mass, retentate conductivity, and pressure are synchronized and
+recorded at five second intervals. Scintillation vials that rest on top of            A representative set of filtration data is presented in Fig. 2. The mass
+a balance are used to collect permeate samples at 1 mL intervals. A              of the permeate is plotted versus time in Fig. 2A. Samples are collected
+total of 10 scintillation vials are collected throughout the course of the       in scintillation vials at 0.5 mL intervals. As such, the sudden drops in
+experiment. After the collection of the last permeate vial, valve 1 is           mass correspond to a switch of the collection vial. The solution within
+closed and the pressure relief valve is opened, releasing the pressure of        these vials is then prepared for analysis by ICP-OES. As highlighted
+the diafiltrate tank and causing the compressed air in the headspace             within Fig. 2B, the concentration of salt within the permeate samples
+of the stirred cell to expand, pushing the diafiltrate solution back             changes slightly. Provided that the initial feed concentration is known
+into the diafiltrate reservoir. The retentate and the solution in the            and assuming no salt adsorbs to the membrane, a mass balance can
+tubing between the stirred cell and the scintillation vial were collected        be used to infer the internal concentration of the stirred cell. The
+in separate scintillation vials. The scintillation vials were closed and         measurements from the conductivity sensor, purple squares in Fig. 2B,
+stored until they could be analyzed on ICP-OES. The conductivity probe           corroborate the concentration of dissolved salt from these calculations
+was turned off, rinsed with DI water and stored in DI water until the            (Fig. S2A). The agreement between the measured data points and cal-
+next experiment was conducted.                                                   culations confirm that the mass balance on potassium chloride closes.
+                                                                                 Using the retentate and permeate concentrations from each vial a
+                                                                                 percent rejection of 70% is calculated from the experimental results,
+3.5. ICP-OES sample preparation
+                                                                                 which is consistent with the value reported in the literature [49].
+                                                                                      Although this approach is more useful than operating at zero per-
+    The concentration of the salt within all collected samples was               cent recovery, filtration experiments are still limited because they rely
+analyzed by ICP-OES (Perkin Elmer Optima 8000). All experimental                 on the rejection of solutes to drive changes in the retentate concen-
+samples were prepared with calibrated micropipettes. Filtration experi-          tration. Even for solutes that are highly rejected, this approach leads
+ment samples were prepared by diluting 0.100 mL of sample with 5.00              to modest variations in the solute concentration. As solvent permeates
+mL of 3% nitric acid. The samples were labeled and stored in Falcon              through the membrane, the concentration of the rejected species within
+tubes. The feed and permeate samples of diafiltration experiments were           the feed begins to increase. Assuming 100% percent rejection, the
+prepared analogously to filtration experiments samples. Due to their             concentration of the solute will double when the solvent volume is
+higher concentrations, the diafiltrate and retentate samples from diafil-        reduced by half (i.e., 50% recovery). Within Fig. 2A, the experiment
+tration experiments were prepared by diluting 0.025 mL of sample with            is run at approximately 40% recovery and the retentate concentra-
+5.00 mL of 3% nitric acid. We note that all samples were interpolated            tion changes 2–3 mM. Fig. S2B presents that data for an experiment,
+within calibration curves in which the correlation coefficients were             run at 60% recovery. A similar change in concentration is observed
+greater than 0.995.                                                              in this experimental data but it highlights an additional issue with
+                                                                                 filtration, the high recovery experiments are incompatible with the
+                                                                                 inline conductivity sensor, which must be submerged to be utilized.
+3.6. Design and retrofitting of inline conductivity probe                        Consequently, many filtration experiments are necessary in order to
+                                                                                 characterize membrane properties over large concentration ranges.
+   The stirred cell was retrofit with an LFS 1107 Conductivity Sensor.
+The six leads were soldered and connected to 28-gauge space saver wire           4.2. One diafiltration experiment generates knowledge five times faster than
+(McMaster Carr, Elmhurst, Illinois). The bare metal leads were potted            filtration experiments
+with DP420 Scoth-Weld Epoxy Adhesive (3M, Saint Paul, Minnesota).
+The leads of the conductivity probe were threaded through the inlet of               The diafiltration apparatus addresses the drawbacks of filtration ex-
+the Amicon stirred cell. The wires were then maneuvered through one              periments by dosing a concentrated diafiltrate solution into the stirred
+end of a 1/4 inch Swagelok compression union tee (Swagelok, Solon,               cell in a controlled manner, instead of relying on the rejection of
+Ohio). The current wires were connected to the Keithly 6221 DC and               solutes to drive an increase in the retentate concentration. During the
+AC current source which generated a 1 mA peak to peak sine wave. The             operation of the apparatus, the volumetric flux of diafiltrate into the
+voltage wires of the conductivity probe were connected to the GwInStek           stirred cell is equal to the volumetric flux of permeate out. As such,
+GDS 1054B oscilloscope. Time dependent voltage measurements were                 the maximum retentate concentration that can be achieved may be
+recorded throughout the course of the experiment. The conductivity of            estimated as the concentration of the diafiltrate divided by the sieving
+the retentate solution was determined from the current versus voltage            coefficient (𝑐𝑟,𝑚𝑎𝑥 = 𝑐𝐷 ⋅𝑆 −1 ). Assuming that the osmotic pressure of the
+data and cell constant.                                                          feed solution and concentration polarization are negligible, the sieving
+
+                                                                             5
+

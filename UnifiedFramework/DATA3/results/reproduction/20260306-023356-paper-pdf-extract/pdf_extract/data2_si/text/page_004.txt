@@ -1,0 +1,92 @@
+       assumption, a practical formula for calculating AIC diﬀerence ∆ is:
+
+
+                          ∆a,b = AICa − AICb = ∆AICa − ∆AICb
+                                               )       )                            **
+                                           -R                nr                                                 (S10)
+                                   const                 1 -                      2
+                              ∆AICa      =       nr ln          (yr,i − ŷa,r,i )      + 2ka
+                                           r=1
+                                                         nr i=1
+
+
+       AIC with Proportional Measurement Errors
+
+       When r-th type of measurements are subject to a proportional (a.k.a., relative) error, e.g.,
+             2            3
+       &r ∼ N 0, αr2 yr,i
+                      2
+                            , the log-likelihood for measurement r becomes:
+
+                                     )                                nr                           n
+                                                                                                            *
+                                 1                                    -       1 - r
+                                                                                    (yr,i − ŷr,i )2
+                                                            2           2
+           ln (L (θ | y r )) = −         nr ln(2π) + nr ln αr +     ln yr,i + 2            2
+                                                                                                                (S11)
+                                 2                              i=1
+                                                                             αr i=1       yr,i
+
+
+1230   Equation S11 is derived by substituting s2r,i = αr2 yr,i
+                                                            2
+                                                                into eq S4.
+          At the maximum log-likelihood estimate, the necessary condition is:
+
+                                                                      4nr        (yr,i −ŷr,i )2
+                                  ∂ ln (L (θ | y r ))   nr                 i=1          2
+                                                                                      yr,i
+                                                      =− +                                             =0       (S12)
+                                         ∂αr            αr                       αr3
+
+       which gives:
+                                                              n
+                                                          1 -  r
+                                                                 (yr,i − ŷr,i )2
+                                                 α̂r2 =                 2
+                                                                                                                (S13)
+                                                          nr i=1       yr,i
+
+       Substituting eq S13 into eq S11 gives:
+
+             % %         &&
+           ln L θ̂ | y r
+                   #                   )                           *                      4nr (yr,i    ✘r,i✘✘)2
+                                                                                                                  '
+                                            -nr                  2      - nr
+                                                                                                ✘ ✘ ✘−ŷ
+                1                         1      (yr,i − ŷr,i )                             ✘
+                                                                                     + ✘4n (y r,i−ŷ
+                                                                                              i=1     y 2
+             = − $nr ln(2π) + nr ln                                  +            2
+                                                                             ln yr,i                         ✘✘
+                                                                                                          ✘r,i )2
+                                                                                                                  (
+                2                        nr i=1         2
+                                                       yr,i                              1      r
+                                                                                                 ✘ ✘ ✘
+                                                                                                     r,i
+                                                                         i=1             n r ✘✘i=1        2
+                                                                                                        yr,i
+                   )                   )     nr
+                                                                   *      nr
+                                                                                            *
+                1                        1 -     (yr,i − ŷr,i )2       -
+                                                                                  2
+             =−      nr ln(2π) + nr ln                  2
+                                                                     +       ln yr,i + nr
+                2                        nr i=1        yr,i              i=1
+                   )                         )      nr
+                                                                          *      nr
+                                                                                             *
+                1                               1 -      (yr,i − ŷr,i )2      -
+                                                                                          2
+             =−      nr (ln(2π) + 1) + nr ln                      2
+                                                                             +       ln yr,i
+                2                               nr i=1         yr,i             i=1
+                                                                                                                  (S14)
+
+
+                                                               SI-4
+

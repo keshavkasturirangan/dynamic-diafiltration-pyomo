@@ -1,0 +1,56 @@
+       In this case, AIC summed over all R types of measurements is
+
+                       % %      &&
+        AICprop = −2 ln L θ̂ | y + 2k
+                                    R            R
+                                                         )           )       n
+                                                                                                   *       nr
+                                                                                                                           *          (S15)
+                                    -            -                       1 -  r
+                                                                                (yr,i − ŷr,i )2           -
+                                                                                                                     2
+                = (ln(2π) + 1)            nr +               nr ln                     2
+                                                                                                       +         ln yr,i       + 2k
+                                    r=1          r=1
+                                                                         nr i=1       yr,i                 i=1
+
+
+                      4R               4R 4nr              2
+1235   (ln(2π) + 1)    r=1 nr    and      r=1      i=1 ln yr,i       (measurements) are constant terms across all
+       models. Therefore, under proportional errors assumption, a practical formula for calculating
+       AIC diﬀerence ∆ is:
+
+
+                           ∆a,b = AICa − AICb = ∆AICa − ∆AICb
+                                              )       )                                **
+                                          -R                -nr                      2                                                (S16)
+                                                        1       (y r,i −  ŷ a,r,i )
+                               ∆AICprop
+                                    a   =       nr ln                    2
+                                                                                          + 2ka
+                                          r=1
+                                                        n r i=1
+                                                                       y r,i
+
+
+
+       AIC Generalization
+
+       Next, we generalize the AIC formula for constant or proportional error assumptions. We
+1240   separate R into R1 and R2 accommodates the two types of measurement error structures.
+
+                                                 R
+                                                 -
+                            ln (L (θ | y)) =             ln (L (θ | y r ))
+                                                 r=1
+                                                  R1                     R2
+                                                                                                                                      (S17)
+                                                 -         2 2        33 -    2 2         33
+                                            =            ln L θ | y r1 +    ln L θ | y r2
+                                                 r1 =1                              r2 =1
+
+
+
+
+                                                                     SI-5
+

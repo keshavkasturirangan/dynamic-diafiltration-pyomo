@@ -1,0 +1,32 @@
+a | t+}; 80F-
+<j — 5.75} | - 4
+L | a
+S75 s 5 = dai | ale
+E700} ‘ 4 £5507 ° E 60} a%
+© 5.25} | c aS
+gos "a | 8. ° S50; ®
+® 6.0} . | @ 2-007 ° ] 40 aa
+fost = F 4.75; ° F 30} e »  Retentate
+8 5.0} ; g450; e Y 201 (Measurements) |
+(s) © 4258 ° Retentate
+0 4.5; 1 us 0 10 (Calculated)
+; 4.00 SS Tae CSE Tae _—
+4.0 10.20 30 5 10 15 20 25 0"50 100 150 200 250
+Time [min] Time [min] Time [min]
+
+Fig. S2: Panel A presents a filtration experiment run at 40% recovery. The lower recovery allows the semi-continuous monitoring
+of the retentate with the inline conductivity probe (purple squares). Mass balance calculations (green circles) corroborate the
+conductivity measurements. Panel B presents the retentate concentration data, predicted by mass calculations (green circles), of
+a filtration experiment run at 60% recovery. The inline conductivity probe was not used as the high percent recovery decreased
+the volume of solution in the stirred cell below the sensor. Panel C presents information for a diafiltration experiment. The
+retentate concentration (purple squares) measured by the inline conductivity probe agrees with the the retentate concentration
+predicted from mass balance calculations (green circles). For filtration experiments, the calculated retentate concentration
+values were obtained by subtracting the total moles of solute in the permeate from the initial feed value and adjusting the
+stirred cell volume to account for the mass of solution in the permeate. Within diafiltration experiments, the stirred cell volume
+was kept constant. The change in solute within the stirred cell is calculated as the difference from the entering diafiltrate solute
+
+and exiting permeate solute. To calculate the new retentate concentration, the adjusted stirred cell solute amount is divided
+
+by the total volume.
+
+SL-4

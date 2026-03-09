@@ -1,0 +1,62 @@
+       &r,i , associated with observation yr,i is described as:
+
+                                                                                 2         3
+                                 yr,i = f (xr,i , ur,i , θ) +&r,i ,      &r,i ∼ N 0, s2r,i                     (S1)
+                                        .      /0         1
+                                              ŷr,i
+
+              2        3
+1210   where N 0, s2r,i represents a normal distribution with mean zero and variance s2r,i .
+          The probability distribution function of model observation yr,i conditioned on parameter
+       θ is given by
+                                                                                   )                      *
+                         2                           2
+                                                       3      2        3 1
+                                                                      2 −2          (yr,i − ŷr,i )2
+                       p yr,i | f (xr,i , ur,i , θ) , sr,i = 2πsr,i           exp −                            (S2)
+                                                                                         2s2r,i
+
+          The likelihood function, defined as a function of θ given a collection of observations y,
+       is the joint probability of these independent observations:
+
+                                     R
+                                     ;                      ; n
+                                                            R ; r
+                                                                       2                                   3
+                       L (θ | y) =         L (θ | y r ) =             p yr,i | f (xr,i , ur,i , θ) , s2r,i     (S3)
+                                     r=1                    r=1 i=1
+
+
+1215      Taking the logarithm of the likelihood function, we have
+
+                                        R
+                                        -
+                    ln (L (θ | y)) =         ln (L (θ | y r ))
+                                        r=1
+                                        -R -nr
+                                                     2                                   3
+                                    =            ln p yr,i | f (xr,i , ur,i , θ) , s2r,i
+                                        r=1 i=1
+                                             R -nr
+                                                   )                                                  *        (S4)
+                                       1    -                           (yr,i − ŷr,i )           2
+                                    =−             ln(2π) + ln s2r,i +
+                                       2 r=1 i=1                              s2r,i
+                                          R
+                                             )              nr              nr
+                                                                                                        *
+                                       1-                  -               -      (y r,i −   ŷ r,i ) 2
+                                    =−         nr ln(2π) +     ln s2r,i +
+                                       2 r=1               i=1             i=1
+                                                                                         s2r,i
+
+
+       AIC with Constant Measurement Errors
+
+       When r-th type of measurements is subject to independent and identically distributed mea-
+       surement error with constant variance, e.g., &r ∼ N (0, s2r ), the log-likelihood for r-th type
+
+
+
+                                                            SI-2
+

@@ -1,0 +1,144 @@
+Industrial & Engineering Chemistry Research                                                                pubs.acs.org/IECR                                                         Article
+                                                                                                                   ÄÅ
+was applied. This assumption yields the following differential                                                      Å
+                                                                                                          = Jw ·ÅÅÅÅHf ·cin,f +
+                                                                                                                                 1
+equation for the solute concentration profile across the                                          Js                                (Hf ·cin,f                 Hp· cin,p)
+                                                                                                                    ÇÅ          e 1
+membrane, eq 22:
+                                                                                                                    e      ij Jw L           yz
+                dj                            d2c(z)                                                                        j             1zzz(Hf ·cin,f
+                                                                                                                          2j
+   dc(z)                                                  dc(z)                                                            jj                                  Hp·cin,p)
+         = 0, so s = 0                     Dm        + Jw       =0                                            (e        1) k Dm               z
+    dt          dz                             dz 2
+                                                           dz                                                                                 {
+                                                                                (22)                                                         2
+                                                                                                           e(1 + e) ijj Jw L                 yz
+which can be solved given boundary conditions on both sides of                                           +            jj                  1zzz (Hf ·cin,f        Hp·cin,p)
+the membrane with thickness L, eqs 23 and 24:                                                              2(e 1)3 jk Dm                      z
+                                                                                                                                              {
+                                                                                                                                                                        É
+            m
+   c(0) = cin,f = Hf · cin,f                                                                                         iji J L           yz
+                                                                                                                                         3                         yzÑÑÑÑ
+                                                                                                                      jjjj w                                        z
+                                                                                                                                    1zzz (Hf ·cin,f Hp·cin,p)zzzÑÑÑÑ
+                                                                                (23)
+                                                                                                               + jjjj
+                                                                                                                       jjj Dm           z                           zzÑÑ
+                                                                                                                        kk              {                            {ÑÖÑ
+            m
+   c(L) = cin,p = Hp· cin,p                                                     (24)
+                                                                                                               ÄÅ
+        m
+where cin,f          m
+               and cin,p are the boundary concentrations in the                                                 ÅÅ         Hf ·cin,f
+                                                                                                                 Å                                      1             e
+                                                                                                       = Jw ÅÅÅ                                    +
+membrane phase on the feed and permeate sides, respectively,                                                     ÅÅ Hf ·cin,f Hp·cin,p               e 1      (e 1)2
+                                                                                                                  ÅÇ
+and are related to the interface concentrations cin,f and cin,p by the
+                                                                                                          ij Jw L              yz
+partition coefficients Hf and Hp, which account for the solute                                             jj               1zzz
+partitioning at membrane surfaces on the feed and permeate                                                  jj D                z
+                                                                                                             k m                {
+sides, respectively.
+                                                                                                                                                                      3yÑ
+                                                                                                                                                                          É
+                                                                                                                                                 2    iji J L             ÑÑ
+   By solving for the concentration profile c(z) and applying eq                                         e(1 + e) ijj Jw L                  yz
+                                                                                                                                             zz + jjjjjj w
+                                                                                                                                                                 y
+                                                                                                                                                                 zz zzÑÑÑz
+21, an expression for the total molar flux of solute in terms of the                                   +                    j
+                                                                                                                            j             1   zz       jjjj D   1 z      z
+                                                                                                                                                                  zz zzÑÑÑ c
+                                                                                                         2(e 1)3 jk Dm                         {        jk m       { z{ÑÑÖÑ
+                       J L
+Peclet number, Pe = w , is developed:                                                                                                                   k                                (29)
+                             Dm
+              ij
+   Js = Jw ·jjj
+                              ( ) H ·c yzzzzzz
+               jj cin,f ·Hf ·exp Dw
+                jj
+                                   J L
+                                     m
+                                              p in,p
+                                                                                               Noticing the term representing the concentration difference
+                                                                                               within the membrane Δc = Hf·cin,f − Hp·cin,p in the series, this
+                                             z
+                              ( ) 1 zzzz{
+                 jj              J  L                                                          expression reveals an apparent solute permeability coefficient
+                  j         exp Dw                                                             that becomes dependent on feed-side concentration cin,f and
+                  k                 m                                           (25)
+                                                                                               water flux Jw:
+                                                 Dm
+  In diffusion-dominated regimes,                        Jw , convection be-
+                                                 L                                                                 Js =B(Jw , Hf , Hp , cin,f , cin,p) · c ,
+                                                              JL
+comes negligible compared to diffusion, and Dw                           0. Using a                                      ÄÅ
+                                                                                                                          ÅÅ        Hf cin,f
+                                                                                                                           Å
+                                                                m
+                                                                                                                                                         1
+Laurent series expansion in this limit, Js in eq 25 simplifies to eq                              B(Jw , Hf , Hp , =Jw ÅÅÅ                        +
+                                                                                                                           ÅÅ Hf cin,f Hpcin,p         e   1
+26:
+                                                                                                    cin,f , cin,p)          ÅÇ
+                                                                                                                                   e      ij Jw L     yz
+               ij                                                                                                                          j       1zzz
+                jj Hf ·cin,f Hp·cin,p         Hf · cin,f + Hp·cin,p                                                                     2j jj D        z
+   Js = Jw ·jjjj                         +                                                                                     (e 1) k m               {
+                 jj           Jw L
+                                                           2
+                  k            Dm
+                                                                                                                                       e(1 + e) ijj Jw L              yz
+                                                                                                                                                                           2
+                   Jw L
+                                                      iji J L y3yzyzzz                                                               +           3j
+                                                                                                                                                  jj D             1zzz
+                        (Hf ·cin,f Hp· cin,p)
+                                                       jj     zz                                                                       2(e 1) k m                      z
+                                               + jjjjjj w zzz zzzzzzz                                                                                           ÉÑ {
+                   Dm
+        +                                                                                                                                                        Ñ
+                                12                     jjj Dm z zzzz                                                                     iji J L        yz yzzÑÑ
+                                                                                                                                                          3
+                                                        kk    {{
+                                                                     {          (26)                                                      jj
+                                                                                                                                     + jjjjjj w      1zzz zzzÑÑÑÑ
+                                                                                                                                          jjj Dm         z zzÑÑ
+Approximating Js with the first term in the series, and assuming                                                                           kk            { {ÑÖÑ                          (30)
+Hf = Hp = H, we have eq 27:
+                                                                                               Most studies assume H ≈ Hf ≈ Hp, which allows for a single H to
+                   ij                y         i                  yz                           be extracted from eq 30. As shown in the results, we found
+                    jj cin,f cin,p zzz DmH jjjj                    zz
+         Jw ·H ·jjjj                 zz =                 cin,pzzzz
+                                               jjcin,f                                         maintaining distinct partition coefficients better explains the
+   Js                                 zz
+                     jj     Jw L
+                                       zz L jjjj                    zz
+                                                                     z
+                                                                                               experimental data. Next, we approximate the dependency of B
+                      k     Dm          {       k                    {          (27)           on concentration as
+                                                                         D H
+By defining a solute permeability coefficient,                       B = mL ,   the               B (Jw , Hf , Hp , cin,f , cin,p)               B(Jw , cin,f ) = Jw                    ci
+                                                                                                                                                                                       i in,f
+solute flux Js is expressed as eq 28:                                                                                                                                          i I
+                                                                                                                                                                                         (31)
+   Js = B c                                                                     (28)           where different polynomial orders, I ∈ [{0}, {0, − 0.5}, {0, 0.5},
+This linear relationship highlights how the solute flux depends                                {0, 1}, {0, 1, 2}, {0, 1, 2, 3}], are considered for eq 31, capturing
+on the concentration gradient across the membrane when                                         variations in permeability due to convective flux and solute-
+diffusion dominates. For instance, previously studied NF90                                     membrane interactions in a multiplicative form. This extended
+membranes exhibit transport properties that can be accurately                                  model B(Jw, cin,f) acknowledges that solute permeability is
+described by this form of the model.                                                           influenced by feed-side concentration, particularly in surface-
+   In regimes where diffusion and convection are both relevant                                 charged membranes, where electrostatic interactions alter solute
+                 J L                                                                           partitioning and transport rates.
+mechanisms, Dw            1. Here, Js in eq 25 can be approximate with                            Finally, the governing flux equations, coupled with the
+                   m
+Taylor series expansion, eq 29:                                                                ordinary differential equations (ODEs) that capture states in
+                                                                                       12116                                                         https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                 Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

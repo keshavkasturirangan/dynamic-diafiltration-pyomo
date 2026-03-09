@@ -1,0 +1,79 @@
+Mass Permeate Retentate
+
+Lp [b+ m-?+h-?- bar]
+
+~ N w > uv oO ~
+
+5
+
+Sar
+qt
+
+L, [L- m-?+ho-? + bar~4]
+
+21
+27
+0.5 1.0 25: 2.0 0.5 1.0 1.5 2.0
+B[um~s74] B [pm -s~*]
+
+24—
+
+|
+
+Lp [L m=?+h-? + bar“4]
+
+Lp [L+ m-?+h-? + bar~4]
+os N w > wu o ~
+5
+SS
+xt
+L, [L- m-?+ ho? + bar~*]
+
+0.5 1.0 1.5 2.0 0.5 1.0 1.5 0 0.5 1.0 1.5 2.0
+B [um « s~*] B [pm +s] B [ym - s~*]
+
+N
+
+m7 m7 \ ale}
+1 1 1
+@ 6 G6 a6
+a 2 ¥ 2
+a) a3 2 a 3
+t 1 t
+£4 24 \, rid
+¢ Sofi u vy
+£3 e 3 e3
+2? a2 2
+= 2 F=f
+$1 Pl Fl
+0.5 1.0 1.5 2.0 : 0.5 1.0 15 2.0 0.5 1.0 1.5 2.0
+B[pm-s"*] B [um + s~?] B[ym-+s~*]
+z z7 m7 ay
+1 1
+- - -
+6 6
+s S 8
+a a5 a5
+t - -
+3 3
+E E E
+. . 2 7 2 ———— 2.0
+a a -
+Fr FA Fe
++ +1 +1
+
+05 10 #215 2.0
+B [ym -s~*]
+
+05.10 #215 «20
+B[ym-s7*]
+
+Fig. S4: Residual squared contours comparing the hydraulic permeability and solute permeability coefficient for diafiltration
+experiments. Two different models (with concentration polarization & without concentration polarization) and two data set
+variations (data with an inline conductivity sensor & data encompassing only the initial and final in-situ retentate measurements)
+are evaluated. The model used to generate the contours of panel A includes concentration polarization phenomena with the
+inline conductivity probe measurements. The residual squared contours of panel B uses a reduced data set which excludes the
+semi-continuous retentate data. Panel C contours evaluate a separate model in which the inline conductivity measurements are
+used yet concentration polarization is not accounted for. The contours generated in panel D use the reduced data set and do
+
+not incorporate concentration polarization.

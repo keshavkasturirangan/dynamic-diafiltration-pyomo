@@ -1,0 +1,5 @@
+dataset_key,pdf_path,page_count
+data1_main,published_works/DATA1_main.pdf,12
+data1_si,published_works/DATA1_SI.pdf,10
+data2_main,published_works/DATA2_main.pdf,20
+data2_si,published_works/DATA2_SI.pdf,20

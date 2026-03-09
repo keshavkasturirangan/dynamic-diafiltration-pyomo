@@ -1,0 +1,21 @@
+Title:           Characterizing Transport Properties of Surface Charged Nanofiltration Membranes via Model-Based Data Analytics
+Subject:         Ind. Eng. Chem. Res. 2025.64:12111-12130
+Author:          Xinhong Liu, Laurianne Estrada, Jonathan A. Ouimet, Matthew McClure, David R. Latulippe, William A. Phillip, and Alexander W. Dowling
+Creator:         Arbortext Publishing Engine
+Producer:        PDFlib+PDI 9.1.2p4 (C++/Win64); modified using iText 4.2.0 by 1T3XT
+CreationDate:    Tue Jun 10 14:23:28 2025 EDT
+ModDate:         Wed Feb 18 12:54:00 2026 EST
+Custom Metadata: yes
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           20
+Encrypted:       no
+Page size:       607.408 x 800.901 pts
+Page rot:        0
+File size:       4852953 bytes
+Optimized:       no
+PDF version:     1.4

@@ -1,0 +1,72 @@
+                                                                                                          pubs.acs.org/IECR                                                                                                                                    Article
+
+
+
+                                                                                                          Characterizing Transport Properties of Surface Charged
+                                                                                                          Nanofiltration Membranes via Model-Based Data Analytics
+                                                                                                          Published as part of Industrial & Engineering Chemistry Research special issue “Inverse Design of Materials and
+                                                                                                          Processes for Separations”.
+                                                                                                          Xinhong Liu, Laurianne Estrada, Jonathan A. Ouimet, Matthew McClure, David R. Latulippe,
+                                                                                                          William A. Phillip,* and Alexander W. Dowling*
+                                                                                                                Cite This: Ind. Eng. Chem. Res. 2025, 64, 12111−12130                            Read Online
+
+
+
+
+        Downloaded via UNIV OF NOTRE DAME on February 18, 2026 at 17:54:00 (UTC).
+                                                                                                          ACCESS                        Metrics & More                              Article Recommendations                *
+                                                                                                                                                                                                                           sı Supporting Information
+
+
+                                                                                                          ABSTRACT: This study presents an integrated framework for characterizing the transport
+                                                                                                          properties of surface-charged nanofiltration (NF) membranes through dynamic diafiltration
+                                                                                                          experiments and model-based data analytics. By incorporating startup dynamics, time corrections,
+                                                                                                          and the influence of water flux on solute permeation, the framework effectively captures key
+                                                                                                          transport properties governing membrane performance. A comparison of lag and overflow
+                                                                                                          experimental modes highlights the superior precision of the lag startup mode, improving parameter
+                                                                                                          estimates by 8%, 138%, and 83% as quantified by A-, D-, and E-optimality, respectively.
+                                                                                                          Diafiltration experiments in the diluting regime further enhance model discrimination, enabling the identification of dominant
+                                                                                                          transport mechanisms. This work marks a step toward developing self-driving laboratories (SDLs) that leverage model-based design
+                                                                                                          of experiments (MBDoE) to expedite the characterization and development of high-performance NF membranes. The framework
+                                                                                                          provides critical insights into transport phenomena, enabling the inverse design of membranes tailored to the demands of modern
+                                                                                                          separation systems.
+
+
+
+
+See https://pubs.acs.org/sharingguidelines for options on how to legitimately share published articles.
+                                                                                                          ■   INTRODUCTION
+                                                                                                          Membrane technologies can enhance the sustainability and
+                                                                                                                                                                                               Broader applications of NF membranes are constrained by
+                                                                                                                                                                                            trade-offs between their permeability and selectivity.15 Recent
+                                                                                                                                                                                            studies suggest that material innovations have led thin-film
+                                                                                                          energy efficiency of modern separation processes.1,2 Among
+                                                                                                                                                                                            composite (TFC) membranes to approach the upper bound of
+                                                                                                          these, nanofiltration (NF), a pressure-driven membrane
+                                                                                                                                                                                            water permeability.16,17 Thus, selectivity has become an
+                                                                                                          separation process, occupies a niche between ultrafiltration                      increasingly important criterion when screening membranes
+                                                                                                          (UF) and reverse osmosis (RO), offering unique selectivity for                    for practical applications, such as in the recovery of rare earth
+                                                                                                          multivalent ions,3 organic molecules,4 and small solutes.5 Unlike                 elements.18 Ongoing efforts to enhance membrane selectivity
+                                                                                                          UF, which primarily separates based on size, and RO, which can                    have primarily focused on two directions: the precise control of
+                                                                                                          reject most solutes including monovalent ions, NF membranes                       membrane nanostructure and the identification of chemical
+                                                                                                          provide selective separation through a combination of size and                    functionality that promotes the desired transport properties.19,20
+                                                                                                          charge effects. For example, the surface charge of NF                             Tailoring membrane surfaces to interact with specific solutes
+                                                                                                          membranes plays a crucial role in solute selectivity, allowing                    (e.g., through electrostatic interactions, hydrophobicity, or
+                                                                                                          them to reject charged species based on electrostatic                             specific binding sites) shows promise in controlling solute
+                                                                                                          interactions.6−9 With pore sizes on the order of 1−3 nm and                       transport properties.21−25 However, current research in this field
+                                                                                                          the ability to exploit both size exclusion and charge-based                       remains largely exploratory (i.e., driven by trial-and-error
+                                                                                                          mechanisms, NF membranes are effective for applications such                      approaches) and relies on traditional, human-driven exper-
+                                                                                                          as water hardness reduction,10 contaminant removal,11 and the                     imental approaches. While effective in certain contexts, these
+                                                                                                          recovery of critical materials12,13 from industrial streams. This                 approaches rely on simplified analysis, which often fails to
+                                                                                                          versatility makes NF applicable in diverse fields, including                      capture the intricate interplay of factors that influence
+                                                                                                          wastewater treatment, chemical separations, and environmental
+                                                                                                          remediation. The combination of relatively low energy                             Received: December 13, 2024
+                                                                                                          consumption, size selectivity, and charge-based rejection                         Revised: May 3, 2025
+                                                                                                          positions NF as a valuable and adaptable technology in                            Accepted: May 7, 2025
+                                                                                                          addressing global grand challenges such as equitable access to                    Published: June 3, 2025
+                                                                                                          clean water, affordable sustainable energy, and circular
+                                                                                                          economies.14
+                                                                                                                                                 © 2025 The Authors. Published by
+                                                                                                                                                       American Chemical Society                                                   https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                    12111                                      Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

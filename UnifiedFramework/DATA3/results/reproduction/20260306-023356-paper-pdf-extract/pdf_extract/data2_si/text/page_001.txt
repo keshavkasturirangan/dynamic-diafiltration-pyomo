@@ -1,0 +1,40 @@
+                                         Supporting Information
+
+                  Characterizing Transport Properties of Surface Charged
+
+               Nanofiltration Membranes via Model-based Data Analytics
+
+                            Xinhong Liu, Laurianne Estrada, Jonathan A. Ouimet,
+1195                              William A. Phillip∗ , Alexander W. Dowling∗
+       Department of Chemical and Biomolecular Engineering, University of Notre Dame, Notre
+                                   Dame, IN 46556, United States of America
+
+
+                                     Matthew McClure, David R. Latulippe
+          Department of Chemical Engineering, McMaster University, Hamilton, ON L8S 4L8,
+1200                                                  Canada
+
+
+                                                    May 2, 2025
+
+
+
+       Akaike Information Criterion (AIC) Derivations
+
+       Log-Likelihood
+
+       Let ŷr,i = f (xr,i , ur,i , θ) represent the model prediction for the i-th experimental observation
+1205   yr,i , where xr,i assembles state variables, ur,i are controlled experimental conditions, θ include
+       all model parameters, and r ∈ R indexes the type of response. The model assumes that
+       measurement errors are independent and normally distributed but may exhibit non-constant
+       variance (heteroscedasticity) across diﬀerent types of measurements. Specifically, the error,
+          ∗
+              corresponding author: William A. Phillip, wphillip@nd.edu
+          ∗
+              corresponding author: Alexander W. Dowling, adowling@nd.edu
+
+
+
+
+                                                        SI-1
+

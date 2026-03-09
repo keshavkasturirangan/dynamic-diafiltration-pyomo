@@ -1,0 +1,56 @@
+Supplementary Information for
+
+DATA: Diafiltration Apparatus for high-Throughput Analysis
+
+Jonathan A. Ouimet, Xinhong Liu, David J. Brown, Elvis A. Eugene, Tylar Popps, Zachary W. Muetzel,
+Alexander W. Dowling, William A. Phillip!
+Department of Chemical and Biomolecular Engineering, University of Notre Dame, Notre Dame, IN 46556
+September 20, 2021
+
+S1. Model Derivation
+
+Note that Fig. 1, Eq. (1), etc. refer to elements of the main text. Fig. $1, Eq. (S1), etc. are unique to
+the supplementary information.
+
+In order to infer the three governing parameters in Eqs. (1) and (2), we conduct mass and solute
+balances around three control volumes within Fig. 1, the diafiltrate reservoir, the stirred cell, and the
+permeate. By assuming Fig. 1 represents a closed system, where the solution density is invariant to the
+salt concentration, the mass exiting the diafiltrate reservoir must be equal to the mass of water permeating
+
+through the membrane, Eq. (S1).
+
+dma
+dt
+
+where mq is the mass of the diafiltrate reservoir, A, is the membrane area and p is the density of the
+
+= —-AmnpJw (S1)
+
+solution. As the diafiltrate concentration is defined before the experiment begins and nothing enters the
+diafiltrate reservoir, the diafiltrate concentration remains constant during each experiment, Eq. (S2).
+dcg
+— =0 S2
+Tt (S2)
+Within our second control volume, the stirred cell, we enforce a constant volume system, i.e., Eq. (S3),
+by experimentally ensuring the volumetric flow rate of diafiltrate into the stirred cell is equal to the flow
+
+rate of the permeate across the membrane.
+
+dm
+—t_9
+dt
+
+The solute within the stirred cell is modeled by finding the difference between the solute entering (ie.,
+
+(S3)
+
+from the diafiltrate) and the solute transported across the membrane, Eq. (54). The left hand side of Eq.
+(S4) can be simplified by applying the product rule and substituting in Eq. (S3). This provides Eq. (5)
+
+which describes the changing concentration within the stirred cell.
+
+d(cemf)
+
+lcorresponding author: wphillip@nd.edu
+
+SI-1

@@ -1,0 +1,22 @@
+Title:           DATA: Diafiltration Apparatus for high-Throughput Analysis
+Subject:         Journal of Membrane Science, 641 (2022) 119743. doi:10.1016/j.memsci.2021.119743
+Keywords:        Diafiltration,Nanofiltration,Parameter estimation,High throughput experimentation,Model calibration
+Author:          Jonathan A. Ouimet
+Creator:         Elsevier
+Producer:        Acrobat Distiller 8.1.0 (Windows)
+CreationDate:    Mon Nov  1 12:29:40 2021 EDT
+ModDate:         Mon Nov  1 16:24:43 2021 EDT
+Custom Metadata: yes
+Metadata Stream: yes
+Tagged:          no
+UserProperties:  no
+Suspects:        no
+Form:            none
+JavaScript:      no
+Pages:           12
+Encrypted:       no
+Page size:       595.276 x 793.701 pts
+Page rot:        0
+File size:       2490797 bytes
+Optimized:       yes
+PDF version:     1.7

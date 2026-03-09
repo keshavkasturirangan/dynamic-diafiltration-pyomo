@@ -1,0 +1,46 @@
+J.A. Ouimet et al.                                                                                                                    Journal of Membrane Science 641 (2022) 119743
+
+
+
+
+Fig. 2. Mass versus time data points from filtration (A) and diafiltration (C) experiments are compared to computational predictions, represented by the solid lines. Mass predictions
+are obtained from Eq. (1) and (S8) utilizing the model M1 parameters for membrane A from Tables 1 and 2. Experimental retentate concentrations (purple squares), measured by a
+conductivity probe, and permeate vial concentrations (blue squares), measured using ICP-OES, for filtration (B) and diafiltration (D) experiments are plotted against computational
+predictions from Eqs. (5) and (6), respectively. The red triangles within panels B and D, calculated using (S8), correspond to discrete predicted vial concentrations while the red
+line represents the continuous holdup concentration. (For interpretation of the references to color in this figure legend, the reader is referred to the web version of this article.)
+
+
+coefficient can be related to the model parameters through a series of                        or greater amount of information five times more quickly than sev-
+substitutions, Eq. (9).                                                                       eral filtration experiments. Table S1 presents a full comparison of
+                                                                 𝐵                            the time requirements for a representative set of filtration and di-
+      𝑐𝑝 𝐽𝑠       𝐵                                             𝐿𝑝 𝛥𝑃
+𝑆=    =        =       (1 − 𝑆)                  ⟺       𝑆=                          (9)       afiltration experiments. By combining high-throughput data collection
+   𝑐𝑓   𝐽𝑤 𝑐 𝑓   𝐿𝑝 𝛥𝑃                                        1 + 𝐿 𝐵𝛥𝑃                       and robust computational analytics, DATA is well suited to help ad-
+                                                                    𝑝
+                                                                                              dress critical knowledge gaps related to the interfacial phenomena
+    In practice, the experiment may be limited by the solubility of the
+solute or the osmotic pressure of the feed solution. Nevertheless, the                        and multi-component interactions that govern membrane separation
+estimate is useful as it allows the experimental operations to be tailored                    processes [9].
+such that the retentate concentration data are spaced evenly over a
+specified region of interest.
+    The purple squares within Fig. 2D correspond to the concentration                         4.3. Computational modeling regresses governing membrane parameters
+of the retentate over the course of a diafiltration experiment. By starting
+at a low feed concentration (i.e., 10 mM) and dosing in a high concen-
+tration diafiltrate (i.e., 80 mM) the data points are spaced evenly over a                    4.3.1. Computational predictions match experimental results
+60 mM range. An effect of this wider range of retentate concentrations                            The experimental mass, permeate concentration, and retentate con-
+manifests in Fig. 2C, which presents the experimental permeate mass                           centration data were used to characterize membrane performance in
+vs time data. In particular, the slope of the mass vs time data decreases                     terms of a model based on lumped parameters, i.e., the hydraulic
+throughout the experiment due to the increase in the osmotic pressure                         permeability, the reflection coefficient, and the solute permeability
+of the retentate. The sudden drops in the mass data correspond to a vial
+                                                                                              coefficient. These parameters are estimated using weighted nonlin-
+switch where permeate samples are collected for further analysis by
+                                                                                              ear regression shown in Eq. (10). Here each set of data (i.e., mass,
+ICP-OES. The permeate concentrations are presented in Fig. 2D as blue
+squares. Over the wider range of concentrations examined, the percent                         permeate, retentate) were normalized by the measurement precision
+rejection for each vial is still consistent with the reported rejection of                    (i.e., 𝑠𝑚𝑣 = 0.01 g, 𝑠𝑐𝑣 ,𝑖 = 3.0% ⋅ 𝑐𝑣,𝑖 , 𝑠𝑐𝑓 ,𝑖 = 0.3% ⋅ 𝑐𝑓 ,𝑖 ) squared and
+70% [49].                                                                                     the total number of measurements in the vial (i.e., 𝑁𝑚𝑣 ,𝑖 is 70 to 500,
+    A critical benefit of the diafiltration apparatus is captured graph-                      𝑁𝑐𝑣 ,𝑖 is 1, 𝑁𝑐𝑓 ,𝑖 is 0 (omitted) to 3, depending on the experiment). For
+ically in Fig. 3. One diafiltration experiment can provide an equal                           example, the mass measurement 𝑚𝑣,𝑖 was normalized by the weight
+
+                                                                                          6
+

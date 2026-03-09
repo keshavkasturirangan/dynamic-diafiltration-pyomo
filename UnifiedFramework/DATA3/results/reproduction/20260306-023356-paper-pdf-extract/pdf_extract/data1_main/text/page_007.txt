@@ -1,0 +1,93 @@
+J.A. Ouimet et al.                                                                                                                              Journal of Membrane Science 641 (2022) 119743
+
+                                Table 1
+                                Filtration experiments for three membranes (i.e., Membranes A, B, C) were conducted. The hydraulic permeability, solute
+                                permeability coefficient, and the reflection coefficient for two different models (with concentration polarization & without
+                                concentration polarization) and two data set variations (data with an inline conductivity sensor & data encompassing only the
+                                initial and final retentate measurements) are presented. Predictions within rows labeled M1 include concentration polarization
+                                and the inline conductivity probe measurements. The regressed parameters from rows labeled M2 use a reduced data set
+                                which excludes the semi-continuous retentate data. The M3 predictions evaluate a model in which the inline conductivity
+                                measurements are used yet concentration polarization is knowingly withheld. The M4 predictions use the reduced data set and
+                                do not include concentration polarization. Comparisons of the squared residuals should only be drawn between experiments
+                                with same number of data points (i.e., M1 to M3, and M2 to M4).
+                                                  Membrane   Model    𝐿𝑝                      𝐵                𝜎               Mass        Permeate    Retentate
+                                                                                                                               Objective   Objective   Objective
+                                                                           −2   −1     −1              −1
+                                                                      L m       h    bar      μ m s            Dimensionless   g2          mM2         mM2
+                                                             M1       4.37                    0.67             1               1.02E−03    2.96E−03    3.35E−04
+                                                             M2       4.30                    0.67             0.83            1.01E−03    2.87E−03    5.51E−05
+                                                  A
+                                                             M3       4.32                    0.79             1               1.03E−03    2.97E−03    3.55E−04
+                                                             M4       4.16                    0.79             0.48            1.03E−03    2.74E−03    5.43E−05
+                                                             M1       4.45                    0.78             1               1.69E−03    8.19E−03    5.16E−04
+                                 Filtration                  M2       4.33                    0.78             0.62            1.78E−03    7.95E−03    1.74E−04
+                                                  B
+                                                             M3       4.40                    0.91             1               1.70E−03    8.22E−03    5.21E−04
+                                                             M4       4.17                    0.92             0.18            1.82E−03    7.63E−03    1.72E−04
+                                                             M1       3.18                    0.31             0.19            7.51E−04    4.21E−03    1.61E−04
+                                                             M2       3.41                    0.31             1.00            7.16E−04    4.31E−03    1.76E−05
+                                                  C
+                                                             M3       3.13                    0.35             0.00            7.59E−04    4.19E−03    1.55E−04
+                                                             M4       3.38                    0.35             1.00            7.21E−04    4.31E−03    1.76E−05
+
+
+
+                                                                                                            values were identified from experimental designs that were informed
+                                                                                                            by an iterative feedback loop between data analytics and instrumenta-
+                                                                                                            tion capabilities. The solid lines within Fig. 2 represent computational
+                                                                                                            predictions from the fully calibrated model. The strong agreement be-
+                                                                                                            tween model and experiment in conjunction with the self-consistent na-
+                                                                                                            ture of the transport coefficients demonstrate the utility of integrating
+                                                                                                            statistical analyses and DATA.
+
+                                                                                                            4.3.2. High concentration experiments elucidate the reflection coefficient
+                                                                                                                Filtration experiments enable the estimation of the solute perme-
+                                                                                                            ability and hydraulic permeability coefficients yet are incapable of
+                                                                                                            identifying the reflection coefficient. Although the model predictions in
+                                                                                                            Figs. 2A, 2B match the experimental data well, this is driven entirely
+                                                                                                            by the estimates of 𝐿𝑝 and 𝐵. Table 1 shows that while the reflection
+                                                                                                            coefficient estimate is widely dependent on the data set, the value
+                                                                                                            of the reflection coefficient utilized does not affect the quality of the
+                                                                                                            computational fit.
+                                                                                                                The sensitivity analyses in Fig. 4A further demonstrates that the
+                                                                                                            model predictions for the mass, permeate concentration, and retentate
+                                                                                                            concentration are invariant to large perturbations in the reflection
+Fig. 3. The phase space of retentate concentrations and permeate concentrations                             coefficient. Computational predictions assuming reflection coefficient
+explored by filtration and diafiltration experiments. Every color corresponds to a                          values of 0.1, 0.5 and 0.9 resulted in indistinguishable, overlapping
+unique experiment. Filtration experiments are represented by triangular data points
+and diafiltration experiments are represented by square data points. Diafiltration
+                                                                                                            curves. Specifically, Fig. 4A displays the final permeate concentration
+experiments were conducted at an initial feed concentration of 15 mM KCl and a diafil-                      is 1.1 mM KCl for any reflection coefficient value between 0.1 and 0.9.
+trate concentration of 80 mM KCl. The gray squares present diafiltration experiments                        Likewise, the final retentate concentration only varies by 0.1 mM KCl
+for Membrane A. The brown and pink squares correspond to duplicate diafiltration                            when the reflection coefficient is adjusted from 0.1 to 0.9. The log
+experiments for Membrane D. Five filtration experiments were run at varying feed
+                                                                                                            transformed residual squared contours of the hydraulic permeability
+concentration ranging from 1 mM KCl to 75 mM KCl. The low concentration filtration
+experiments conducted at 1 mM (green triangles) and 5 mM (purple triangles) KCl
+                                                                                                            against the reflection coefficient presented in Fig. S5 (i.e., 𝐿𝑝 vs. 𝜎) also
+each include 6 data points. (For interpretation of the references to color in this figure                   confirm that the model is insensitive to the reflection coefficient. These
+legend, the reader is referred to the web version of this article.)                                         contours were generated using a 2-D grid search in which predictions
+                                                                                                            are generated for all combinations of the two parameters. For example,
+                                                                                                            Fig. S5 searches over the 𝐿𝑝 and 𝜎 parameters while keeping the
+𝑤𝑚𝑣 ,𝑖 = (𝑠2𝑚 𝑁𝑚𝑣 ,𝑖 )−1 .                                                                                  solute permeability coefficient constant. Likewise, Fig. S6 searches over
+               𝑣
+                                                                                                            𝐿𝑝 and 𝐵 while keeping 𝜎 constant. Subsequently, comparing the
+                   ∑         (              )2
+𝜃̂ = arg min                                                                                                predictions and experimental data allows for the residual squared error
+           𝜃
+                       𝑤𝑚𝑣 ,𝑖 𝑚𝑣,𝑖 − 𝑚̂ 𝑣,𝑖                                                                                  ∑ (            )2
+                   𝑖                                                                                        (e.g., for mass: 𝑖 𝑚𝑣,𝑖 − 𝑚̂ 𝑣,𝑖 ) to be calculated. The log transformed
+                   ∑         (             )2
+            +          𝑤𝑐𝑣 ,𝑗 𝑐𝑣,𝑗 − 𝑐̂𝑣,𝑗                                                                  residual values are then plotted to visualize the sensitivity as a function
+                                                                                            (10)
+                   𝑗                                                                                        of the parameter estimates. These grid searches are conducted for
+                   ∑         (               )2                                                             each type of data collected (i.e., mass, permeate concentration, and
+            +          𝑤𝑐𝑓 ,𝑘 𝑐𝑓 ,𝑘 − 𝑐̂𝑓 ,𝑘
+                   𝑘
+                                                                                                            retentate concentration). The sections of the contour that display a
+                                                                                                            minima correspond to the optimal parameter combination that best
+   The best fit parameters for filtration and diafiltration experiments                                     fits the experimental data. Consequently, the horizontal iso-residual
+are reported in Tables 1 and 2, respectively. As discussed below, these                                     contours in Fig. S5 indicate that, at the optimal hydraulic permeability,
+
+                                                                                                   7
+

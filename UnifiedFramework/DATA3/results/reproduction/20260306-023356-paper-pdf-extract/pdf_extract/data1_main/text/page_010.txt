@@ -1,0 +1,42 @@
+J.A. Ouimet et al.                                                                                                              Journal of Membrane Science 641 (2022) 119743
+
+
+
+
+Fig. 5. Residual squared contours comparing the reflection coefficient and hydraulic permeability for diafiltration experiments. Two different models (with concentration
+polarization & without concentration polarization) and two data set variations (data with an inline conductivity sensor & data encompassing only the initial and final in-situ
+retentate measurements) are evaluated. The model used to generate the contours of panel A includes concentration polarization phenomena with the inline conductivity probe
+measurements. The residual squared contours of panel B were generated using a reduced data set which excludes the semi-continuous retentate data. Panel C contours evaluate a
+separate model in which the inline conductivity measurements are used yet concentration polarization is not accounted for.
+
+
+
+this effort is extended to study other membrane systems, two situa-                       the solute-membrane interaction strength and corresponding transport
+tions may arise. First, several candidate models capable of detailing                     mechanism.
+transport and interfacial phenomena through a particular membrane
+may exist but there is ambiguity regarding which model best describes
+the system. In this instance, a set of experiments can be designed by
+                                                                                          CRediT authorship contribution statement
+applying model discrimination criteria from MBDoE. By being able to
+discriminate between the series of candidate models, researchers can
+gain insights into which molecular characteristics should be modified
+                                                                                              Jonathan A. Ouimet: Conceptualization, Methodology, Investiga-
+to enhance membrane performance. Alternatively, models that capture
+the concentration-dependent behavior of a system may not exist. In                        tion, Formal analysis, Visualization, Writing – original draft. Xinhong
+this case, the framework would need to be modified. For example,                          Liu: Conceptualization, Methodology, Software, Formal analysis, Visu-
+transport parameters could be regressed for the individual permeate                       alization, Writing – original draft. David J. Brown: Conceptualization,
+vials. These vial-specific parameters can be presented as a function                      Methodology, Investigation, Writing – review & editing. Elvis A. Eu-
+of the average solute concentration within the stirred cell, which                        gene: Conceptualization, Methodology, Software, Writing – review &
+is measured during sample collection using the inline conductivity                        editing. Tylar Popps: Data curation, Formal analysis, Writing – review
+probe. This analysis provides concentration dependent parameters that
+                                                                                          & editing. Zachary W. Muetzel: Investigation, Formal analysis, Writ-
+can be fit to complex relationships and related to specific membrane
+                                                                                          ing – review & editing. Alexander W. Dowling: Conceptualization,
+properties (e.g., surface charge). When functionalized with specific lig-
+ands (e.g., diamines), membranes have been shown to exhibit concen-                       Software, Writing – review & editing, Supervision, Project administra-
+tration dependent transport properties [55,56]. Future developments                       tion, Funding acquisition. William A. Phillip: Conceptualization, Writ-
+will focus on studying ligand solute interactions within molecularly                      ing – review & editing, Supervision, Project administration, Funding
+engineered membranes, thereby elucidating the relationship between                        acquisition.
+
+                                                                                     10
+

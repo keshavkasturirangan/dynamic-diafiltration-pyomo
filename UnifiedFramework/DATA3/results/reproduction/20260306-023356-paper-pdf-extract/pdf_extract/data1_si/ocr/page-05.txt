@@ -1,0 +1,28 @@
+Table S1: The time required to characterize a membrane over the phase space of interest (i.e., 5 mM - 80 mM) for filtration
+and diafiltration experiments are compared. Approximately 5 mL of DI water were run through the membranes before each
+experiment. Filtration experiments were run at 30% - 40% recovery with the inline conductivity probe; a total of 9 samples
+were collected from each experiment. Within the diafiltration experiments, an 80 mM diafiltrate concentration was used and a
+total of 13 samples were collected. The ICP-OES preparation and run time calculations were determined from the number of
+samples collected within the experiment. The analysis conducted consists of mass balances to ensure that all the solute entering
+the stirred cell was accounted for within the final retentate and permeate samples. While one diafiltration experiment covers
+the entire concentration range of interest, it would require approximately 10 filtration experiments to obtain an equal amount
+
+of information.
+
+Filtration and Diafiltration Time Comparison
+
+Filtration Diafiltration
+
+Avg. Samples Collected: - 9 13
+Avg. Permeated Mass: gram 3.8 10.8
+Experimental Set-up Time: minute 20 20
+Avg. Experiment Run Time: minute 40 213
+Membrane Rinse/Wash: minute 60 60
+Data Analysis (ICP) Prep. Time: minute 36 52
+ICP Run Time: minute 67 79
+Long Hand Analysis/Balances: minute 60 60
+Experimental Time: minute 283 484
+Phase Space Consideration: experiment 10 1
+Total Time: minute 2830 A484
+
+SI-5

@@ -1,0 +1,72 @@
+J.A. Ouimet et al.                                                                                                    Journal of Membrane Science 641 (2022) 119743
+
+
+varied reflection coefficient values diverge, is determined by the value            result in low permeate concentrations. For membranes that reject dis-
+of the osmotic pressure relative to the applied pressure.                           solved species, the solute is retained in the solution above the mem-
+    The threshold can be reached by modulating the retentate con-                   brane leading the retentate concentration to increase throughout the
+centration and applied pressure. Within filtration experiments, the                 course of the experiment. In contrast, materials that act as sorbents
+retentate concentration is controlled by the initial feed concentration.            reduce the retentate concentration while maintaining low permeate
+For diafiltration experiments, the retentate concentration is modulated             concentrations. As such, it is the distinct behavior of the retentate
+by the diafiltrate concentration. The contour maps in Fig. S7 highlight             concentration that allows the underlying mechanism to be identified.
+the experimental conditions necessary for filtration and diafiltration              In the experiments reported here, the retentate concentration measured
+experiments to differentiate among reflection coefficient values that               using the inline probe increases. Moreover, the retentate concentration
+exhibit a 0.1 difference from one another. Specifically, Fig. S7A exam-             calculated from the permeate concentration measurements and a mass
+ines filtration experiment data while Fig. S7B, S7C, and S7D examine                balance, shown as the green circles in Fig. S2B, agree well with the in-
+data presented at the end of the 1st , 5th , and 10th vial of a diafiltration       line measurements. This observation affirms that the NF90 membranes
+experiment, respectively. The lower right portion of the graphs shaded              remove KCl through a rejection-based mechanism. While, based on
+in gray corresponds to systems in which the water flux is equal to or               prior knowledge, this outcome was expected for the NF90 membranes
+less than zero (i.e., the osmotic pressure is equal to or greater than              such distinctions are not as readily obvious for emerging materials that
+the applied pressure). Measurements are not plausible in this region.               target solute-tailored selectivity [8,15].
+The contour lines show the difference in model predictions normalized
+by the equipment’s precision. Notably, experimental conditions that                 4.3.4. Incorporating concentration polarization improves model predictions
+generate contour values greater than two produce results that are                       Dynamic diafiltration experiments in tandem with data analytics
+capable of distinguishing between reflection coefficients with a differ-            facilitate the direct comparison of various model complexities and
+ence of 0.1 or greater. The sensitivity analysis in Fig. S7A highlights             physical assumptions. For example, Fig. 5A and 5C explores how the
+the importance of capturing the retentate concentration accurately as               residual squared contours change when concentration polarization ef-
+the mass and permeate concentration measurements provide a limited                  fects are knowingly withheld from the modeling framework. As antic-
+amount of information when identifying the true value of the reflection             ipated, the inclusion of concentration polarization provides improved
+coefficient in filtration experiments. This is not the case for diafiltration       estimates for all three model parameters. Moving from 5C to 5A, one
+experiments. After collecting the 5th permeate vial, any experiment                 notices the value of permeate contour lines decreases, this implies
+with a feed concentration of 5 mM KCl conducted with a diafiltrate                  the mathematical model more accurately fits experimental results. In
+concentration greater than 20 mM KCl and operating at an applied                    turn, permeate concentration contours increase the value of the optimal
+pressure greater than 30 psi is capable of identifying reflection coef-             hydraulic permeability prediction. As a result, the 𝐿𝑝 predicted from
+ficients that are 0.1 different. Consequently, diafiltration experiments            the mass, permeate, and retentate contours converge on a unique value
+allow the reflection coefficient to be captured more rapidly and under              and the residual squared objectives (displayed in Table 2) decrease.
+a wider number of operating conditions when compared to filtration                  Additionally, within Fig. 5C, if 𝜎 is less than 0.4, the contour lines
+experiments.                                                                        of Fig. 5C stretch vertically (This is exemplified by following the 0.6
+                                                                                    contour line for the permeate concentration). This subtle change in
+4.3.3. Model parameters converge with the inclusion of an inline conduc-            the contours indicate that, by including concentration polarization, the
+tivity probe                                                                        model predictions become sensitive to the reflection coefficient.
+     Data analytics suggested the addition of an inline conductivity probe              Deployed more broadly, statistical learning frameworks including
+to the diafiltration apparatus to measure the concentration of the solu-            model-based design of experiments [50–53] can guide the develop-
+tion within the stirred cell. The measurements elucidate the path taken             ment of structure–function relationships that are critical to chemically
+from the initial feed concentration to the final retentate concentration,           selective transport mechanisms [33]. Given a model hierarchy [54],
+therefore, providing two key benefits. First, as shown above and in                 described by physics-based models, statistical learning can distinguish
+Fig. 5A and 5B, it aids substantially in identifying a unique value of the          between unknown transport mechanisms that describe the interfa-
+reflection coefficient. Specifically, Fig. 5B presents regression contours          cial phenomena. Furthermore, sensitivity analysis (e.g., contours), as
+in which only the initial feed and final retentate concentrations are used          demonstrated above, help visualize the inherent trade-off that exists
+(i.e., no data from the inline conductivity probe). The local minima                within model parameters and determine whether the data supports the
+within the residual squared contours for the retentate concentration                inclusion of additional transport and thermodynamic phenomena.
+suggests that multiple combinations of the reflection coefficient and hy-
+draulic permeability can fit the data set. This discrepancy is eliminated           5. Conclusions
+in Fig. 5A with the inclusion of the additional retentate concentration
+measurements. The three contours of Fig. 5A now converge to a unique                    Within this study, we demonstrate that a diafiltration apparatus,
+value for the reflection coefficient (i.e., 1 [dimensionless]). When all            designed to modulate the stirred cell concentration over the course of
+data types converge to the same set of parameters, this suggests an                 an experiment, can overcome many of the limitations that are inherent
+accurate model. These findings show an inline conductivity sensor is                to filtration experiments. The incorporation of an inline conductivity
+needed in order to remove the local solutions and accurately elucidate              probe provides key information on the path taken by the retentate
+the reflection coefficient of the membrane. Similar converging trends               concentration, in turn identifying a unique reflection coefficient and
+can be observed for the solute permeability coefficient and hydraulic               differentiating between rejection-based and adsorption-based removal
+permeability coefficient (Fig. 6). Fig. 5A and Fig. 6 suggest that the              processes. Moreover, the coupling of data analytics and instrumentation
+optimal value for the hydraulic permeability is 3.89 L m−2 h−1 bar−1 .              led to the identification of governing membrane parameters five times
+At this 𝐿𝑝 value, all three contours of Fig. 6A, provide an optimal solute          more quickly than traditional techniques. The framework presented
+permeability coefficient of 0.20 μm s−1 .                                           within this study will help differentiate the transport mechanisms
+     Continuous monitoring of the retentate concentration is also ben-              that govern membrane separations, ultimately providing fundamental
+eficial because it provides evidence that the solute is rejected by                 insight on how molecular level changes impact macroscopic system
+the membrane and not removed by adsorptive processes. Distinguish-                  properties. The current framework uses transport coefficients that are
+ing between rejection and adsorption provides critical knowledge for                not concentration dependent. However, future extensions of the ap-
+the development and application of new materials and membranes.                     paratus will seek to study transport through membranes that exhibit
+Rejection-based and adsorption-based separation mechanisms can both                 explicit concentration dependent properties. As the device detailed in
+
+                                                                                9
+

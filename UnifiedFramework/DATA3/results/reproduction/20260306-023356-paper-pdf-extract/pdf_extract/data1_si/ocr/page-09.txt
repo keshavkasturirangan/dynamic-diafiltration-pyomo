@@ -1,0 +1,88 @@
+Mass Permeate Retentate
+
+ger oT gs Se
+. .[-—--16 L L 0.0
+g 6 g 6 § a
+2.0 — ae
+a3 2.4 as a ‘| ——e
+f} re — ' '
+£4 — £4 £4 ee
+2 ——— " " — -10
+£ 3 2.0 £ 3 £ S scat
+a a . . ‘
+2? 2? ——
+fi 12 tl ——— fi
+05.10 15 20 05 10 #15 2.0 05. 10 #215 20
+B [ym - s~*] B [ym + s~*] B [pm -+s~*]
+e 7 = 7 i
+-_ -_ Le
+t + + 06
+§ 6 16— 8 6 & ee
+: 2 |
+: a ss 7 —_=
+' ese — ' t
+<£ : £ <£
+4 _ - 4 £4 _—
+SS ——————$$$_— ae a
+E ! =
+32 2 a2 2 | al
+2 2 |
+rst A2 $1i/ fl
+05. 10 #15 20 05 #10 #15 2.0 05. 10 #215 2.0
+B [um + s~*] B [pm +s] B [ym - s~*]
+
+= 7 = 7 m7
+Q
+6 a6 \ ee
+9 2 2
+5 = : 5 nae” 1.0
+i + — 7 a ———— ‘
+£4 £4 £4 2a Se
+4.5 >
++ —_—= * bE oe
+£ 3 2.0 £ 3: £ 3 ose
+i—— -1.6 e
+a2 a2 - |
+— — —
+1 12 1 1
+if tly ———— of
+0.5 1.0 1.5 2.0 0.5 1.0 1.5 2.0 0.5 1.0 1.5 2.0
+B [ym + s"*] B [um -s~*] B [ym + s~*]
+
+z 7} 1.2—| = 7 = 7
+
+@ 6}—__—_______ 1.6 & 6 &
+
+2 a2 2 0.0
+
+Ss «5 a
+
+p Ee f f
+
+£ eo _ £4 £4 :
+
+¢ —_= = ” a % k 0.0 —
+
+E 2.0 £ E a
+
+J 2--— 71.6 3 2 5 2
+
+2 2 2
+
+-} a f} {Z ——<——_] i} SS res
+
+0.5 1.0 15 2.0 0.5 1.0 15 2.0 0.5 1.0 1.5 2.0
+
+B [ym + s7*] B [ym -s~*] B [pm + s-*]
+
+Fig. S6: Residual squared contours comparing the hydraulic permeability and solute permeability coefficient for of filtration
+experiments. Two different models (with concentration polarization & without concentration polarization) and two data set
+variations (data with an inline conductivity sensor & data encompassing only the initial and final in-situ retentate measurements)
+are evaluated. The model used to generate the contours of panel A includes concentration polarization phenomena with the
+inline conductivity probe measurements. The residual squared contours of panel B uses a reduced data set which excludes the
+semi-continuous retentate data. Panel C contours evaluate a separate model in which the inline conductivity measurements
+are used yet concentration polarization is not accounted for. The contours generated in panel D use the reduced data set and
+
+neglect concentration polarization.
+
+SI-9

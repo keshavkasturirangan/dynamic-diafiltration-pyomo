@@ -1,0 +1,74 @@
+Industrial & Engineering Chemistry Research                                                                                                               pubs.acs.org/IECR                                            Article
+
+                                                                                                                                                parameters while accounting for varying levels of uncertainty
+                                                                                                                                                and data abundance across experimental observations.
+                                                                                                                                                  The uncertainty in the parameter estimates θ̂ is quantified via
+                                                                                                                                                the covariance matrix Vθ̂,60 eq 36:
+
+                                                                                                                                                   V      (Q y T   y
+                                                                                                                                                                       1
+                                                                                                                                                                       Q y) 1 = (Q z T z 1Q z) 1                            (36)
+
+                                                                                                                                                where Qy is the matrix of local sensitivities of the model
+                                                                                                                                                predictions, i.e., partial derivatives of the model predictions with
+                                                                                                                                                respect to each parameter61 evaluated at the parameter estimate
+                                                                                                                                                θ̂. Σy is the covariance matrix of measurement errors, which is
+                                                                                                                                                diagonal under the independence assumption. The covariance
+                                                                                                                                                matrix can also be approximated by the sensitivity matrix of
+                                                                                                                                                scaled residuals with respect to the parameters Qz.
+                                                                                                                                                    Fisher Information Criteria for Parameter Precision.
+                                                                                                                                                We employed Fisher Information Matrix (FIM) analysis to
+                                                                                                                                                determine the most informative experimental conditions to
+                                                                                                                                                improve parameter estimation. The FIM, denoted as M,
+                                                                                                                                                quantifies the amount of information that an experiment
+                                                                                                                                                provides about the model parameters. For a model with
+Figure 4. Model-based data analytics workflow for characterizing                                                                                parameter vector θ, the FIM can be approximated as the inverse
+transport properties of surface-charged membranes.                                                                                              of the covariance matrix,45 eq 37:
+                                                                                                                                                              1
+                                                                                                                                                   M      V                                                                 (37)
+measurements. Specifically, the error, ϵr,i, associated with i-th                                                                                 In MBDoE, the FIM is employed to guide experimental
+observation, yr,i(ti), is described as eq 32:                                                                                                   design by selecting experimental conditions that maximize
+   yr , i (ti) = f (x(ti), u(ti),                                                      ) +         r ,i ,   r ,i   (0, sr2, i)
+                   ´ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖ ÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÖÆ
+                                                 yr , i (ti)
+                                                                                                                                 (32)
+where (0, sr2, i) denotes a normal distribution with mean zero
+and variance s2r,i. The nonconstant variance is incorporated into
+the model by scaling the data or applying weights in the WLS
+method. In this study, the variance of mass data is assumed
+constant, based on instrument precision, (0.01 g)2, while the
+variance for concentration measurements is estimated from the
+instrument calibration curve. For instance, we assume that the                                                                                  Figure 5. Geometrical interpretation of the FIM metrics with
+standard deviation of the concentration measurement error is                                                                                    confidence ellipsoid (adapted from Franceschini and Macchietto).45
+proportional to the measurement magnitude, eq 33:                                                                                               The black dot represents parameter estimates θ̂, and the blue area
+                                                                                                                                                represents the confidence region of the parameter (in 2-D). A-
+   sr2, i =    2 2
+                yr , i                                                                                                           (33)           optimality evaluates the enclosing hyperbox of the confidence ellipsoid,
+                                                                                                                                                the gray dot-dashed area in 2-D. D-optimality evaluates the ellipsoid
+where α is a proportionality constant, 3% for ICP-OES                                                                                           hypervolume. E-optimality evaluates the major axis of the ellipsoid,
+concentration measurements, and 0.3% for concentration                                                                                          represented in a red dashed arrow.
+measurements via conductivity probe.
+  The scaled residuals zr,i are computed by dividing the residuals                                                                              specific metrics of M. Figure 5 illustrates the three most common
+by their corresponding assumed standard deviations s̃r,i, eq 34:                                                                                optimality criteria based on FIM45:
+              yr , i              yr , i                                                                                                           • A-optimal designs aim to maximize the trace of the FIM,
+   zr , i =                                                                                                                                            max tr(M), which approximately minimizes the average
+                       sr , i                                                                                                    (34)                  variance of the parameter estimates. This criterion is
+  The WLS objective function for nonlinear parameter                                                                                                   useful when the goal is to reduce the overall uncertainty
+estimation is then formulated as the sum of squared scaled                                                                                             across all parameters.
+residuals, normalized by the number of observations nr for each                                                                                    • D-optimal designs seek to maximize the determinant of
+response type r, eq 35:                                                                                                                                the FIM, max det(M), which corresponds to minimizing
+                                                                                                                                                       the volume (or hypervolume for higher dimensions in θ)
+                                                                        R                      n
+                                                                    1 r 2                                                                              of the parameter confidence region. It ensures that the
+      = arg min lb                                                        zr , i                                                                       parameter estimates are as precise as possible by
+                                                            ub
+                                                                   n
+                                                               r= 1 r i=1                                                        (35)
+                                                                                                                                                       maximizing the overall information content of the
+In this formulation, membrane property parameters are                                                                                                  experiment.
+constrained within specific bounds as θlb and θub: Lp ∈ [0.5,                                                                                      • E-optimal designs maximize the smallest eigenvalue of
+50] L·m−2·h−1·bar−1, B ∈ [0, 30] μm·s−1, and σ ∈ [0, 1].                                                                                               the FIM, max λmin(M), ensuring that the worst-case
+Minimizing objective function eq 35 allows for the estimation of                                                                                       parameter estimate (corresponding to the longest axis in
+                                                                                                                                        12118                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                                                                                       Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

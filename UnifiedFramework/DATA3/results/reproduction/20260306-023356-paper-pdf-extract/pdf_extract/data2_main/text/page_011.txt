@@ -1,0 +1,72 @@
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                       Article
+
+Table 3. AIC Ranking with a Diafiltration Experiment Conducted in the Concentrating Regimea
+                          B form                      WLS objective              complexity k            Δ            Akaike weights                 rank
+    B = const.                                           94.91                       7                144.16           2.67 × 10−32                    5
+    Bi = const.                                          74.47                       16               −117.95
+    B = Jw ∑i∈Iβiciin,f            I = {0}               108.42                      7                317.93           4.92 × 10−70                    7
+                                   I = {0, − 0.5}        95.06                       8                94.93            1.30 × 10−21                    4
+                                   I = {0, 0.5}          93.56                       8                28.11            4.23 × 10−7                     3
+                                   I = {0, 1}            92.62                       8                0                0.54                            1
+                                   I = {0, 1, 2}         89.83                       9                0.30             0.46                            2
+                                   I = {0, 1, 2, 3}      83.28                       10               147.41           5.25 × 10−33                    6
+a
+ Bi = const. corresponds to discrete B value for each vial collection.
+
+at low retentate concentrations. For charged membranes,                          region. The model performance further reinforces lag mode as a
+electrostatics will have the greatest effect in low ionic-strength               preferred startup mode for diafiltration.
+solutions; therefore, we hypothesize that collecting information                    SI Figures S2−S6 provide additional diafiltration experiments
+at low retentate concentrations, as is accomplished by running a                 validating the empirical correlation for the apparent solute
+lag experiment, is particularly important in characterizing                      permeability coefficient based on lag mode results shown in
+membrane transport. Consequently, the lag mode, which                            Table 2. B(Jw, cin,f) aligns well with the experimental mass and
+features fewer parameters, lower parameter correlation, and                      concentration measurements, with bias in permeate prediction
+reduced uncertainties, is the preferred experimental operation                   observed only at low concentrations and low pressures. This bias
+for membrane characterization.                                                   may be due to limitations where the diffusive rate becomes faster
+    Figure 6 presents the three types of measurements from                       than the convective rate in low-pressure experiments or in the
+diafiltration experiments. The red dots represent the mass of                    assumption of a constant reflection coefficient, σ, used in the
+permeate collected in each scintillation vial (mv), the magenta                  model. In surface-charged membranes such as the NF270, the
+squares show the concentration of the retentate in the stirred cell              reflection coefficient may also vary with operating conditions
+(cf), and the cyan squares depict the final concentration of                     due to changes in electrostatic interactions with ionic strength.
+permeate in each vial (cv), with the time delay corrected for the                At low concentrations, stronger electrostatic repulsion enhances
+filling of the connecting tube (as described in the Mathematical                 solute rejection, while at higher concentrations, charge shielding
+Modeling section). The solid lines in Figure 6 are continuous                    reduces the influence of the membrane surface charge.
+predictions from the calibrated models for state variables mv                    Extending the model to include a concentration-dependent
+(blue in Figure 6A,C), cf (green in Figure 6B,E), ch (red in Figure              reflection coefficient could provide more accurate predictions,
+6B,E) and mf (blue in Figure 6C,F). Only the predictions of cv at                particularly for low-concentration regions, by capturing non-
+the end of each vial collection were plotted to facilitate                       linear rejection behavior and dynamic solute-membrane
+comparison with post-experiment ICP-OES measurements.                            interactions. Incorporating more flexible membrane parameter
+Figure 6A,B shows data from an experiment conducted in lag                       models is an important area for future work, especially when
+                                                                                 scaling up to larger systems or working with more complex
+mode. Here, the model predictions closely match all three types
+                                                                                 membrane structures.
+of experimental data, particularly in capturing the time-varying
+                                                                                    Diafiltration in the Diluting Regime Improves In-
+concentrations. In Figure 6C, the mass of the feed solution in the
+                                                                                 formation Gain for Model Discrimination. Prior to fitting a
+stirred cell, mf, initially decreases as no diafiltrate enters
+                                                                                 concentration-dependent solute permeability model, such as eqs
+(resembling a filtration experiment). After the lag, diafiltrate                 30 and 31, we estimated discrete solute permeability values for
+begins to enter, interrupting the decrease in mf. The later slight               each permeate vial collection during the experiments. The
+increase in mf is due to air leakage. Next, for overflow mode, as                estimates revealed broadly spread B values ranging between 4
+shown by the concentration data in Figure 6D,E, the model                        and 30 μm·s−1 (30 μm·s−1 was set as the upper bound) across
+overestimates the vial concentration at the beginning and                        different ranges between 15 and 120 mM of feed-side solution-
+underestimates it toward the end of the experiment. In Figure                    membrane interface concentrations, as shown in SI Figure S7A.
+6F, the rapid increase in the feed solution mass during the first                To investigate the potential impact of water flux Jw on solute
+few seconds reflects the rapid influx of diafiltrate. However, the               permeability, we normalized the solute fluxes Js by Jw and plotted
+∼2 g overflow mass prediction overshoots the actual volume of                    them against the interface concentration in SI Figure S7B. The
+the bolus, which could be attributed to a slight delay in the                    resulting trends converged toward a common concentration-
+conductivity probe response or incomplete solution mixing                        dependent relationship, indicating that solute permeability is
+during overflow. The overflow process may have been too rapid                    influenced by both water flux Jw and feed-side concentration.
+for the well-mixed feed assumption to hold, introducing errors in                Based on this observation and the Taylor series expansion in eq
+measuring retentate concentration and determining the time cut                   29, we postulated concentration-dependent permeability
+for overflow (i.e., tF). The parameter estimates for β0 and β1 in                relationships eq 31, and employed the AIC to compare
+the overflow mode were slightly lower than those in the lag                      alternative models.
+mode, whose estimates with lower uncertainties would be more                        Table 3 presents the AIC rankings for various forms of B, eq
+reliable in describing the concentration-dependent solute                        31, fitted to data from a lag mode diafiltration experiment
+permeability with higher solute flux across the membrane. In                     conducted in the concentrating regime (Figure 6A,B). Although
+Figure 6B,E, the sharp increase in the red lines at time 0 indicates             more complex models provide a better fit in terms of the WLS
+that the diafiltration model is robust, especially with the                      objective, their higher complexity leads to a penalty in the AIC
+initialization of the direct permeate concentration in the holdup                ranking. The model that assigns a discrete B value to each vial
+                                                                         12121                                          https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                    Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

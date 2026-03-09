@@ -1,0 +1,11 @@
+Figure S7: (A) Discrete B values fitted for each vial collection in diafiltration experiments,
+plotted against the feed-side solution-membrane interface concentration. (B) Solute flux
+normalized by water flux (Js /Jw ) plotted against interface concentration. Diafiltration ex-
+periment conditions are provided in Figure 6A and B for A.0, and in Figure S2-S6 for the
+remaining cases.
+
+
+
+
+                                            SI-18
+

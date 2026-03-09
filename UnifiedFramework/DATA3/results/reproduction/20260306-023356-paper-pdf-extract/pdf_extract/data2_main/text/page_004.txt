@@ -1,0 +1,70 @@
+Industrial & Engineering Chemistry Research                                                     pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 3. Time corrections considered for the permeate solution collected in scintillation vials. The diafiltration apparatus is subject to a delay in the
+time associated with the collection of permeate in the scintillation vial due to the tube filling with mass mtb. tV − tH represents the time delay for the first
+drop of permeate collected in the first vial. Accounting for this delay allows the permeate and retentate solution concentrations to be correlated
+correctly over the course of the experiment.
+
+   Startup Modes: Lag and Overflow. Ideally, during                                   stirred cell marks the end of the overflow phase at time tF. In
+startup, the increase in pressure at t0 brings the diafiltrate                        overflow mode, for t0 ≤ t < tF, it is assumed that the diafiltrate
+exactly to the entrance of the stirred cell. To achieve this, the air                 bolus leaves the tube and enters the stirred cell at a constant rate
+in the tubing between the diafiltrate tank and the stirred cell (vtb,d                V̇ o, while permeation also occurs, represented by eqs 4 and 5:
+∼ 35 mL) and the air in the head space of the stirred cell (vhead ∼
+                                                                                         dmd
+7 mL) needs to be compress into the head of the stirred cell. If                             = Vo
+the experimental operating pressure is defined and it is assumed                          dt                                                                        (4)
+that the gas behaves ideally, the initial pressure that the tubing                       dm f        dmd
+must be pressurized to (ΔPi) can be calculated from the desired                               =                A m Jw =      Vo         A m Jw
+operating pressure (ΔPt) in eq 154:                                                       dt          dt                                                            (5)
+
+                v head              7            1                                    Afterward, the diafiltrate continues to enter the stirred cell at a
+     Pi =                 Pt               Pt =     Pt                                slower, steady rate for the remainder of the experiment.
+           v head + vtb,d       7 + 35           6                (1)                    Ideally, following the startup, the diafiltrate entering the
+   Pressurization of the tubing between the diafiltrate tank and                      stirred cell is equal to the permeate leaving the stirred cell. Albeit,
+stirred cell is accomplished through a series of valves. After the                    if the connection between the head and the body of the stirred
+initial pressurization of the tubing, the diafiltrate tank is                         cell is not airtight, air may slowly leak out. If this occurs,
+pressurized to the operating pressure ΔPt. The moment the                             diafiltrate enters the stirred cell and the solution volume in the
+applied pressure reaches the desired operating pressure, the                          stirred cell gradually increases in response to the changing air
+diafiltration experiment has begun and the dynamic modeling                           volume. We assume that the mass of the feed solution, mf,
+begins, marked as time t0. In practice, hitting the initial and                       changes at a constant rate, V̇ , throughout the experiment. V̇ can
+operating pressure precisely is difficult. As such, experiments are                   be estimated using the initial and final values of mf in eq 6.
+run in either lag mode or overflow mode as depicted in Figure 2.                      Therefore, for t ≥ tL or t ≥ tF:
+   In the lag mode, the initial system pressure is too large and the                     dm f        dmd
+desired operating pressure is not sufficient to bring the diafiltrate                         =                A m Jw = V
+                                                                                          dt          dt                                                            (6)
+to the entrance of the stirred cell. As such, this condition initially
+emulates a filtration experiment: solution permeates through the                      which implies eq 7:
+membrane, leading to a decrease in feed volume and an increase
+                                                                                         dmd
+in the feed concentration within the stirred cell. Therefore, for t0                         =      V      A m Jw
+≤ t < tL, the mass of the diafiltrate, md, remains constant, while                        dt                                                                        (7)
+the mass of the feed solution, mf, decreases due to the                                 The general solute balance in the stirred cell is given by eq 8:
+transmembrane flux, expressed by eqs 2 and 3:
+                                                                                         d(cf m f )           dmd
+    dmd                                                                                             =    cd         A m Js
+        =0                                                                                 dt                  dt                                                   (8)
+     dt                                                                 (2)
+                                                                                      which leads to the following expression for the change in feed
+    dm f        dmd                                                                   concentration, cf, in eq 9:
+         =                A m Jw =      A m Jw
+     dt          dt                                                     (3)
+                                                                                         dc f   1 ij    dm                             dmf yz
+where Am is the membrane area and ρ is the density of the                                     =    jj cd d          A m Js        cf        zz
+                                                                                         dt     mf k     dt                             dt {                        (9)
+solution. As the volume of the solution in the stirred cell
+decreases due to permeation, the volume of the air in the tube                           Time Correction for Permeate. Our model of the
+decreases. Once the air in the tube is incorporated into the                          experimental system can also be refined on the permeate side
+stirred cell, the first drop of diafiltrate enters the stirred cell,                  of the membrane. As illustrated in Figure 1, the holdup volume
+marking the end of the lag phase at time tL. The subsequent                           represents the volume under the membrane where the permeate
+dripping of diafiltrate into the stirred cell causes a steeper change                 accumulates. This volume is modeled as a perfectly mixed
+in the feed concentration, cf.                                                        reservoir.55 The tube connecting the stirred cell to the
+   In the overflow mode, the initial system pressure is too small                     scintillation vial is treated as a plug flow element, where the
+and a bolus of diafiltrate immediately enters the stirred cell. This                  salt solution is well-mixed in the radial direction. As shown in
+overflow of diafiltrate causes a sharp change in the feed                             Figure 3, after time t0, the holdup volume is filled first at tH,
+concentration. The moment the last drop of the bolus enters the                       followed by the tube filling until tV. The time tV marks the
+                                                                              12114                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                             Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

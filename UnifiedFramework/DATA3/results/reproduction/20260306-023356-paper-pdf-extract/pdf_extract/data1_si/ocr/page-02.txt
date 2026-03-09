@@ -1,0 +1,44 @@
+d(crmy) dcs dm
+
+i = mye + cf di (S5)
+des Amp
+
+AFP mP OT ca — Sg 5
+Be = ewe ~ J (5)
+
+The final control volume encompasses the hold up volume, the transfer tube, and the scintillation vial.
+
+Equation (S6) states the permeate mass in this control volume remains constant during each experiment.
+
+dmp
+
+The amount of solute in the hold-up volume is provided by the difference of the solute transported
+through the membrane and the solute collected within the scintillation vial, Eq. (57). Substituting Eq. (7)
+into Eq. (S7) yields Eq. (6).
+
+d(chmn) dmy
+
+=AmnpJs —
+dt p dt Ch (S7)
+dm, dmg
+= —-—_ =An ply 7
+di di p (7)
+dcp, Amp
+{ZT >= a Js _ rdw 6
+Gt = PCI, — endo) (6)
+
+The time dependent concentration of the scintillation vial is expressed by Eq. (8). As described previously,
+
+the product rule, Eq. (S8) is used to derive Eq. (S9) which captures the changing vial concentration.
+
+d(cymy) _ dmy
+
+= > = A a
+TE arma mPJwlh (8)
+d(cymy) dey dmy
+de at ($8)
+dc, dma (¢y — hn) (Cy — Ch)
+ee 8 ON TO = Ay, p Jy S9
+dt dt My p My (89)
+
+SL-2

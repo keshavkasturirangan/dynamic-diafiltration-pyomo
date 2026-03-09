@@ -1,0 +1,15 @@
+Figure S1: The calibration curves used to convert conductivity measurements into the cor-
+responding KCl concentration for the (A) CN0359 conductivity board and (B) for EC Eval-
+Board LFS conductivity board. To enable the CN0359 conductivity board to be compatible
+with the LSF 1107 conductivity probe, the board needed to be modified (i.e., previously
+reported by Muetzel et al. 54 ). To simplify the design, the EC EvalBoard LSF conductivity
+board, which is manufactured by the same company as the probes, is used. The conductiv-
+ity was calculated using, C = GAV −1 , the relationship between the conductivity probe cell
+constant (G = 0.42 cm−1 ), the peak to peak applied current, (A = 1 mA), and the peak to
+peak diﬀerential voltage drop, V .
+
+
+
+
+                                          SI-12
+

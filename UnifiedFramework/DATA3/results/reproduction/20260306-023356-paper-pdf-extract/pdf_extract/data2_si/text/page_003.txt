@@ -1,0 +1,69 @@
+       of measurements becomes:
+                                                )                                          n
+                                                                                                              *
+                                            1                               1 - r
+
+                      ln (L (θ | y r )) = −         nr ln(2π) + nr ln s2r + 2     (yr,i − ŷr,i )2                        (S5)
+                                            2                              sr i=1
+
+
+1220   Equation S5 is derived by substituting si,r = s2r into eq S4.
+          At the maximum log-likelihood estimate (MLE), the necessary condition is:
+
+                                                                       4nr                        2
+                                ∂ ln (L (θ | y r ))   nr                    i=1 (yr,i − ŷr,i )
+                                                    =− +                                              =0                  (S6)
+                                       ∂sr            sr                          s3r
+
+       which gives:
+                                                             n
+                                                         1 -  r
+
+                                                ŝ2r =          (yr,i − ŷr,i )2                                          (S7)
+                                                         nr i=1
+
+       Substituting eq S7 into eq S5 gives:
+                                   )                          )                                *    4nr ✭✭✭✭✭2 *
+           % %         &&                                          1 -
+                                                                        n
+                                                                        r
+                                                                                                           ✭r,i − ŷr,i )
+                             1                                                                        ✭✭(y
+         ln L θ̂ | y r    =−           nr ln(2π) + nr ln                  (yr,i − ŷr,i )2       + 1✭4i nr       ✭ŷ✭✭✭
+                             2                                     nr i=1                             ✭ ✭ ✭ ✭r,i✭−
+                                                                                                           (y         r,i )
+                                                                                                                            2
+                                                                                                   nr   i
+                                   )                          )         n
+                                                                                               *      *
+                               1                       1 -  r
+
+                            =−     nr ln(2π) + nr ln           (yr,i − ŷr,i )2 + nr
+                               2                      nr i=1
+                                 )                         )      nr
+                                                                                       **
+                               1                              1 -
+                            =−     nr (ln(2π) + 1) + nr ln            (yr,i − ŷr,i )2
+                               2                              nr i=1
+                                                                                                                          (S8)
+       In this case, AIC summed over all R types of measurements is
+
+                                 % %      &&
+                 AICconst = −2 ln L θ̂ | y + 2k
+                                                R            R
+                                                                   )           )       n
+                                                                                                             **           (S9)
+                                                -            -                     1 -  r
+
+                            = (ln(2π) + 1)            nr +             nr ln              (yr,i − ŷr,i )2        + 2k
+                                                r=1          r=1
+                                                                                   nr i=1
+
+                      4R
+1225   (ln(2π) + 1)     r=1 nr is a constant term across all models.                    Therefore, under constant errors
+
+
+
+
+                                                              SI-3
+

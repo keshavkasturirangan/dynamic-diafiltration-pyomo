@@ -1,0 +1,85 @@
+       Substituting eqs S8 and S14 into eq S17, we have
+
+                         % %         &&
+           AIC = −2 ln L θ̂ | y + 2k
+                  R1
+                       )                                  )         nr1                       **
+                 -                                              1 -                         2
+               =          nr1 (ln(2π) + 1) + nr1 ln                     (yr ,i − ŷr1 ,i )
+                 r1 =1
+                                                               nr1 i=1 1
+                     R2
+                          )                                    )      nr2                         * nr              *
+                    -                                             1 -        (yr2 ,i − ŷr2 ,i )2     - 2
+
+                 +          nr2 (ln(2π) + 1) + nr2 ln                                 2
+                                                                                                    +     ln yr22 ,i + 2k
+                    r2 =1
+                                                                 n r2 i=1           y r2 ,i           i=1
+                                   R          R
+                                                   )            )       n                          **
+                                 -           -  1
+                                                                    1 -
+                                                                          r1
+
+               = (ln(2π) + 1)         nr +           nr1 ln                   (yr1 ,i − ŷr1 ,i )2
+                                  r=1        r1 =1
+                                                                  nr1 i=1
+                     R2
+                          )        )       nr2                       * nr                   *
+                    -                  1 -      (yr2 ,i − ŷr2 ,i )2         - 2
+
+                 +          nr2 ln                       2
+                                                                        +         ln yr22 ,i + 2k
+                    r2 =1
+                                      n r2 i=1         y r2 ,i               i=1
+                                                                                                                        (S18)
+       Similar to eqs S10 and S16, by dropping constant terms, we have:
+
+                                         R1
+                                                 )      )    nr1                       **
+                                         -             1 -                           2
+                             ∆AIC =          nr1 ln              (yr ,i − ŷr1 ,i )
+                                    r1 =1
+                                                      nr1 i=1 1
+                                         R2
+                                             )        )        nr2                       **
+                                       -                   1 -      (yr2 ,i − ŷr2 ,i )2
+                                    +          nr2 ln                         2
+                                                                                            + 2k
+                                       r2 =1
+                                                         n r 2 i=1
+                                                                            y r 2 ,i
+                                     R
+                                          )         )        nr1                       **                             (S19)
+                                    -  1
+                                                      s̃r1 - (yr1 ,i − ŷr1 ,i )2
+                                                        2
+                                  =          nr1 ln
+                                    r1 =1
+                                                      nr1 i=1           s̃2r1
+                                         R2
+                                             )        )         nr2                      **
+                                       -                 α̃r22 -    (yr2 ,i − ŷr2 ,i )2
+                                    +          nr2 ln                                       + 2k
+                                       r =1
+                                                          nr2 i=1       α̃r22 yr22 ,i
+                                             2
+
+
+
+
+       s̃r1 and α̃r2 represents initial guess for sr1 and αr1 associated with the each type of measure-
+       ments.
+1245      We introduce scaled residuals zr,i are computed by dividing the residuals by their corre-
+       sponding standard deviations that we assumed, s̃:
+
+                                                                yr,t − ŷr,t
+                                                       zr,i =                                                         (S20)
+                                                                    s̃r,i
+
+       where s̃r,i = s̃r for constant errors and s̃r,i = α̃r yr,i for proportional errors. Then eq S19 can
+
+
+                                                                SI-6
+

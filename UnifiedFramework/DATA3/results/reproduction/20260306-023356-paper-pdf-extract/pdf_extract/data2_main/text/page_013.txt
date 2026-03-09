@@ -1,0 +1,39 @@
+Industrial & Engineering Chemistry Research                                                 pubs.acs.org/IECR                                            Article
+
+
+
+
+Figure 7. Plots illustrating the fitting of the convection−diffusion
+model (eq 25) to simulated data from the empirical model (eq 31).
+Solid lines in panels (A) cin,f and ch, (B) Jw, and (C) Js represent
+                                                                                  Figure 8. Mean squared error (A) and partition coefficient correlation
+simulated data from the empirical model for a lag diafiltration
+                                                                                  coefficients h0 (B) and h1 (C) are estimated as a function of Pe.
+experiment. The red dashed line in panel (C) depicts the solute flux
+                                                                                  Standard errors for these regressed parameters are smaller than the line
+Js obtained from the convection-diffusion model fit with respect to the
+                                                                                  thickness. We caution against overinterpreting these standard errors, as
+interface concentration. Corresponding model parameters are reported
+                                                                                  they do not consider uncertainty in the experimental data propagated
+in Table 2 and Figure 8. Because the permeate holdup volume is small,
+                                                                                  through the empirical model.
+we assume that ch is approximately cin,p.
+
+                                                                                  as a function of the fixed charged density χ (see derivation in SI,
+0.044−0.28.77,85 These values are consistent with the order of                    where χ is estimated using zeta potential measurements and the
+magnitude of H established by the fitted values of h0 and h1. The                 Gouy−Chapman equation86). The analysis of the Donnan
+influence of electrostatic interactions on ion partitioning can be                equilibrium relationship for the co-ion concentration in the
+observed through the h1 factor. At low concentrations, the                        membrane phase demonstrates that h1 should be proportional to
+electrostatic repulsion between the negatively charged mem-                       Hsteric/χ. Using h0 as an approximation of the steric contribution
+brane surface and the co-ion Cl− results in reduced partitioning,                 to partitioning along with a value of χ determined from zeta
+yielding lower H values. As the solute concentration increases,                   potential measurements, 140 mM, h0/χ = 0.0043 mM−1, which
+the buildup of counterions near the membrane surface (charge                      aligns well with the fitted value of h1. This agreement reinforces
+shielding) mitigates these repulsive interactions, leading to                     the significance of steric hindrance and electrostatic interactions
+higher solute partitioning at the interface. This dynamic                         in determining ion partitioning in NF270 membranes.
+interplay between electrostatic forces and solute concentration                      Next, we consider the value of the solute diffusion coefficient
+is effectively captured through a first-order relationship.                       in the membrane inferred from the Pe = 5 result. Jw ranges from 7
+Furthermore, this first-order relationship is consistent with the                 to 10 μm·s−1 in the reported experiment. This implies Dm/L is
+Donnan equilibrium, where the partition coefficient is described                  between 1.4 and 2.0 μm ·s−1. Moreover, the reported active layer
+                                                                          12123                                              https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                         Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

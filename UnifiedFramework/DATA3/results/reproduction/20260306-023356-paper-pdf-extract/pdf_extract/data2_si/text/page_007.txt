@@ -1,0 +1,69 @@
+       be expressed in z:
+
+                      R1
+                              )            )        nr            **       R2
+                                                                                   )            )         nr           **
+                      -                        s̃2r1 -1                    -                        α̃r22 -2
+
+            ∆AIC =                nr1 ln                zr21 ,i        +               nr2 ln                zr22 ,i        + 2k
+                      r1 =1
+                                               nr1 i=1                     r2 =1
+                                                                                                    nr2 i=1
+                      R1
+                              )            ) nr1         *               *
+                      -                 1 -
+                   =          nr1 ln              zr21 ,i + nr1 ln s̃2r1
+                     r1 =1
+                                       n r1 i=1
+
+                         R2
+                              )        )       nr2          *                *                                                     (S21)
+                        -                  1 -
+                     +          nr2 ln               zr22 ,i + nr2 ln α̃r22 + 2k
+                        r2 =1
+                                          nr2 i=1
+                      R
+                           )       )       nr
+                                                    **        R1                   R2
+                     -                1 -                     -   2            3 -     2             3
+                                                 2                           2
+                   =         nr ln             zr,i        +        nr1 ln s̃r1 +        nr2 ln α̃r22 + 2k
+                     r=1
+                                      nr i=1                 r =1                 r =1
+                                                                       1                              2
+
+
+
+
+       s̃r1 and α̃r2 are predetermined and same across all models, therefore, a generalized ∆AIC
+1250   robust to a mixture of the two types of errors can be calculated through:
+
+                                                         R
+                                                               )           )       n
+                                                                                            **
+                                                         -                     1 -  r
+
+                                       ∆AIC =                      nr ln              z2              + 2k                         (S22)
+                                                         r=1
+                                                                               nr i=1 r,i
+
+          We caution this formula may not hold if the weights s̃r1 and α̃r2 are updated by iteratively
+       alternating between WLS and then setting s̃r1 ← ŝr1 and α̃r1 ← α̂r1 . We did not perform
+       iterative WLS in this work. With iterative WLS, the assumption that s̃r1 and α̃r2 are the
+       same across all models may not be valid.
+
+
+
+1255   Relate Partition Coeﬃcient with Donnan Equilibria
+
+       Zeta Potential Measurements
+
+       Three trials using 2 cm × 1 cm squares of membrane were conducted. The samples were
+       first soaked in deionized water overnight. The samples were placed parallel to one another,
+       leaving a small gap between them, creating a rectangular channel for the electrolyte solution
+1260   to pass through. A 1 mM KCl solution at pH 2 is used to flush the space between the samples.
+       Afterwards, a select volume of 1 mM KCl at pH 2 is passed through the rectangular channel.
+
+
+                                                                       SI-7
+

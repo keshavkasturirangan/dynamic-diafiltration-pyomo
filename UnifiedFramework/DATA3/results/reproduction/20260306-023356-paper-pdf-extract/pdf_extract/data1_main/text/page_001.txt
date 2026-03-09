@@ -1,0 +1,80 @@
+                                                             Journal of Membrane Science 641 (2022) 119743
+
+
+                                                                Contents lists available at ScienceDirect
+
+
+                                                          Journal of Membrane Science
+                                                      journal homepage: www.elsevier.com/locate/memsci
+
+
+
+
+DATA: Diafiltration Apparatus for high-Throughput Analysis
+Jonathan A. Ouimet, Xinhong Liu, David J. Brown, Elvis A. Eugene, Tylar Popps,
+Zachary W. Muetzel, Alexander W. Dowling, William A. Phillip ∗
+Department of Chemical and Biomolecular Engineering, University of Notre Dame, Notre Dame, IN 46556, United States of America
+
+
+
+ARTICLE              INFO                               ABSTRACT
+
+Keywords:                                               Improved characterization techniques, which address knowledge gaps related to the interfacial processes
+Diafiltration                                           that govern solute–solute selectivity and the performance of membranes in complex multi-component feed
+Nanofiltration                                          streams, are necessary to advance membrane processes. In this study, guided by the tools of data science,
+Parameter estimation
+                                                        a diafiltration apparatus is developed to inform material and process design by rapidly characterizing
+High throughput experimentation
+                                                        membrane performance over a broad range of feed solution compositions. The apparatus doses a fixed-
+Model calibration
+                                                        concentration diafiltrate solution into a stirred cell to achieve a predetermined change in the retentate
+                                                        concentration. Here, using an 80 mM potassium chloride (KCl) diafiltrate solution, it was shown that membrane
+                                                        performance, within a 5 mM to 80 mM KCl phase space, could be probed five times more quickly with one
+                                                        diafiltration experiment (8 h) than with an experimental campaign using traditional filtration processes (47 h).
+                                                        Additionally, the synergy between data analytics and instrumentation led to the incorporation of an inline
+                                                        conductivity probe that monitored the real-time retentate concentration. This additional information provided
+                                                        key insights to distinguish between the mechanisms that govern membrane separations (e.g., discriminating
+                                                        between adsorption or rejection based separations) and allowed for the membrane transport coefficients to be
+                                                        determined accurately. Ultimately, incorporating the appropriate governing phenomena identified a single set
+                                                        of self consistent transport parameters for commercial NF90 membranes.
+
+
+
+1. Introduction                                                                            manipulating chemistry to facilitate separations based on molecular
+                                                                                           identity rather than steric hindrance. For instance, COF membranes
+    Membrane processes have advanced separations that are critical to                      have exemplified the molecular control that can be exerted over the
+modern society (e.g., supplementing freshwater resources through sea-                      porosity and crystallinity of materials by carefully selecting poly-
+water desalination [1], isolating and purifying therapeutic medicines                      meric precursors [16]. On the other hand, charge patterned mosaic
+[2,3], and enriching nitrogen from air [4,5]). These demonstrated suc-
+                                                                                           membranes have been shown to preferentially permeate symmetric
+cesses, in conjunction with the continued demand for energy-efficient
+                                                                                           monovalent salts due to electrostatic interactions between the mem-
+and sustainable unit operations, drives the development of higher per-
+                                                                                           brane and dissolved ions [17]. Similarly, Sadeghi et al. demonstrated
+formance membranes. A promising area for growth resides in the ability
+to tailor the solute–solute selectivity of membranes such that they are                    that ligand binding effects can be used to tune the selective transport of
+capable of separating molecules of similar sizes and chemistries [6–                       similarly sized species through nanopores [18]. More recently, several
+8]. The development of membranes with solute-tailored selectivity                          efforts have focused on mimicking the highly selective and highly
+will require studying model systems to understand the fundamental                          permeable nature of biological channels [19–22]. In one instance,
+thermodynamic and transport phenomena that govern their separation                         the growth of a zirconium-based metal organic framework (MOF)
+mechanisms as well as examining the capabilities of these mechanisms                       within a polyethylene terephthalate membrane nanochannel modulated
+in the complex multicomponent feed streams that will be encountered                        monovalent and divalent ion mobilities and consequently imparted the
+in practice [9].                                                                           membrane with high monovalent:divalent ion selectivities [20].
+    Recent materials advances towards the development of membranes                             The phenomena underlying the mechanisms of chemically-selective
+with solute-tailored selectivities have been directed at precisely con-
+                                                                                           membranes are often based on multibody interactions and exhibit con-
+trolling nanostructure (e.g., using self-assembled block copolymers [10,
+                                                                                           centration dependencies [23–25]. As such, probing these dependencies
+11], lyotropic liquid crystals [12,13], metal organic frameworks
+                                                                                           can help to elucidate the molecular interactions and mechanisms that
+(MOFs) [14], and covalent-organic frameworks (COFs) [15,16]) and
+
+
+  ∗ Corresponding author.
+     E-mail address: wphillip@nd.edu (W.A. Phillip).
+
+https://doi.org/10.1016/j.memsci.2021.119743
+Received 10 June 2021; Received in revised form 11 August 2021; Accepted 12 August 2021
+Available online 17 September 2021
+0376-7388/© 2021 Elsevier B.V. All rights reserved.
+

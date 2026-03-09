@@ -1,0 +1,688 @@
+                                         Supporting Information
+
+                  Characterizing Transport Properties of Surface Charged
+
+               Nanofiltration Membranes via Model-based Data Analytics
+
+                            Xinhong Liu, Laurianne Estrada, Jonathan A. Ouimet,
+1195                              William A. Phillip∗ , Alexander W. Dowling∗
+       Department of Chemical and Biomolecular Engineering, University of Notre Dame, Notre
+                                   Dame, IN 46556, United States of America
+
+
+                                     Matthew McClure, David R. Latulippe
+          Department of Chemical Engineering, McMaster University, Hamilton, ON L8S 4L8,
+1200                                                  Canada
+
+
+                                                    May 2, 2025
+
+
+
+       Akaike Information Criterion (AIC) Derivations
+
+       Log-Likelihood
+
+       Let ŷr,i = f (xr,i , ur,i , θ) represent the model prediction for the i-th experimental observation
+1205   yr,i , where xr,i assembles state variables, ur,i are controlled experimental conditions, θ include
+       all model parameters, and r ∈ R indexes the type of response. The model assumes that
+       measurement errors are independent and normally distributed but may exhibit non-constant
+       variance (heteroscedasticity) across diﬀerent types of measurements. Specifically, the error,
+          ∗
+              corresponding author: William A. Phillip, wphillip@nd.edu
+          ∗
+              corresponding author: Alexander W. Dowling, adowling@nd.edu
+
+
+
+
+                                                        SI-1
+       &r,i , associated with observation yr,i is described as:
+
+                                                                                 2         3
+                                 yr,i = f (xr,i , ur,i , θ) +&r,i ,      &r,i ∼ N 0, s2r,i                     (S1)
+                                        .      /0         1
+                                              ŷr,i
+
+              2        3
+1210   where N 0, s2r,i represents a normal distribution with mean zero and variance s2r,i .
+          The probability distribution function of model observation yr,i conditioned on parameter
+       θ is given by
+                                                                                   )                      *
+                         2                           2
+                                                       3      2        3 1
+                                                                      2 −2          (yr,i − ŷr,i )2
+                       p yr,i | f (xr,i , ur,i , θ) , sr,i = 2πsr,i           exp −                            (S2)
+                                                                                         2s2r,i
+
+          The likelihood function, defined as a function of θ given a collection of observations y,
+       is the joint probability of these independent observations:
+
+                                     R
+                                     ;                      ; n
+                                                            R ; r
+                                                                       2                                   3
+                       L (θ | y) =         L (θ | y r ) =             p yr,i | f (xr,i , ur,i , θ) , s2r,i     (S3)
+                                     r=1                    r=1 i=1
+
+
+1215      Taking the logarithm of the likelihood function, we have
+
+                                        R
+                                        -
+                    ln (L (θ | y)) =         ln (L (θ | y r ))
+                                        r=1
+                                        -R -nr
+                                                     2                                   3
+                                    =            ln p yr,i | f (xr,i , ur,i , θ) , s2r,i
+                                        r=1 i=1
+                                             R -nr
+                                                   )                                                  *        (S4)
+                                       1    -                           (yr,i − ŷr,i )           2
+                                    =−             ln(2π) + ln s2r,i +
+                                       2 r=1 i=1                              s2r,i
+                                          R
+                                             )              nr              nr
+                                                                                                        *
+                                       1-                  -               -      (y r,i −   ŷ r,i ) 2
+                                    =−         nr ln(2π) +     ln s2r,i +
+                                       2 r=1               i=1             i=1
+                                                                                         s2r,i
+
+
+       AIC with Constant Measurement Errors
+
+       When r-th type of measurements is subject to independent and identically distributed mea-
+       surement error with constant variance, e.g., &r ∼ N (0, s2r ), the log-likelihood for r-th type
+
+
+
+                                                            SI-2
+       of measurements becomes:
+                                                )                                          n
+                                                                                                              *
+                                            1                               1 - r
+
+                      ln (L (θ | y r )) = −         nr ln(2π) + nr ln s2r + 2     (yr,i − ŷr,i )2                        (S5)
+                                            2                              sr i=1
+
+
+1220   Equation S5 is derived by substituting si,r = s2r into eq S4.
+          At the maximum log-likelihood estimate (MLE), the necessary condition is:
+
+                                                                       4nr                        2
+                                ∂ ln (L (θ | y r ))   nr                    i=1 (yr,i − ŷr,i )
+                                                    =− +                                              =0                  (S6)
+                                       ∂sr            sr                          s3r
+
+       which gives:
+                                                             n
+                                                         1 -  r
+
+                                                ŝ2r =          (yr,i − ŷr,i )2                                          (S7)
+                                                         nr i=1
+
+       Substituting eq S7 into eq S5 gives:
+                                   )                          )                                *    4nr ✭✭✭✭✭2 *
+           % %         &&                                          1 -
+                                                                        n
+                                                                        r
+                                                                                                           ✭r,i − ŷr,i )
+                             1                                                                        ✭✭(y
+         ln L θ̂ | y r    =−           nr ln(2π) + nr ln                  (yr,i − ŷr,i )2       + 1✭4i nr       ✭ŷ✭✭✭
+                             2                                     nr i=1                             ✭ ✭ ✭ ✭r,i✭−
+                                                                                                           (y         r,i )
+                                                                                                                            2
+                                                                                                   nr   i
+                                   )                          )         n
+                                                                                               *      *
+                               1                       1 -  r
+
+                            =−     nr ln(2π) + nr ln           (yr,i − ŷr,i )2 + nr
+                               2                      nr i=1
+                                 )                         )      nr
+                                                                                       **
+                               1                              1 -
+                            =−     nr (ln(2π) + 1) + nr ln            (yr,i − ŷr,i )2
+                               2                              nr i=1
+                                                                                                                          (S8)
+       In this case, AIC summed over all R types of measurements is
+
+                                 % %      &&
+                 AICconst = −2 ln L θ̂ | y + 2k
+                                                R            R
+                                                                   )           )       n
+                                                                                                             **           (S9)
+                                                -            -                     1 -  r
+
+                            = (ln(2π) + 1)            nr +             nr ln              (yr,i − ŷr,i )2        + 2k
+                                                r=1          r=1
+                                                                                   nr i=1
+
+                      4R
+1225   (ln(2π) + 1)     r=1 nr is a constant term across all models.                    Therefore, under constant errors
+
+
+
+
+                                                              SI-3
+       assumption, a practical formula for calculating AIC diﬀerence ∆ is:
+
+
+                          ∆a,b = AICa − AICb = ∆AICa − ∆AICb
+                                               )       )                            **
+                                           -R                nr                                                 (S10)
+                                   const                 1 -                      2
+                              ∆AICa      =       nr ln          (yr,i − ŷa,r,i )      + 2ka
+                                           r=1
+                                                         nr i=1
+
+
+       AIC with Proportional Measurement Errors
+
+       When r-th type of measurements are subject to a proportional (a.k.a., relative) error, e.g.,
+             2            3
+       &r ∼ N 0, αr2 yr,i
+                      2
+                            , the log-likelihood for measurement r becomes:
+
+                                     )                                nr                           n
+                                                                                                            *
+                                 1                                    -       1 - r
+                                                                                    (yr,i − ŷr,i )2
+                                                            2           2
+           ln (L (θ | y r )) = −         nr ln(2π) + nr ln αr +     ln yr,i + 2            2
+                                                                                                                (S11)
+                                 2                              i=1
+                                                                             αr i=1       yr,i
+
+
+1230   Equation S11 is derived by substituting s2r,i = αr2 yr,i
+                                                            2
+                                                                into eq S4.
+          At the maximum log-likelihood estimate, the necessary condition is:
+
+                                                                      4nr        (yr,i −ŷr,i )2
+                                  ∂ ln (L (θ | y r ))   nr                 i=1          2
+                                                                                      yr,i
+                                                      =− +                                             =0       (S12)
+                                         ∂αr            αr                       αr3
+
+       which gives:
+                                                              n
+                                                          1 -  r
+                                                                 (yr,i − ŷr,i )2
+                                                 α̂r2 =                 2
+                                                                                                                (S13)
+                                                          nr i=1       yr,i
+
+       Substituting eq S13 into eq S11 gives:
+
+             % %         &&
+           ln L θ̂ | y r
+                   #                   )                           *                      4nr (yr,i    ✘r,i✘✘)2
+                                                                                                                  '
+                                            -nr                  2      - nr
+                                                                                                ✘ ✘ ✘−ŷ
+                1                         1      (yr,i − ŷr,i )                             ✘
+                                                                                     + ✘4n (y r,i−ŷ
+                                                                                              i=1     y 2
+             = − $nr ln(2π) + nr ln                                  +            2
+                                                                             ln yr,i                         ✘✘
+                                                                                                          ✘r,i )2
+                                                                                                                  (
+                2                        nr i=1         2
+                                                       yr,i                              1      r
+                                                                                                 ✘ ✘ ✘
+                                                                                                     r,i
+                                                                         i=1             n r ✘✘i=1        2
+                                                                                                        yr,i
+                   )                   )     nr
+                                                                   *      nr
+                                                                                            *
+                1                        1 -     (yr,i − ŷr,i )2       -
+                                                                                  2
+             =−      nr ln(2π) + nr ln                  2
+                                                                     +       ln yr,i + nr
+                2                        nr i=1        yr,i              i=1
+                   )                         )      nr
+                                                                          *      nr
+                                                                                             *
+                1                               1 -      (yr,i − ŷr,i )2      -
+                                                                                          2
+             =−      nr (ln(2π) + 1) + nr ln                      2
+                                                                             +       ln yr,i
+                2                               nr i=1         yr,i             i=1
+                                                                                                                  (S14)
+
+
+                                                               SI-4
+       In this case, AIC summed over all R types of measurements is
+
+                       % %      &&
+        AICprop = −2 ln L θ̂ | y + 2k
+                                    R            R
+                                                         )           )       n
+                                                                                                   *       nr
+                                                                                                                           *          (S15)
+                                    -            -                       1 -  r
+                                                                                (yr,i − ŷr,i )2           -
+                                                                                                                     2
+                = (ln(2π) + 1)            nr +               nr ln                     2
+                                                                                                       +         ln yr,i       + 2k
+                                    r=1          r=1
+                                                                         nr i=1       yr,i                 i=1
+
+
+                      4R               4R 4nr              2
+1235   (ln(2π) + 1)    r=1 nr    and      r=1      i=1 ln yr,i       (measurements) are constant terms across all
+       models. Therefore, under proportional errors assumption, a practical formula for calculating
+       AIC diﬀerence ∆ is:
+
+
+                           ∆a,b = AICa − AICb = ∆AICa − ∆AICb
+                                              )       )                                **
+                                          -R                -nr                      2                                                (S16)
+                                                        1       (y r,i −  ŷ a,r,i )
+                               ∆AICprop
+                                    a   =       nr ln                    2
+                                                                                          + 2ka
+                                          r=1
+                                                        n r i=1
+                                                                       y r,i
+
+
+
+       AIC Generalization
+
+       Next, we generalize the AIC formula for constant or proportional error assumptions. We
+1240   separate R into R1 and R2 accommodates the two types of measurement error structures.
+
+                                                 R
+                                                 -
+                            ln (L (θ | y)) =             ln (L (θ | y r ))
+                                                 r=1
+                                                  R1                     R2
+                                                                                                                                      (S17)
+                                                 -         2 2        33 -    2 2         33
+                                            =            ln L θ | y r1 +    ln L θ | y r2
+                                                 r1 =1                              r2 =1
+
+
+
+
+                                                                     SI-5
+       Substituting eqs S8 and S14 into eq S17, we have
+
+                         % %         &&
+           AIC = −2 ln L θ̂ | y + 2k
+                  R1
+                       )                                  )         nr1                       **
+                 -                                              1 -                         2
+               =          nr1 (ln(2π) + 1) + nr1 ln                     (yr ,i − ŷr1 ,i )
+                 r1 =1
+                                                               nr1 i=1 1
+                     R2
+                          )                                    )      nr2                         * nr              *
+                    -                                             1 -        (yr2 ,i − ŷr2 ,i )2     - 2
+
+                 +          nr2 (ln(2π) + 1) + nr2 ln                                 2
+                                                                                                    +     ln yr22 ,i + 2k
+                    r2 =1
+                                                                 n r2 i=1           y r2 ,i           i=1
+                                   R          R
+                                                   )            )       n                          **
+                                 -           -  1
+                                                                    1 -
+                                                                          r1
+
+               = (ln(2π) + 1)         nr +           nr1 ln                   (yr1 ,i − ŷr1 ,i )2
+                                  r=1        r1 =1
+                                                                  nr1 i=1
+                     R2
+                          )        )       nr2                       * nr                   *
+                    -                  1 -      (yr2 ,i − ŷr2 ,i )2         - 2
+
+                 +          nr2 ln                       2
+                                                                        +         ln yr22 ,i + 2k
+                    r2 =1
+                                      n r2 i=1         y r2 ,i               i=1
+                                                                                                                        (S18)
+       Similar to eqs S10 and S16, by dropping constant terms, we have:
+
+                                         R1
+                                                 )      )    nr1                       **
+                                         -             1 -                           2
+                             ∆AIC =          nr1 ln              (yr ,i − ŷr1 ,i )
+                                    r1 =1
+                                                      nr1 i=1 1
+                                         R2
+                                             )        )        nr2                       **
+                                       -                   1 -      (yr2 ,i − ŷr2 ,i )2
+                                    +          nr2 ln                         2
+                                                                                            + 2k
+                                       r2 =1
+                                                         n r 2 i=1
+                                                                            y r 2 ,i
+                                     R
+                                          )         )        nr1                       **                             (S19)
+                                    -  1
+                                                      s̃r1 - (yr1 ,i − ŷr1 ,i )2
+                                                        2
+                                  =          nr1 ln
+                                    r1 =1
+                                                      nr1 i=1           s̃2r1
+                                         R2
+                                             )        )         nr2                      **
+                                       -                 α̃r22 -    (yr2 ,i − ŷr2 ,i )2
+                                    +          nr2 ln                                       + 2k
+                                       r =1
+                                                          nr2 i=1       α̃r22 yr22 ,i
+                                             2
+
+
+
+
+       s̃r1 and α̃r2 represents initial guess for sr1 and αr1 associated with the each type of measure-
+       ments.
+1245      We introduce scaled residuals zr,i are computed by dividing the residuals by their corre-
+       sponding standard deviations that we assumed, s̃:
+
+                                                                yr,t − ŷr,t
+                                                       zr,i =                                                         (S20)
+                                                                    s̃r,i
+
+       where s̃r,i = s̃r for constant errors and s̃r,i = α̃r yr,i for proportional errors. Then eq S19 can
+
+
+                                                                SI-6
+       be expressed in z:
+
+                      R1
+                              )            )        nr            **       R2
+                                                                                   )            )         nr           **
+                      -                        s̃2r1 -1                    -                        α̃r22 -2
+
+            ∆AIC =                nr1 ln                zr21 ,i        +               nr2 ln                zr22 ,i        + 2k
+                      r1 =1
+                                               nr1 i=1                     r2 =1
+                                                                                                    nr2 i=1
+                      R1
+                              )            ) nr1         *               *
+                      -                 1 -
+                   =          nr1 ln              zr21 ,i + nr1 ln s̃2r1
+                     r1 =1
+                                       n r1 i=1
+
+                         R2
+                              )        )       nr2          *                *                                                     (S21)
+                        -                  1 -
+                     +          nr2 ln               zr22 ,i + nr2 ln α̃r22 + 2k
+                        r2 =1
+                                          nr2 i=1
+                      R
+                           )       )       nr
+                                                    **        R1                   R2
+                     -                1 -                     -   2            3 -     2             3
+                                                 2                           2
+                   =         nr ln             zr,i        +        nr1 ln s̃r1 +        nr2 ln α̃r22 + 2k
+                     r=1
+                                      nr i=1                 r =1                 r =1
+                                                                       1                              2
+
+
+
+
+       s̃r1 and α̃r2 are predetermined and same across all models, therefore, a generalized ∆AIC
+1250   robust to a mixture of the two types of errors can be calculated through:
+
+                                                         R
+                                                               )           )       n
+                                                                                            **
+                                                         -                     1 -  r
+
+                                       ∆AIC =                      nr ln              z2              + 2k                         (S22)
+                                                         r=1
+                                                                               nr i=1 r,i
+
+          We caution this formula may not hold if the weights s̃r1 and α̃r2 are updated by iteratively
+       alternating between WLS and then setting s̃r1 ← ŝr1 and α̃r1 ← α̂r1 . We did not perform
+       iterative WLS in this work. With iterative WLS, the assumption that s̃r1 and α̃r2 are the
+       same across all models may not be valid.
+
+
+
+1255   Relate Partition Coeﬃcient with Donnan Equilibria
+
+       Zeta Potential Measurements
+
+       Three trials using 2 cm × 1 cm squares of membrane were conducted. The samples were
+       first soaked in deionized water overnight. The samples were placed parallel to one another,
+       leaving a small gap between them, creating a rectangular channel for the electrolyte solution
+1260   to pass through. A 1 mM KCl solution at pH 2 is used to flush the space between the samples.
+       Afterwards, a select volume of 1 mM KCl at pH 2 is passed through the rectangular channel.
+
+
+                                                                       SI-7
+       The pressure is ramped from 600 mbar to 200 mbar and the voltage along the pressure
+       ramp is recorded. Using voltage, pressure, conductivity, and viscosity of the solution, a zeta
+       potential is calculated. This sequence is repeated three times at pH values ranging from 2
+1265   to 11.
+
+
+       Surface Charge Density and Partition Coeﬃcient Analysis
+
+       Figure S9 depicts the zeta potential measurements for an NF270 membrane. Diafiltration
+       experiments were conducted at the unadjusted pH of the KCl solutions (∼pH 6). Taking
+       the zeta potential measurement at pH 6, the Gouy-Chapman equation 86 can be used to
+1270   calculate the surface charge density. Assuming the charge is uniformly distributed within
+       the void volume of the pores, an eﬀective volumetric charge density (χ) of 140 mM was
+       calculated for the NF270 membranes.
+          Ion partitioning into nanofiltration membranes is impacted by a number of energetic
+       considerations. Here, for the NF270 membranes, it is assumed that steric hindrance and
+1275   electrostatic interactions are the dominant factors determining partitioning. Therefore, as-
+       suming equilibrium at the membrane-solution interface, and equating the electrochemical
+       potential for each ion i inside and outside of the membrane:
+
+
+                                 RT ln(cm                             s
+                                        i ) + zi F ∆φD + ∆µi = RT ln(ci )                      (S23)
+
+
+       where cm is the solution-membrane interface concentration in the membrane phase, cs is the
+       interface concentration in the solution phase, z is the valency of the ion, F is the Faraday
+1280   constant, ∆φD is the electrostatic potential diﬀerence and ∆µ is the chemical potential
+       diﬀerence of the ion. This can be rearranged as
+
+                                         cm
+                                          i            −zi F ∆µi
+                                           s
+                                             = Hi exp(           )                             (S24)
+                                         ci              RT
+
+       where Hi is the individual ion partition coeﬃcient determined by the extent of steric hin-
+
+                                                   SI-8
+       drance. This expression can be written for both the co-ion, i, and the counter-ion, j, yielding
+       the following constraint on the ion concentrations inside and outside of the membrane phase.
+1285
+
+                                          cm
+                                           i cj
+                                                 m
+                                                   = Hi Hj = Hsteric                            (S25)
+                                           csi csi
+
+       Assuming a 1:1 salt, eq S25 can be combined with electroneutrality constraints in the mem-
+       brane and solution phases to develop an expression for the co-ion concentration within the
+       membrane phase.                        <
+                                                  χ2 + 4Hsteric csalt 2 − χ
+                                       cm
+                                        i =                                                     (S26)
+                                                          2
+
+          For small bulk concentrations (csalt ≪ χ), a Taylor series expansion is used to approxi-
+1290   mate cm
+             i :
+                                                      Hsteric csalt 2
+                                               cm
+                                                i ≈                                             (S27)
+                                                           χ
+
+       Dividing cm
+                 i by the bulk concentration of salt to calculate the partition coeﬃcient equation,
+
+       we obtain:
+                                                   cm
+                                                    i     Hsteric
+                                          H=            ≈         csalt                         (S28)
+                                                  csalt    χ
+
+          Our estimate H = h0 + h1 cin,f is consistent with the first-order dependence of H on the
+       interface concentration in the solution phase. Assuming that Hsteric = h0 , h1 can be related
+1295   to the partition coeﬃcient described in equation eq S28 by substituting the membrane charge
+       density (χ = 140 mM).
+                                              1    h0
+                                      h1 ≈      ≈     ≈ 0.0042 mM−1                             (S29)
+                                              χ   140
+
+       h1 fitted from the diafiltration experiment is 0.0011 mM−1 , which is on the same order of
+       magnitude as this calculated value. This agreement supports a hypothesis that a combination
+       of steric hindrance and electrostatic interactions underlie the transport properties of NF270
+1300   membranes.
+
+
+
+
+                                                       SI-9
+Supporting Tables & Figures
+
+
+
+
+                        SI-10
+        Table S1: Estimated model parameters for diﬀerent variations of the solute transport equation used in Table 3 and 4. Values
+        correspond to the best-fit parameters obtained from the lag experiment in Figure S2.
+
+                                                                                        Parameters
+                                                                                          Units
+              B Form
+                                                 Lp                                        B                                     σ             V̇
+                                     L·m   −2
+                                                · h−1 · bar−1                           µm · s−1                            dimensionless   g · h−1
+             B = const.                         10.11                                      16.42                                1.00         0.10
+                                                                                            6.50
+                                                                                           18.47
+                                                                                           14.64
+                                                                                           13.82
+                                                                                           13.47
+            Bi = const.                         10.15                                                                           1.00         0.06
+                                                                                           12.71
+                                                                                           16.61
+SI-11                                                                                      18.97
+                                                                                           19.93
+                                                                                           21.82
+
+                              i                  Lp                  β0                β1             β2          β3             σ             V̇
+         B = Jw       i∈I βi cin,f                                                   0.5/−0.5/−1
+                                     L·m   −2
+                                                · h−1 · bar−1   dimensionless   mM                   mM−2        mM−3       dimensionless   g · h−1
+                  4
+
+
+              I = {0}                            9.95               2.20             -                  -           -           1.00         0.10
+           I = {0, −0.5}                        10.10               3.30         -9.9137                -           -           1.00         0.08
+            I = {0, 0.5}                        10.15               0.30          0.2033                -           -           1.00         0.09
+             I = {0, 1}                         10.17               1.00          0.0135                -           -           1.00         0.10
+            I = {0, 1, 2}                       10.21               1.85         -0.0187            2.41×10−4       -           1.00         0.11
+           I = {0, 1, 2, 3}                     10.18               -1.42         0.1777           -3.08×10−3   1.69×10−5       1.00         0.09
+Figure S1: The calibration curves used to convert conductivity measurements into the cor-
+responding KCl concentration for the (A) CN0359 conductivity board and (B) for EC Eval-
+Board LFS conductivity board. To enable the CN0359 conductivity board to be compatible
+with the LSF 1107 conductivity probe, the board needed to be modified (i.e., previously
+reported by Muetzel et al. 54 ). To simplify the design, the EC EvalBoard LSF conductivity
+board, which is manufactured by the same company as the probes, is used. The conductiv-
+ity was calculated using, C = GAV −1 , the relationship between the conductivity probe cell
+constant (G = 0.42 cm−1 ), the peak to peak applied current, (A = 1 mA), and the peak to
+peak diﬀerential voltage drop, V .
+
+
+
+
+                                          SI-12
+Figure S2: Empirical model prediction for additional experiments. (A.1) Diafiltration exper-
+iments were performed in the lag mode, at 60 psi, with 15 mM/120 mM KCl feed/diafiltrate
+solutions for the NF270 membrane second sample. (A.2) Diafiltration experiments were per-
+formed in the lag mode, at 60 psi, with 15 mM/120 mM KCl feed/diafiltrate solutions for
+the NF270 membrane third sample.
+
+
+
+
+                                           SI-13
+Figure S3: Empirical model prediction for additional experiments. (B.1) Diafiltration exper-
+iments were performed in the lag mode, at 40 psi, with 15 mM/120 mM KCl feed/diafiltrate
+solutions for the NF270 membrane sample. (B.2) Diafiltration experiments were performed
+in the lag mode, at 20 psi, with 15 mM/120 mM KCl feed/diafiltrate solutions for the NF270
+membrane sample.
+
+
+
+
+                                           SI-14
+Figure S4: Empirical model prediction for additional experiments. (C.1) Diafiltration ex-
+periments were performed in the overflow mode, at 60 psi, with 15 mM/120 mM KCl
+feed/diafiltrate solutions for the NF270 membrane sample. (C.2) Diafiltration experiments
+were performed in the overflow mode, at 60 psi, with 15 mM/120 mM KCl feed/diafiltrate
+solutions for the NF270 membrane sample.
+
+
+
+
+                                         SI-15
+Figure S5: Empirical model prediction for additional experiments. (D.1) Diafiltration exper-
+iments were performed in the lag mode, at 60 psi, with 50 mM/100 mM KCl feed/diafiltrate
+solutions for the NF270 membrane sample. (D.2) Diafiltration experiments were performed
+in the lag mode, at 60 psi, with 10 mM/50 mM KCl feed/diafiltrate solutions for the NF270
+membrane sample.
+
+
+
+
+                                           SI-16
+Figure S6: Empirical model prediction for additional experiments. (E.1) Diafiltration exper-
+iments were performed in the lag mode, at 60 psi, with 30 mM/1 mM KCl feed/diafiltrate
+solutions for the NF270 membrane sample. (E.2) Diafiltration experiments were performed
+in the lag mode, at 60 psi, with 100 mM/12 mM KCl feed/diafiltrate solutions for the NF270
+membrane sample.
+
+
+
+
+                                           SI-17
+Figure S7: (A) Discrete B values fitted for each vial collection in diafiltration experiments,
+plotted against the feed-side solution-membrane interface concentration. (B) Solute flux
+normalized by water flux (Js /Jw ) plotted against interface concentration. Diafiltration ex-
+periment conditions are provided in Figure 6A and B for A.0, and in Figure S2-S6 for the
+remaining cases.
+
+
+
+
+                                            SI-18
+Figure S8: Plots illustrating the fitting of the convection-diﬀusion model (eq 25) to simulated
+data from the empirical model (eq 31). Solid lines in panels (A) (cin,f and ch ), (B) (Jw ), and
+(C) (Js ) represent simulated data from the empirical model for a lag diafiltration experiment.
+The red dashed line in (C) depicts the solute flux Js obtained from the convection-diﬀusion
+model fit. Corresponding model parameters are reported in Table 2 and Figure 8.
+
+
+
+                                             SI-19
+Figure S9: Zeta potential measured for NF270.
+
+
+
+
+                    SI-20
+

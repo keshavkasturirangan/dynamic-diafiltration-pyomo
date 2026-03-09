@@ -1,0 +1,10 @@
+Figure S8: Plots illustrating the fitting of the convection-diﬀusion model (eq 25) to simulated
+data from the empirical model (eq 31). Solid lines in panels (A) (cin,f and ch ), (B) (Jw ), and
+(C) (Js ) represent simulated data from the empirical model for a lag diafiltration experiment.
+The red dashed line in (C) depicts the solute flux Js obtained from the convection-diﬀusion
+model fit. Corresponding model parameters are reported in Table 2 and Figure 8.
+
+
+
+                                             SI-19
+

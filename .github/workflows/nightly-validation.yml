@@ -19,21 +19,21 @@ jobs:
 
       - name: Nightly validation status gate
         run: |
-          python scripts/validation/nightly/nightly_validation_gate.py \
-            --status-csv docs/validation/target_validation_status_consolidated.csv \
-            --exceptions-csv docs/validation/nightly/config/known_nonpass.csv
+          python UnifiedFramework/DATA3/scripts/validation/nightly/nightly_validation_gate.py \
+            --status-csv UnifiedFramework/DATA3/docs/validation/target_validation_status_consolidated.csv \
+            --exceptions-csv UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv
 
       - name: Digitized panel comparison (report)
         run: |
-          python scripts/validation/nightly/compare_digitized_baselines.py \
+          python UnifiedFramework/DATA3/scripts/validation/nightly/compare_digitized_baselines.py \
             --repo-root . \
-            --manifest docs/validation/nightly/digitized_baselines/manifest.csv \
-            --thresholds docs/validation/nightly/digitized_baselines/thresholds.csv \
-            --out-csv docs/validation/nightly/digitized_baselines/comparison_latest.csv
+            --manifest UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/manifest.csv \
+            --thresholds UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/thresholds.csv \
+            --out-csv UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/comparison_latest.csv
 
       - name: Storage-aware prune dry-run
         run: |
-          python scripts/reproduce/prune_reproduction_artifacts.py \
+          python UnifiedFramework/DATA3/scripts/reproduce/prune_reproduction_artifacts.py \
             --repo-root . \
             --keep-full 3 \
             --mode archive

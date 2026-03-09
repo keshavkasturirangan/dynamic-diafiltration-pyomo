@@ -1,0 +1,26 @@
+S2. Supplementary Figures
+
+100t T T T T T ry
+= y=0.008x+3.04 —
+= R2=0.9914 °
+£ 80; e 1
+il >
+c ad
+A] 60+ oe 7
+7) .°
+© Py
+oe .°
+= 40; 0 ;
+o 20; @. ;
+U —
+bad 1 1 i L 1 1
+e) S 9 S S S
+9S S S S 9S 9S
+
+Conductivity [WS - cm~+]
+
+Fig. 51: The calibration curve used to convert conductivity measurements into the corresponding KCl concentration. The
+conductivity was calculated using, C = GAV~!, the relationship between the conductivity probe cell constant (G = 0.42
+cm~—'), the peak to peak applied current, (A = 1 mA), and the peak to peak differential voltage drop, V.
+
+SI-3

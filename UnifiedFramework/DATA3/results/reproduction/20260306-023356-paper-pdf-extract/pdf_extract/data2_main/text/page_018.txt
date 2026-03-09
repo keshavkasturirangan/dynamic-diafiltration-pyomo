@@ -1,0 +1,82 @@
+Industrial & Engineering Chemistry Research                                                      pubs.acs.org/IECR                                            Article
+
+ (4) Van der Bruggen, B.; Schaep, J.; Wilms, D.; Vandecasteele, C. A                    (24) Geise, G. M.; Paul, D. R.; Freeman, B. D. Fundamental water and
+comparison of models to describe the maximal retention of organic                     salt transport properties of polymeric materials. Prog. Polym. Sci. 2014,
+molecules in nanofiltration. Sep. Sci. Technol. 2000, 35, 169−182.                    39, 1−42.
+ (5) Zhao, Y.; Tong, T.; Wang, X.; Lin, S.; Reid, E. M.; Chen, Y.                       (25) Yaroshchuk, A.; Bruening, M. L.; Zholkovskiy, E. Modelling
+Differentiating solutes with precise nanofiltration for next generation               nanofiltration of electrolyte solutions. Adv. Colloid Interface Sci. 2019,
+environmental separations: a review. Environ. Sci. Technol. 2021, 55,                 268, 39−63.
+1359−1376.                                                                              (26) Ouimet, J. A.; Liu, X.; Brown, D. J.; Eugene, E. A.; Popps, T.;
+ (6) Cheng, W.; Liu, C.; Tong, T.; Epsztein, R.; Sun, M.; Verduzco, R.;               Muetzel, Z. W.; Dowling, A. W.; Phillip, W. A. Data: Diafiltration
+Ma, J.; Elimelech, M. Selective removal of divalent cations by                        apparatus for high-throughput analysis. J. Membr. Sci. 2022, 641,
+polyelectrolyte multilayer nanofiltration membrane: Role of polyelec-                 No. 119743.
+trolyte charge, ion size, and ionic strength. J. Membr. Sci. 2018, 559, 98−             (27) Geise, G. M.; Falcon, L. P.; Freeman, B. D.; Paul, D. R. Sodium
+106.                                                                                  chloride sorption in sulfonated polymers for membrane applications. J.
+ (7) Soyekwo, F.; Zhang, Q.; Qu, Y.; Lin, Z.; Wu, X.; Zhu, A.; Liu, Q.                Membr. Sci. 2012, 423, 195−208.
+Tetraamminezinc complex integrated interpenetrating polymer net-                        (28) Cussler, E.; Yang, C. Reactive barrier films. Paper Film Foil
+                                                                                      Convert. 2000, 74, 96.
+work nanocomposite membrane for phosphorous recovery. AIChE J.
+                                                                                        (29) Yeong, Y. F.; Abdullah, A. Z.; Ahmad, A. L.; Bhatia, S. Process
+2019, 65, 755−765.
+                                                                                      optimization studies of p-xylene separation from binary xylene mixture
+ (8) Geise, G. M. Experimental characterization of polymeric
+                                                                                      over silicalite-1 membrane using response surface methodology. J.
+membranes for selective ion transport. Current Opinion in Chemical                    Membr. Sci. 2009, 341, 96−108.
+Engineering 2020, 28, 36−42.                                                            (30) Wee, S. L.; Tye, C. T.; Bhatia, S. Process optimization studies for
+ (9) Yang, W.-S.; Qiu, Z.-L.; Yu, W.-H.; Fang, L.-F.; Zhu, B.-K.                      the dehydration of alcohol−water system by inorganic membrane
+Integrating binary organic phosphonic acid into nanofiltration                        based pervaporation separation using design of experiments (DOE).
+membrane for high precision separation of mono-/divalent anions.                      Sep. Purif. Technol. 2010, 71, 192−199.
+Sep. Purif. Technol. 2024, 336, No. 126287.                                             (31) Häse, F.; Roch, L. M.; Aspuru-Guzik, A. Next-generation
+ (10) Shahmansouri, A.; Bellona, C. Nanofiltration technology in water                experimentation with self-driving laboratories. Trends in Chemistry
+treatment and reuse: applications and costs. Water Sci. Technol. 2015,                2019, 1, 282−291.
+71, 309−319.                                                                            (32) MacLeod, B. P.; et al. A self-driving laboratory advances the
+ (11) Mahmoud, A. E. D.; Mostafa, E. Nanofiltration Membranes for                     Pareto front for material properties. Nat. Commun. 2022, 13, 995.
+the Removal of Heavy Metals from Aqueous Solutions: Preparations                        (33) Mo̷ ller, J. K.; Goranović, G.; Brath, P.; Madsen, H. A data-driven
+and Applications. Membranes 2023, 13, 789.                                            digital twin for water ultrafiltration. Commun. Eng. 2022, 1, 23.
+ (12) Wang, R.; He, R.; He, T.; Elimelech, M.; Lin, S. Performance                      (34) Dowling, A. W. Artificial Intelligence and Machine Learning for
+metrics for nanofiltration-based selective separation for resource                    Sustainable Molecular-to-Systems Engineering. Syst. Control Trans.
+extraction and recovery. Nature Water 2023, 1, 291−300.                               2024, 3, 22−31.
+ (13) Lair, L.; Ouimet, J. A.; Dougher, M.; Boudouris, B. W.; Dowling,                  (35) Moosavi, S. M.; Jablonka, K. M.; Smit, B. The role of machine
+A. W.; Phillip, W. A. Critical Mineral Separations: Opportunities for                 learning in the understanding and design of materials. J. Am. Chem. Soc.
+Membrane Materials and Processes to Advance Sustainable Economies                     2020, 142, 20273−20287.
+and Secure Supplies. Annu. Rev. Chem. Biomol. Eng. 2024, 15, 243−266.                   (36) Tom, G.; Schmid, S. P.; Baird, S. G.; Cao, Y.; Darvish, K.; Hao,
+ (14) Agi, D. T.; Jones, K. D.; Watson, M. J.; Lynch, H. G.; Dougher,                 H.; Lo, S.; Pablo-García, S.; Rajaonson, E. M.; Skreta, M.; et al. Self-
+M.; Chen, X.; Carlozo, M. N.; Dowling, A. W. Computational toolkits                   driving laboratories for chemistry and materials science. Chem. Rev.
+for model-based design and optimization. Current Opinion in Chemical                  2024, 124, 9633−9732.
+Engineering 2024, 43, No. 100994.                                                       (37) Grieves, M.; Vickers, J. Digital twin: Mitigating unpredictable,
+ (15) Park, H. B.; Kamcev, J.; Robeson, L. M.; Elimelech, M.; Freeman,                undesirable emergent behavior in complex systems. Transdisciplinary
+B. D. Maximizing the right stuff: The trade-off between membrane                      Perspectives on Complex Systems: New Findings and Approaches 2017,
+permeability and selectivity. Science 2017, 356, No. eaab0530.                        85−113.
+ (16) Werber, J. R.; Deshmukh, A.; Elimelech, M. The critical need for                  (38) Emmert-Streib, F. Defining a digital twin: A data science-based
+increased selectivity, not increased water permeability, for desalination             unification. Machine Learning and Knowledge Extraction 2023, 5, 1036−
+membranes. Environmental Science & Technology Letters 2016, 3, 112−                   1054.
+                                                                                        (39) Echtermeyer, A.; Amar, Y.; Zakrzewski, J.; Lapkin, A. Self-
+120.
+                                                                                      optimization and model-based design of experiments for developing a
+ (17) Yang, Z.; Guo, H.; Tang, C. Y. The upper bound of thin-film
+                                                                                      C−H activation flow process. Beilstein journal of organic chemistry 2017,
+composite (TFC) polyamide membranes for desalination. J. Membr.
+                                                                                      13, 150−163.
+Sci. 2019, 590, No. 117297.                                                             (40) Waldron, C.; Pankajakshan, A.; Quaglio, M.; Cao, E.; Galvanin,
+ (18) Noble, R. D.; Agrawal, R. Separations research needs for the 21st
+                                                                                      F.; Gavriilidis, A. An autonomous microreactor platform for the rapid
+century. Ind. Eng. Chem. Res. 2005, 44, 2887−2892.                                    identification of kinetic models. Reaction Chemistry & Engineering 2019,
+ (19) Hoffman, J. R.; Phillip, W. A. 100th anniversary of macro-                      4, 1623−1636.
+molecular science viewpoint: integrated membrane systems. ACS                           (41) Barz, T.; Kager, J.; Herwig, C.; Neubauer, P.; Bournazou, M. N.
+Macro Lett. 2020, 9, 1267−1279.                                                       C.; Galvanin, F. Simulation and Optimization in Process Engineering;
+ (20) Sadeghi, I.; Kaner, P.; Asatekin, A. Controlling and expanding the              Elsevier 2022, 273−319.
+selectivity of filtration membranes. Chem. Mater. 2018, 30, 7328−7354.                  (42) Agunloye, E.; Petsagkourakis, P.; Yusuf, M.; Labes, R.;
+ (21) Qu, S.; Dilenschneider, T.; Phillip, W. A. Preparation of                       Chamberlain, T.; Muller, F. L.; Bourne, R. A.; Galvanin, F. Automated
+chemically-tailored copolymer membranes with tunable ion transport                    kinetic model identification via cloud services using model-based design
+properties. ACS Appl. Mater. Interfaces 2015, 7, 19746−19754.                         of experiments. Reaction Chemistry & Engineering 2024, 9, 1859−1876.
+ (22) Kochkodan, V.; Hilal, N. A comprehensive review on surface                        (43) Tillmann, M. T.; Galvanin, F. Development of a holistic Python
+modified polymer membranes for biofouling mitigation. Desalination                    package for optimal selection of experimental design criteria in kinetic
+2015, 356, 187−207.                                                                   model discrimination. Comput.-Aided Chem. Eng. 2023, 52, 631−636.
+ (23) Guo, H.; Deng, Y.; Yao, Z.; Yang, Z.; Wang, J.; Lin, C.; Zhang, T.;               (44) Liu, X.; Ouimet, J. A.; Hoffman, J. R.; Xu, J.; Phillip, W. A.;
+Zhu, B.; Tang, C. Y. A highly selective surface coating for enhanced                  Dowling, A. W. Optimization of Reactive Ink Formulation for
+membrane rejection of endocrine disrupting compounds: Mechanistic                     Controlled Additive Manufacturing of Copolymer Membrane
+insights and implications. Water Res. 2017, 121, 197−203.                             Functionalization. ACS Appl. Mater. Interfaces 2024, 16, 59216−59233.
+
+                                                                              12128                                               https://doi.org/10.1021/acs.iecr.4c04763
+                                                                                                                              Ind. Eng. Chem. Res. 2025, 64, 12111−12130
+

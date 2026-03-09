@@ -1,0 +1,78 @@
+J.A. Ouimet et al.                                                                                                            Journal of Membrane Science 641 (2022) 119743
+
+
+equations, nonlinear parameter estimation, dynamic optimization) [43,                 Here, we seek to estimate three model parameters, the hydraulic
+44].                                                                              permeability, 𝐿𝑝 , the solute permeability coefficient, 𝐵, and the ther-
+    In this study, guided by the tools of data science, limitations of            modynamic reflection coefficient, 𝜎, from experimental data. Mathe-
+current membrane characterization methods are addressed through the               matically, Eq. (1) makes it clear that to deconvolute 𝐿𝑝 and 𝜎, experi-
+design of a diafiltration apparatus. A dead end stirred cell is modified          ments at different applied pressures, 𝛥𝑃 , or experiments with different
+to receive a high concentration diafiltrate such that high-throughput             concentrations across the membrane, 𝑐𝑖𝑛 − 𝑐ℎ , are necessary. Diafiltra-
+membrane characterization can be conducted over a broad range of                  tion easily satisfies the latter requirement. Within the above equations,
+concentrations. To begin, the rate at which an expanded range of                  𝛥𝜋 = 𝑛𝑅𝑇 (𝑐𝑖𝑛 − 𝑐ℎ ) is the osmotic pressure, which, assuming the van’t
+concentrations can be explored by diafiltration when compared to                  Hoff equation, is expressed in terms of 𝑛 the number of dissolved species
+traditional filtration techniques is examined. Then, data analytics are           formed by the solute(s), 𝑅 the gas constant, 𝑇 the temperature, 𝑐𝑖𝑛 the
+utilized to identify the experiments that are necessary to accurately             feed-side concentration at the solution–membrane interface, and 𝑐ℎ the
+regress characteristic membrane parameters in a lumped parameter                  concentration in the holdup volume, 𝑣ℎ . The difference in concentration
+model. This analysis is followed by a discussion on how data analytics            across the membrane is represented by 𝑐𝑖𝑛 − 𝑐ℎ , where 𝑐𝑖𝑛 is related to
+can provide insight to guide the design of the experimental apparatus.            the bulk feed concentration, 𝑐𝑓 , by a thin film model that accounts for
+Specifically, the addition of an inline conductivity probe that can               concentration polarization, Eq. (3) and (4) [48].
+monitor the real time trajectory of the solute concentration from the                            ( )                                   ( )
+                                                                                  𝑐𝑖𝑛 − 𝑐ℎ          𝐽𝑤                                   𝐽𝑤
+initial feed solution to the final retentate solution is detailed. The dis-                = exp                ⟺ 𝑐𝑖𝑛 = (𝑐𝑓 − 𝑐ℎ ) exp        + 𝑐ℎ      (3)
+                                                                                   𝑐𝑓 − 𝑐ℎ           𝑘                                    𝑘
+cussion finishes by evaluating how the proposed statistical frameworks
+can be used to distinguish between competing models and suggests                              (         )0.57 (       )0.33                        (𝑣0 )0.57 𝐷0.67
+that the diafiltration device can serve as a foundation to probe the              𝑘𝑏              𝑏𝑣0             𝜈
+                                                                                     = 0.23                                     ⟺       𝑘 = 0.23                       (4)
+concentration dependencies of chemically selective membranes, closing             𝐷                𝜈              𝐷                                  𝜈 0.24 𝑏0.43
+the knowledge gaps that exists between filtration experiments.                    where 𝑘 is the mass transfer coefficient, 𝑏 is the stirred cell diameter,
+                                                                                  𝐷 is the diffusion coefficient of the solute in water, 𝜈 is the kinematic
+2. Mathematical model                                                             viscosity of water, and 𝑣0 is the average velocity within the system
+                                                                                  (i.e., the product between the stir bar angular velocity and radius).
+    The diafiltration apparatus presented in Fig. 1 allows for membrane               In order to infer the three governing parameters in Eqs. (1) and
+characterization under changing retentate concentrations. In this study,          (2), we conduct mass and solute balances around three control volumes
+a steady ramp in the retentate concentration is examined but a steady             within Fig. 1, the diafiltrate reservoir, the stirred cell, and the perme-
+decrease in concentration is equally feasible. At the start of the experi-        ate. Consequently, it is shown in the supporting information that the
+ment, the concentration in the stirred cell is low, ≈5 mM, and increases          following ordinary differential equations (ODEs) describe the state of
+as the diafiltrate tank doses a high concentration salt solution into the         the system, Eqs. (5)–(8).
+cell at a rate equal to the volumetric flow rate of the permeate leaving.         𝑑𝑐𝑓       𝐴𝑚 𝜌
+The volume under the membrane, where the permeate is collected,                         =        (𝐽 𝑐 − 𝐽𝑠 )                                                           (5)
+                                                                                   𝑑𝑡       𝑚𝑓 𝑤 𝑑
+is termed the hold up volume and is modeled as a perfectly mixed
+reservoir. The tube connecting the stirred cell to the scintillation vial
+                                                                                  𝑑𝑐ℎ  𝐴 𝜌
+is assumed to act as a plug flow element where the salt solution is well              = 𝑚 (𝐽𝑠 − 𝑐ℎ 𝐽𝑤 )                                                                (6)
+                                                                                   𝑑𝑡   𝑚ℎ
+mixed in the radial direction. An inline conductivity probe measures the
+retentate concentration within the stirred cell and a balance records the
+time dependent weight of the scintillation vial. The permeate within the          𝑑𝑚𝑣    𝑑𝑚
+                                                                                      = − 𝑑 = 𝐴𝑚 𝜌𝐽𝑤                                                                   (7)
+scintillation vials are assumed to be well mixed and their concentration           𝑑𝑡     𝑑𝑡
+can be measured after the experiment.
+    A lumped parameter approach [45] is used to develop a physics-                𝑑(𝑐𝑣 𝑚𝑣 )   𝑑𝑚𝑣
+                                                                                            =     𝑐 = 𝐴𝑚 𝜌𝐽𝑤 𝑐ℎ                                                        (8)
+based mathematical model that captures the transport of solute and                   𝑑𝑡        𝑑𝑡 ℎ
+solvent within the experimental apparatus and through the membrane.               where 𝐴𝑚 is the membrane area, 𝜌 is the density of the solution, 𝑚𝑓 is
+The lumped parameter model used here assumes that diffusion is                    the mass of the filtration cell, 𝑐𝑑 is the diafiltrate concentration, 𝑚ℎ is
+the dominant transport mechanism resulting in the solute flux being               the mass of solution in holdup, 𝑚𝑣 is the mass of the sample vial, 𝑚𝑑 is
+proportional to its concentration difference across the membrane. Addi-           the mass of the diafiltrate reservoir and 𝑐𝑣 is the concentration in the
+tionally, a pseudo steady state approximation is made when describing             sample vial.
+the solute flux (i.e., it is assumed the feed side concentration is well              Adding concentration polarization, which is modeled with the alge-
+mixed and changes more slowly than the rate the membrane responds).               braic equation (3), to the ODEs above, forms a system of differential
+In previous works, this lumped parameter approach was combined with               algebraic equations (DAEs) to describe the dynamic process. Both the
+steady-state or time difference algebraic models for membrane param-              ODE and DAE models are numerically integrated in MATLAB using
+eter estimation [46,47]. In contrast, this work develops a dynamic                ode15s to simulate the diafiltration experiments. Specially, 𝑐𝑣 ⋅ 𝑚𝑣 is
+(e.g., differential algebraic equation) modeling framework that fully             selected as a combined state variable for better initialization and to
+exploits the information contained in the collected time-series data.             avoid division by zero. For the initial conditions of the first vial, 𝑐𝑓 is
+    The volumetric flux of water, 𝐽𝑤 , and the molar flux of the so-              set as the retentate concentration measurement at the beginning of the
+lute, 𝐽𝑠 , across the membrane can be expressed by Eqs. (1) and (2),              experiment, 𝑐ℎ is approximated at 80% of the first vial concentration,
+respectively.                                                                     𝑚𝑣 is approximated as the mass of one drop of solution (≈0.05 g), and
+𝐽𝑤 = 𝐿𝑝 (𝛥𝑃 − 𝜎𝛥𝜋)                                                                𝑐𝑣 ⋅ 𝑚𝑣 is set as zero. To simulate vial swaps, the integrator is stopped
+                                                                       (1)        and the initial conditions are updated: 𝑐𝑓 , 𝑐ℎ and 𝑐𝑣 ⋅ 𝑚𝑣 are set as the
+    = 𝐿𝑝 [𝛥𝑃 − 𝜎𝑛𝑅𝑇 (𝑐𝑖𝑛 − 𝑐ℎ )]
+                                                                                  final condition of the previous vial and 𝑚𝑣 is reset to the mass of one
+                                                                                  drop. Eq. (8) is integrated instead of equation (S8) because 𝑐𝑣 is not
+𝐽𝑠 = 𝐵(𝑐𝑖𝑛 − 𝑐ℎ )                                                      (2)        defined when 𝑚𝑣 ≈ 0 (empty vial).
+
+                                                                              3
+
