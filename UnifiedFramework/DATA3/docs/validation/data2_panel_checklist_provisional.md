@@ -1,5 +1,11 @@
 # DATA2 Panel Checklist (Post-Extraction Status)
 
+> **Canonical code path (source of truth):** `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`  
+> Runner entrypoint: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`  
+> Core pipeline: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`  
+> Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
+
+
 Date: 2026-03-06
 Status: PDF extraction and page matching complete; panel lock completed for Figures 8, 9, S2-S7 (S8 already mapped).
 Evidence run: `20260306-023356-paper-pdf-extract`

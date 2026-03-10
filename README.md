@@ -1,5 +1,11 @@
 # Dynamic Diafiltration Model in Pyomo
 
+> **Canonical code path (source of truth):** `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`  
+> Runner entrypoint: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`  
+> Core pipeline: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`  
+> Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
+
+
 **Characterizing Transport Properties of Nanofiltration Membranes**
 
 This repository contains a Pyomo-based dynamic diafiltration model used to analyze the transport properties of nanofiltration (NF) membranes. It supports robust parameter estimation and data analytics workflows based on dynamic experiments.

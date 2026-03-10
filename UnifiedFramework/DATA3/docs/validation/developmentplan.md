@@ -1,5 +1,11 @@
 # Unified Codebase Validation Development Plan
 
+> **Canonical code path (source of truth):** `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`  
+> Runner entrypoint: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`  
+> Core pipeline: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`  
+> Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
+
+
 ## Objective
 Validate the unified framework by reproducing required DATA1 and DATA2 published results using:
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`
@@ -18,7 +24,7 @@ Use these sources as the reference corpus for validation and parity decisions.
    - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`
    - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/unified_code/unified_codebase_runfile.md`
 2. Last v24 compatibility wrappers and pseudocode lineage:
-   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/experiment_dataload_OOP_v24.py`
+   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/archives/experiment_dataload_OOP_v24.py`
    - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/experiment_load_v24.py`
    - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/Pseudocodes/DataLoader/versions/pseudocode_v2.py`
    - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/archives/processmodel_pseudocode_v8_updated_conductivity.py`
@@ -442,7 +448,7 @@ Handoff rule:
     - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`
     - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`
   - compatibility wrappers retained:
-    - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/experiment_dataload_OOP_v24.py`
+    - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/archives/experiment_dataload_OOP_v24.py`
     - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/experiment_load_v24.py`
   - shared MAT/XLSX pipeline API added:
     - `UnifiedPipelineConfigV24`

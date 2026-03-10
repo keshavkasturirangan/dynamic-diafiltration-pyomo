@@ -1,5 +1,11 @@
 # Unified Code Documentation (v24)
 
+> **Canonical code path (source of truth):** `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`  
+> Runner entrypoint: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`  
+> Core pipeline: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`  
+> Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
+
+
 This section documents the current unified experimental loader and modeling code under:
 
 - `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`
@@ -21,8 +27,9 @@ The goal is to provide:
 ## Recommended read order
 
 1. `unified_codebase_runfile.md` (how users run the workflow)
-2. `unified_codebase_library.md` (core system design and APIs)
-3. `conductivity_paper.md` (measurement-model internals)
+2. `workflow_algorithms.md` (step-by-step runtime algorithms)
+3. `unified_codebase_library.md` (core system design and APIs)
+4. `conductivity_paper.md` (measurement-model internals)
 
 ## Future RTD migration notes
 
