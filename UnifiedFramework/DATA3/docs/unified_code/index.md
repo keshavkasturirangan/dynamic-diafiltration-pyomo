@@ -27,13 +27,13 @@ The goal is to provide:
 ## Recommended read order
 
 1. `unified_codebase_runfile.md` (how users run the workflow)
-2. `workflow_algorithms.md` (step-by-step runtime algorithms)
+2. `workflow_algorithms.tex` (step-by-step runtime algorithms)
 3. `unified_codebase_library.md` (core system design and APIs)
 4. `conductivity_paper.md` (measurement-model internals)
 
 ## Future RTD migration notes
 
-This folder is written in Markdown so it can be migrated to RTD/MyST quickly.
+This folder is primarily written in Markdown so it can be migrated to RTD/MyST quickly. The workflow algorithm reference is maintained as LaTeX for publication-style formatting.
 
 For Sphinx/MyST, add a `toctree` similar to:
 
@@ -46,4 +46,3 @@ unified_codebase_library
 conductivity_paper
 ```
 ```
-

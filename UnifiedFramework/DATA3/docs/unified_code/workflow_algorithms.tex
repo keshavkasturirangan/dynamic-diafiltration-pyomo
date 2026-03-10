@@ -1,0 +1,315 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+\setlist[itemize]{leftmargin=1.5em}
+\setlist[enumerate]{leftmargin=1.8em}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Workflow Algorithms\\\large Active Unified Code}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Scope}
+
+This document describes the active workflow algorithms for:
+\begin{itemize}
+    \item \code{UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py}
+    \item \code{UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py}
+    \item \code{UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/conductivity_paper.py}
+\end{itemize}
+
+Archived compatibility wrappers are intentionally excluded from the runtime algorithm.
+
+\section{Top-Level Runtime Algorithm (\code{unified_codebase_runfile.py})}
+
+\subsection*{Inputs}
+\begin{itemize}
+    \item CLI flags (\code{--profile}, \code{--file-path}, \code{--selector}, \code{--run-doe}, \code{--calc-cov}, \code{--plot}, \code{--convert-to-concentration}, \code{--nfe}, \code{--solver}).
+\end{itemize}
+
+\subsection*{Algorithm}
+\begin{enumerate}
+    \item Parse CLI arguments.
+    \item Resolve \code{run\_doe} with profile defaults:
+    \begin{itemize}
+        \item \code{DATA1 -> False}
+        \item \code{DATA2 -> False}
+        \item \code{DATA3 -> True}
+        \item Explicit CLI value overrides defaults.
+    \end{itemize}
+    \item Branch by profile:
+    \begin{itemize}
+        \item \code{DATA1}: iterate over preset DATA1 \code{.mat} files (or user override), build \code{UnifiedPipelineConfigV24} per file.
+        \item \code{DATA2}: iterate over preset DATA2 \code{.mat} files (or user override), build \code{UnifiedPipelineConfigV24} per file.
+        \item \code{DATA3}: build one XLSX-oriented \code{UnifiedPipelineConfigV24} from preset/defaults or CLI overrides.
+    \end{itemize}
+    \item For each built config, call \code{run\_unified\_pipeline\_v24(config)}.
+    \item Print run summary:
+    \begin{itemize}
+        \item load/validation state,
+        \item parameter labels and counts,
+        \item optional ParmEst results,
+        \item optional DoE/FIM results.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Output}
+\begin{itemize}
+    \item Console output only; all substantive results come from the \code{run\_unified\_pipeline\_v24} return dictionary.
+\end{itemize}
+
+\section{Unified Pipeline Algorithm (\code{run\_unified\_pipeline\_v24} in \code{unified_codebase_library.py})}
+
+\subsection*{Inputs}
+\begin{itemize}
+    \item \code{UnifiedPipelineConfigV24} (file path, selector, load options, model options, stage toggles, solver controls, optional report hook).
+\end{itemize}
+
+\subsection*{Algorithm}
+\begin{enumerate}
+    \item Load experiment through file-agnostic loader \code{load\_experiment\_easy(...)}:
+    \begin{itemize}
+        \item detect source type (\code{.xlsx/.xls} vs \code{.mat}),
+        \item load source-specific structure,
+        \item validate loaded structure,
+        \item optionally apply spec overrides,
+        \item optionally convert conductivity signals to concentrations (XLSX path),
+        \item optionally quick-plot.
+    \end{itemize}
+    \item Resolve model options:
+    \begin{itemize}
+        \item use explicit \code{config.model\_options} if provided,
+        \item otherwise use source-aware defaults (\code{MAT} and \code{XLSX} defaults differ).
+    \end{itemize}
+    \item Build experiment wrapper object: \code{DiafiltrationExperimentV24(exp, options)}.
+    \item Build labeled Pyomo model via \code{get\_labeled\_model()}.
+    \item Build metadata record (\code{\_build\_unified\_run\_metadata\_v24}).
+    \item Initialize base output dictionary with:
+    \begin{itemize}
+        \item loaded experiment,
+        \item validation info,
+        \item resolved options,
+        \item model/object handles,
+        \item theta names,
+        \item label counts,
+        \item run metadata.
+    \end{itemize}
+    \item If \code{config.run\_parmest} is true:
+    \begin{itemize}
+        \item run \code{\_run\_unified\_estimation\_stage\_v24 -> estimate\_parameters\_with\_parmest\_v24(...)}.
+    \end{itemize}
+    \item If \code{config.run\_doe} is true:
+    \begin{itemize}
+        \item run \code{\_run\_unified\_doe\_stage\_v24 -> run\_doe\_with\_pyomo\_v24(...)}.
+    \end{itemize}
+    \item If \code{config.report\_hook} exists, call it with the final output dictionary.
+    \item Return the output dictionary.
+\end{enumerate}
+
+\subsection*{Output}
+\begin{itemize}
+    \item A structured dictionary containing load, model, estimation, and DoE artifacts.
+\end{itemize}
+
+\section{File-Agnostic Loading Algorithm (\code{load\_experiment} + \code{load\_experiment\_easy})}
+
+\subsection{\code{load\_experiment(path, selector, ...)}}
+\begin{enumerate}
+    \item Convert \code{path} to a \code{Path} object.
+    \item Detect source type:
+    \begin{itemize}
+        \item XLSX if \code{.xlsx/.xls}
+        \item MAT if \code{.mat}
+        \item otherwise fail.
+    \end{itemize}
+    \item Route to source-specific loader:
+    \begin{itemize}
+        \item XLSX \code{-> load\_from\_xlsx(file\_path, sheet\_selector=selector, ...)}
+        \item MAT \code{-> load\_from\_mat(file\_path, struct\_key=selector)}
+    \end{itemize}
+    \item Run \code{validate\_experiment(exp)}.
+    \item Return \code{(exp, validation)}.
+\end{enumerate}
+
+\subsection{\code{load\_experiment\_easy(...)}}
+\begin{enumerate}
+    \item If selector absent, apply convenience defaults:
+    \begin{itemize}
+        \item XLSX \code{->} first sheet (\code{0})
+        \item MAT \code{->} \code{"data\_stru"}
+    \end{itemize}
+    \item Call \code{load\_experiment(...)}.
+    \item Apply optional field overrides (\code{specs}) directly to the \code{ExperimentalData} object.
+    \item Optional conductivity-to-concentration conversion:
+    \begin{itemize}
+        \item only for XLSX,
+        \item append informational warning if MAT conversion is requested.
+    \end{itemize}
+    \item Optional quick plot.
+    \item Return \code{(exp, validation)}.
+\end{enumerate}
+
+\section{XLSX Loader Algorithm (\code{load\_from\_xlsx})}
+
+\begin{enumerate}
+    \item Read workbook sheet via selector.
+    \item Parse metadata and tables:
+    \begin{itemize}
+        \item time-series table,
+        \item vial data table,
+        \item calibration block,
+        \item optional assay/ICP table,
+        \item salt/component hints.
+    \end{itemize}
+    \item Canonicalize columns and data types.
+    \item Segment rows by vial swaps (\code{segment\_indices\_by\_swap}).
+    \item Build one \code{VialData} object per segment (\code{build\_vial\_from\_slice}).
+    \item Attach sheet-level metadata to \code{ExperimentalData}.
+    \item Fill defaults/provenance markers for missing optional metadata.
+    \item Apply initial-guess DB if provided and compatible.
+    \item Return fully assembled \code{ExperimentalData}.
+\end{enumerate}
+
+\section{MAT Loader Algorithm (\code{load\_from\_mat})}
+
+\begin{enumerate}
+    \item Read \code{.mat} file (\code{read\_mat\_file}).
+    \item Select struct key (default key behavior if selector absent).
+    \item Recursively convert MATLAB structs to Python primitives (\code{mat\_struct\_to\_python}).
+    \item Map legacy MAT fields into canonical \code{ExperimentalData} + \code{VialData} schema.
+    \item Normalize arrays, scalars, units, and legacy naming conventions.
+    \item Return canonicalized \code{ExperimentalData}.
+\end{enumerate}
+
+\section{Conductivity-to-Concentration Algorithm (\code{apply\_conductivity\_to\_concentration})}
+
+\subsection*{Inputs}
+\begin{itemize}
+    \item \code{ExperimentalData} object with conductivity signals in \code{uS/cm}.
+    \item Conversion model choice (\code{auto}, \code{variant\_shedlovsky}, or \code{msa}).
+\end{itemize}
+
+\subsection*{Algorithm}
+\begin{enumerate}
+    \item Determine temperature (\code{temp\_K} override or \code{exp.Temp\_K}).
+    \item Choose model:
+    \begin{itemize}
+        \item \code{auto}: infer cation count from salt names,
+        \item \code{<=2} cations \code{->} variant Shedlovsky,
+        \item \code{>=3} cations \code{->} MSA.
+    \end{itemize}
+    \item Pre-autofill model parameters:
+    \begin{itemize}
+        \item Shedlovsky parameters inferred from salt identity when possible,
+        \item MSA vector parameters inferred for known salts when possible.
+    \end{itemize}
+    \item For each vial and each signal type (\code{retentate}, \code{permeate}):
+    \begin{itemize}
+        \item verify units are \code{uS/cm},
+        \item call \code{\_conductivity\_to\_concentration\_series(...)},
+        \item write converted concentration array, units, and model tag back into vial fields.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{\code{\_conductivity\_to\_concentration\_series(...)} detailed algorithm}
+\begin{enumerate}
+    \item Import \code{conductivity\_paper.py} helpers.
+    \item Convert conductivity units (\code{uS/cm -> mS/cm}).
+    \item Build pointwise inverse map by root-finding on the forward conductivity model:
+    \begin{itemize}
+        \item for Shedlovsky: invert \code{variant\_shedlovsky([conc\_M], ...)} over the concentration bracket,
+        \item for MSA: invert \code{msa\_transport(...)} over the total concentration bracket.
+    \end{itemize}
+    \item For each signal point:
+    \begin{itemize}
+        \item if NaN, keep NaN,
+        \item else invert the forward function using \code{\_invert\_monotone\_1d} and write concentration,
+        \item if inversion fails, write NaN (best-effort conversion).
+    \end{itemize}
+    \item Convert output units if needed (\code{M <-> mM}).
+    \item Return concentration series.
+\end{enumerate}
+
+\section{Conductivity Physics Algorithm (\code{conductivity\_paper.py})}
+
+\subsection{\code{\_shedlovsky}}
+\begin{enumerate}
+    \item Compute constants (\code{B}, \code{q}, \code{B1}, \code{B2}).
+    \item Compute ionic strength per concentration point.
+    \item Compute equivalent conductivity via the Shedlovsky correction expression.
+    \item Return equivalent conductivity array.
+\end{enumerate}
+
+\subsection{\code{variant\_shedlovsky}}
+\begin{enumerate}
+    \item Call \code{\_shedlovsky} for equivalent conductivity.
+    \item Convert molar concentration to equivalent concentration.
+    \item Convert equivalent conductivity to specific conductivity.
+    \item Return specific conductivity in \code{mS/cm}.
+\end{enumerate}
+
+\subsection{\code{msa\_transport}}
+\begin{enumerate}
+    \item Construct species number densities for one, two, or three salts.
+    \item For each concentration point:
+    \begin{itemize}
+        \item compute mobilities and transport numbers,
+        \item solve alpha roots (bisection),
+        \item compute hydrodynamic and relaxation corrections,
+        \item compute species conductivity and sum bulk conductivity.
+    \end{itemize}
+    \item Convert to \code{mS/cm} and return.
+\end{enumerate}
+
+\section{Modeling + Estimation + DoE Algorithm (Core Stage Path)}
+
+\subsection{Model assembly}
+\begin{enumerate}
+    \item Build the dynamic model using source-aware v24 constructor wrappers.
+    \item Apply discretization (\code{nfe}, scheme).
+    \item Attach weighted objective and labeled suffixes for ParmEst and DoE.
+\end{enumerate}
+
+\subsection{Parameter estimation (\code{estimate\_parameters\_with\_parmest\_v24})}
+\begin{enumerate}
+    \item Build ParmEst experiment list wrappers.
+    \item Run estimation with the configured solver and options.
+    \item Optionally compute covariance.
+    \item If the configured path fails, use internal fallback/restart helpers.
+    \item Return estimated parameters, objective, and optional covariance artifacts.
+\end{enumerate}
+
+\subsection{DOE (\code{run\_doe\_with\_pyomo\_v24})}
+\begin{enumerate}
+    \item Build the DoE object from experiment/model labels.
+    \item Execute the finite-difference sensitivity/FIM workflow.
+    \item Compute the D-optimality metric.
+    \item Return the FIM and summary metrics.
+\end{enumerate}
+
+\section{Active Workflow Summary}
+
+\begin{enumerate}
+    \item \code{unified\_codebase\_runfile.py} builds profile-specific configuration.
+    \item \code{run\_unified\_pipeline\_v24} orchestrates load \code{->} model \code{->} optional estimate \code{->} optional DoE.
+    \item \code{conductivity\_paper.py} is used indirectly through conversion wrappers for XLSX conductivity workflows.
+    \item Archived wrappers are not part of the active algorithmic execution path.
+\end{enumerate}
+
+\end{document}
