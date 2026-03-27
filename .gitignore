@@ -1,1 +1,5 @@
 __pycache__/utility.cpython-311.pyc
+.DS_Store
+**/.DS_Store
+__pycache__/
+*.pyc

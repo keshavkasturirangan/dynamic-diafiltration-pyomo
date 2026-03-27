@@ -14,21 +14,17 @@ Uses:
     PyDataStru  (new unified constructors)
 """
 
-from experiment_dataload_OOP_v7 import (
-    DataLoader,
-    list_sheets,
-    PyDataStru,
-)
+from experiment_dataload_OOP_v8 import (DataLoader, list_sheets, PyDataStru)
 
 # ---------------------------------------------------------------------------
 # CHOOSE YOUR TEST FILE HERE
 # ---------------------------------------------------------------------------
 
 # Example Excel experiment file
-excel_path = "/Users/kkasturi/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/ExperimentalDataFiles/NF270_MC3.xlsx"
+excel_path = "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/ExperimentalDataFiles/NF270_MC3.xlsx"
 
 # Example MAT experiment file (data_stru)
-mat_path = "/Users/kkasturi/GitHub/dynamic-diafiltration-pyomo/DATA1_matlab/data_library/data_stru-dataset270511.121.mat"
+mat_path = "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA1_matlab/data_library/data_stru-dataset270511.121.mat"
 
 # ---------------------------------------------------------------------------
 # 1. TEST PyDataStru.from_excel()
@@ -84,8 +80,11 @@ print("Excel windows:", ldr_excel.windows)
 print("Excel number of vials:", len(ldr_excel.times))
 
 # Uncomment if you want plots:
-# ldr_excel.plot_mass(save_prefix="excel_mass", cumulative=False)
+# ldr_excel.plot_mass(save_prefix="excel_mass", cumulative=True)
+ldr_excel.plot_mass(cumulative=True)
 # ldr_excel.plot_conductivity(save_prefix="excel_cond")
+ldr_excel.plot_conductivity()
+
 
 # ---------------------------------------------------------------------------
 # 4. TEST DataLoader on MATLAB
@@ -100,9 +99,10 @@ print("MAT windows:", ldr_mat.windows)
 print("MAT number of vials:", len(ldr_mat.times))
 
 # Uncomment if you want plots:
-ldr_mat.plot_mass(save_prefix="mat_mass", cumulative=False)
-ldr_mat.plot_conductivity(save_prefix="mat_cond")
-
+# ldr_mat.plot_mass(save_prefix="mat_mass", cumulative=True)
+ldr_mat.plot_mass(cumulative=True)
+# ldr_mat.plot_conductivity(save_prefix="mat_cond")
+ldr_mat.plot_conductivity()
 # ---------------------------------------------------------------------------
 # Done
 # ---------------------------------------------------------------------------
