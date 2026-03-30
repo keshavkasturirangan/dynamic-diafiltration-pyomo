@@ -1,0 +1,506 @@
+[
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 2",
+    "panel_id": "A",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab data_stru + 501.1 concpolar/fit_stru",
+    "relative_csv": "data1_main/fig2/data1_main_fig2_a.csv",
+    "notes": "Dataset 501.1; exported in long format with explicit series IDs."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 2",
+    "panel_id": "B",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab data_stru + 501.1 concpolar/fit_stru",
+    "relative_csv": "data1_main/fig2/data1_main_fig2_b.csv",
+    "notes": "Dataset 501.1; exported in long format with explicit series IDs."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 2",
+    "panel_id": "C",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab data_stru + 511.12 concpolar/fit_stru",
+    "relative_csv": "data1_main/fig2/data1_main_fig2_c.csv",
+    "notes": "Dataset 511.12; exported in long format with explicit series IDs."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 2",
+    "panel_id": "D",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab data_stru + 511.12 concpolar/fit_stru",
+    "relative_csv": "data1_main/fig2/data1_main_fig2_d.csv",
+    "notes": "Dataset 511.12; exported in long format with explicit series IDs."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 3",
+    "panel_id": "A",
+    "artifact_kind": "scatter",
+    "source_label": "DATA1_matlab experiment space CSVs",
+    "relative_csv": "data1_main/fig3/data1_main_fig3.csv",
+    "notes": "Combined filtration and diafiltration experiment-space points."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "A-mass",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_a_mass.csv",
+    "notes": "Dataset 501.1; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "A-retentate",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_a_retentate.csv",
+    "notes": "Dataset 501.1; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "A-permeate",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_a_permeate.csv",
+    "notes": "Dataset 501.1; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "B-mass",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_b_mass.csv",
+    "notes": "Dataset 511.12; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "B-retentate",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_b_retentate.csv",
+    "notes": "Dataset 511.12; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 4",
+    "panel_id": "B-permeate",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA1_matlab sigma sensitivity sim_stru mats",
+    "relative_csv": "data1_main/fig4/data1_main_fig4_b_permeate.csv",
+    "notes": "Dataset 511.12; one row per vial trajectory and sigma value."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "A-mass",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_a_mass.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "A-permeate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_a_permeate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "A-retentate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_a_retentate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "B-mass",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_b_mass.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "B-permeate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_b_permeate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 5",
+    "panel_id": "B-retentate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv",
+    "relative_csv": "data1_main/fig5/data1_main_fig5_b_retentate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "A-mass",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_a_mass.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "A-permeate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_a_permeate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "A-retentate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_a_retentate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "B-mass",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_b_mass.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "B-permeate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_b_permeate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA1",
+    "figure_id": "Fig. 6",
+    "panel_id": "B-retentate",
+    "artifact_kind": "contour_grid",
+    "source_label": "DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv",
+    "relative_csv": "data1_main/fig6/data1_main_fig6_b_retentate.csv",
+    "notes": "Objective grid with optimum row flagged via is_optimum."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 2",
+    "panel_id": "A",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb -> NF270611.1_lag_pressure.csv",
+    "relative_csv": "data2_main/supporting/pressure_change_lag.csv",
+    "notes": "Pressure and retentate concentration share the same x-axis."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 2",
+    "panel_id": "B",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb -> NF270511.4_overflow_pressure.csv",
+    "relative_csv": "data2_main/supporting/pressure_change_overflow.csv",
+    "notes": "Pressure and retentate concentration share the same x-axis."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S1",
+    "panel_id": "S1-A",
+    "artifact_kind": "scatter",
+    "source_label": "DATA2_visualization.ipynb -> conductivity_calibration1.csv",
+    "relative_csv": "data2_main/supporting/data2_figs1_s1_a.csv",
+    "notes": "Includes notebook linear trendline values."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S1",
+    "panel_id": "S1-B",
+    "artifact_kind": "scatter",
+    "source_label": "DATA2_visualization.ipynb -> conductivity_calibration2.csv",
+    "relative_csv": "data2_main/supporting/data2_figs1_s1_b.csv",
+    "notes": "Includes notebook linear trendline values."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 3",
+    "panel_id": "A",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb mass_tc construction",
+    "relative_csv": "data2_main/fig3/data2_main_fig3_mass_tc.csv",
+    "notes": "Measurement points plus extrapolation/marker overlays used in the notebook figure."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 7 / Fig. S8",
+    "panel_id": "js_vs_cin",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb convection-diffusion model",
+    "relative_csv": "data2_main/fig7/data2_main_fig7_js_vs_cin.csv",
+    "notes": "Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 7 / Fig. S8",
+    "panel_id": "js_vs_time",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb convection-diffusion model",
+    "relative_csv": "data2_main/fig7/data2_main_fig7_js_vs_time.csv",
+    "notes": "Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 7 / Fig. S8",
+    "panel_id": "jw_and_conc_vs_time",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb convection-diffusion model",
+    "relative_csv": "data2_main/fig7/data2_main_fig7_jw_and_conc_vs_time.csv",
+    "notes": "Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 7 / Fig. S8",
+    "panel_id": "partition_profiles",
+    "artifact_kind": "timeseries",
+    "source_label": "DATA2_visualization.ipynb convection-diffusion model",
+    "relative_csv": "data2_main/fig7/data2_main_fig7_partition_profiles.csv",
+    "notes": "Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 8",
+    "panel_id": "A-C",
+    "artifact_kind": "parameter_sweep",
+    "source_label": "DATA2_visualization.ipynb linear_regression sensitivity sweep",
+    "relative_csv": "data2_main/fig8/data2_main_fig8_partition_sensitivity.csv",
+    "notes": "Single CSV contains the objective and both partition-coefficient profiles with confidence bands."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 9",
+    "panel_id": "A",
+    "artifact_kind": "bar_values",
+    "source_label": "DATA2_model_error_visualization.ipynb startup summary",
+    "relative_csv": "data2_main/fig9/data2_main_fig9_startup_improvement.csv",
+    "notes": "Values are the percentages hard-coded in the published-era notebook."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 9",
+    "panel_id": "B-concentrating",
+    "artifact_kind": "error_note",
+    "source_label": "DATA2_model_error_visualization.ipynb residual boxplot inputs",
+    "relative_csv": "data2_main/fig9/data2_main_fig9_concentrating_residuals_ERROR.txt",
+    "notes": "Residual export skipped because the local legacy Pyomo solve failed."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. 9",
+    "panel_id": "B-diluting",
+    "artifact_kind": "residual_distribution",
+    "source_label": "DATA2_model_error_visualization.ipynb residual boxplot inputs",
+    "relative_csv": "data2_main/fig9/data2_main_fig9_diluting_residuals.csv",
+    "notes": "Weighted residuals exported in long format, grouped by residual type and transport model."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S2",
+    "panel_id": "FS2-A1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs2-a1_mass_dat270611.121.csv",
+    "notes": "Mass comparison for dataset 270611.121."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S2",
+    "panel_id": "FS2-A1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs2-a1_concentration_dat270611.121.csv",
+    "notes": "Concentration comparison for dataset 270611.121."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S2",
+    "panel_id": "FS2-A2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs2-a2_mass_dat270711.121.csv",
+    "notes": "Mass comparison for dataset 270711.121."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S2",
+    "panel_id": "FS2-A2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs2-a2_concentration_dat270711.121.csv",
+    "notes": "Concentration comparison for dataset 270711.121."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S3",
+    "panel_id": "FS3-B1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs3-b1_mass_dat270511.221.csv",
+    "notes": "Mass comparison for dataset 270511.221."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S3",
+    "panel_id": "FS3-B1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs3-b1_concentration_dat270511.221.csv",
+    "notes": "Concentration comparison for dataset 270511.221."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S3",
+    "panel_id": "FS3-B2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs3-b2_mass_dat270511.321.csv",
+    "notes": "Mass comparison for dataset 270511.321."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S3",
+    "panel_id": "FS3-B2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs3-b2_concentration_dat270511.321.csv",
+    "notes": "Concentration comparison for dataset 270511.321."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S4",
+    "panel_id": "FS4-C1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs4-c1_mass_dat270511.421.csv",
+    "notes": "Mass comparison for dataset 270511.421."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S4",
+    "panel_id": "FS4-C1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs4-c1_concentration_dat270511.421.csv",
+    "notes": "Concentration comparison for dataset 270511.421."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S4",
+    "panel_id": "FS4-C2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs4-c2_mass_dat270511.921.csv",
+    "notes": "Mass comparison for dataset 270511.921."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S4",
+    "panel_id": "FS4-C2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs4-c2_concentration_dat270511.921.csv",
+    "notes": "Concentration comparison for dataset 270511.921."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S5",
+    "panel_id": "FS5-D1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs5-d1_mass_dat270511.521.csv",
+    "notes": "Mass comparison for dataset 270511.521."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S5",
+    "panel_id": "FS5-D1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs5-d1_concentration_dat270511.521.csv",
+    "notes": "Concentration comparison for dataset 270511.521."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S5",
+    "panel_id": "FS5-D2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs5-d2_mass_dat270511.621.csv",
+    "notes": "Mass comparison for dataset 270511.621."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S5",
+    "panel_id": "FS5-D2",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs5-d2_concentration_dat270511.621.csv",
+    "notes": "Concentration comparison for dataset 270511.621."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S6",
+    "panel_id": "FS6-E1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs6-e1_mass_dat270511.721.csv",
+    "notes": "Mass comparison for dataset 270511.721."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S6",
+    "panel_id": "FS6-E1",
+    "artifact_kind": "timeseries",
+    "source_label": "run_cross_verification.py logic via utility.solve_model_B_fix",
+    "relative_csv": "data2_si/cross_verification/data2_fs6-e1_concentration_dat270511.721.csv",
+    "notes": "Concentration comparison for dataset 270511.721."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S7",
+    "panel_id": "A",
+    "artifact_kind": "timeseries",
+    "source_label": "run_pre_B_dependence.py logic via utility.solve_model(B_form='pervial')",
+    "relative_csv": "data2_si/figs7/data2_figs7_B_vs_cin.csv",
+    "notes": "Discrete-B curves grouped by case and vial."
+  },
+  {
+    "paper": "DATA2",
+    "figure_id": "Fig. S7",
+    "panel_id": "B",
+    "artifact_kind": "timeseries",
+    "source_label": "run_pre_B_dependence.py logic via utility.solve_model(B_form='pervial')",
+    "relative_csv": "data2_si/figs7/data2_figs7_js_over_jw_vs_cin.csv",
+    "notes": "Js/Jw versus interface concentration grouped by case and vial."
+  }
+]

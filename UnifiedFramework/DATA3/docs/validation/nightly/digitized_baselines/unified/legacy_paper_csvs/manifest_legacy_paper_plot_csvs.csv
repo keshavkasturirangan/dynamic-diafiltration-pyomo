@@ -1,0 +1,57 @@
+paper,figure_id,panel_id,artifact_kind,source_label,relative_csv,notes
+DATA1,Fig. 2,A,timeseries,DATA1_matlab data_stru + 501.1 concpolar/fit_stru,data1_main/fig2/data1_main_fig2_a.csv,Dataset 501.1; exported in long format with explicit series IDs.
+DATA1,Fig. 2,B,timeseries,DATA1_matlab data_stru + 501.1 concpolar/fit_stru,data1_main/fig2/data1_main_fig2_b.csv,Dataset 501.1; exported in long format with explicit series IDs.
+DATA1,Fig. 2,C,timeseries,DATA1_matlab data_stru + 511.12 concpolar/fit_stru,data1_main/fig2/data1_main_fig2_c.csv,Dataset 511.12; exported in long format with explicit series IDs.
+DATA1,Fig. 2,D,timeseries,DATA1_matlab data_stru + 511.12 concpolar/fit_stru,data1_main/fig2/data1_main_fig2_d.csv,Dataset 511.12; exported in long format with explicit series IDs.
+DATA1,Fig. 3,A,scatter,DATA1_matlab experiment space CSVs,data1_main/fig3/data1_main_fig3.csv,Combined filtration and diafiltration experiment-space points.
+DATA1,Fig. 4,A-mass,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_a_mass.csv,Dataset 501.1; one row per vial trajectory and sigma value.
+DATA1,Fig. 4,A-retentate,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_a_retentate.csv,Dataset 501.1; one row per vial trajectory and sigma value.
+DATA1,Fig. 4,A-permeate,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_a_permeate.csv,Dataset 501.1; one row per vial trajectory and sigma value.
+DATA1,Fig. 4,B-mass,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_b_mass.csv,Dataset 511.12; one row per vial trajectory and sigma value.
+DATA1,Fig. 4,B-retentate,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_b_retentate.csv,Dataset 511.12; one row per vial trajectory and sigma value.
+DATA1,Fig. 4,B-permeate,timeseries,DATA1_matlab sigma sensitivity sim_stru mats,data1_main/fig4/data1_main_fig4_b_permeate.csv,Dataset 511.12; one row per vial trajectory and sigma value.
+DATA1,Fig. 5,A-mass,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_a_mass.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 5,A-permeate,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_a_permeate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 5,A-retentate,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_a_retentate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 5,B-mass,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_b_mass.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 5,B-permeate,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_b_permeate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 5,B-retentate,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_sigma-y_Lp.csv,data1_main/fig5/data1_main_fig5_b_retentate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,A-mass,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_a_mass.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,A-permeate,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_a_permeate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,A-retentate,contour_grid,DATA1_matlab/501.1 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_a_retentate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,B-mass,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_b_mass.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,B-permeate,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_b_permeate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA1,Fig. 6,B-retentate,contour_grid,DATA1_matlab/511.12 concpolar contourdata-x_B-y_Lp.csv,data1_main/fig6/data1_main_fig6_b_retentate.csv,Objective grid with optimum row flagged via is_optimum.
+DATA2,Fig. 2,A,timeseries,DATA2_visualization.ipynb -> NF270611.1_lag_pressure.csv,data2_main/supporting/pressure_change_lag.csv,Pressure and retentate concentration share the same x-axis.
+DATA2,Fig. 2,B,timeseries,DATA2_visualization.ipynb -> NF270511.4_overflow_pressure.csv,data2_main/supporting/pressure_change_overflow.csv,Pressure and retentate concentration share the same x-axis.
+DATA2,Fig. S1,S1-A,scatter,DATA2_visualization.ipynb -> conductivity_calibration1.csv,data2_main/supporting/data2_figs1_s1_a.csv,Includes notebook linear trendline values.
+DATA2,Fig. S1,S1-B,scatter,DATA2_visualization.ipynb -> conductivity_calibration2.csv,data2_main/supporting/data2_figs1_s1_b.csv,Includes notebook linear trendline values.
+DATA2,Fig. 3,A,timeseries,DATA2_visualization.ipynb mass_tc construction,data2_main/fig3/data2_main_fig3_mass_tc.csv,Measurement points plus extrapolation/marker overlays used in the notebook figure.
+DATA2,Fig. 7 / Fig. S8,js_vs_cin,timeseries,DATA2_visualization.ipynb convection-diffusion model,data2_main/fig7/data2_main_fig7_js_vs_cin.csv,Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10.
+DATA2,Fig. 7 / Fig. S8,js_vs_time,timeseries,DATA2_visualization.ipynb convection-diffusion model,data2_main/fig7/data2_main_fig7_js_vs_time.csv,Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10.
+DATA2,Fig. 7 / Fig. S8,jw_and_conc_vs_time,timeseries,DATA2_visualization.ipynb convection-diffusion model,data2_main/fig7/data2_main_fig7_jw_and_conc_vs_time.csv,Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10.
+DATA2,Fig. 7 / Fig. S8,partition_profiles,timeseries,DATA2_visualization.ipynb convection-diffusion model,data2_main/fig7/data2_main_fig7_partition_profiles.csv,Uses sim_data-dat270611.123.csv and the notebook convection fit with Pe fixed at 10.
+DATA2,Fig. 8,A-C,parameter_sweep,DATA2_visualization.ipynb linear_regression sensitivity sweep,data2_main/fig8/data2_main_fig8_partition_sensitivity.csv,Single CSV contains the objective and both partition-coefficient profiles with confidence bands.
+DATA2,Fig. 9,A,bar_values,DATA2_model_error_visualization.ipynb startup summary,data2_main/fig9/data2_main_fig9_startup_improvement.csv,Values are the percentages hard-coded in the published-era notebook.
+DATA2,Fig. 9,B-concentrating,error_note,DATA2_model_error_visualization.ipynb residual boxplot inputs,data2_main/fig9/data2_main_fig9_concentrating_residuals_ERROR.txt,Residual export skipped because the local legacy Pyomo solve failed.
+DATA2,Fig. 9,B-diluting,residual_distribution,DATA2_model_error_visualization.ipynb residual boxplot inputs,data2_main/fig9/data2_main_fig9_diluting_residuals.csv,"Weighted residuals exported in long format, grouped by residual type and transport model."
+DATA2,Fig. S2,FS2-A1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs2-a1_mass_dat270611.121.csv,Mass comparison for dataset 270611.121.
+DATA2,Fig. S2,FS2-A1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs2-a1_concentration_dat270611.121.csv,Concentration comparison for dataset 270611.121.
+DATA2,Fig. S2,FS2-A2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs2-a2_mass_dat270711.121.csv,Mass comparison for dataset 270711.121.
+DATA2,Fig. S2,FS2-A2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs2-a2_concentration_dat270711.121.csv,Concentration comparison for dataset 270711.121.
+DATA2,Fig. S3,FS3-B1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs3-b1_mass_dat270511.221.csv,Mass comparison for dataset 270511.221.
+DATA2,Fig. S3,FS3-B1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs3-b1_concentration_dat270511.221.csv,Concentration comparison for dataset 270511.221.
+DATA2,Fig. S3,FS3-B2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs3-b2_mass_dat270511.321.csv,Mass comparison for dataset 270511.321.
+DATA2,Fig. S3,FS3-B2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs3-b2_concentration_dat270511.321.csv,Concentration comparison for dataset 270511.321.
+DATA2,Fig. S4,FS4-C1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs4-c1_mass_dat270511.421.csv,Mass comparison for dataset 270511.421.
+DATA2,Fig. S4,FS4-C1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs4-c1_concentration_dat270511.421.csv,Concentration comparison for dataset 270511.421.
+DATA2,Fig. S4,FS4-C2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs4-c2_mass_dat270511.921.csv,Mass comparison for dataset 270511.921.
+DATA2,Fig. S4,FS4-C2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs4-c2_concentration_dat270511.921.csv,Concentration comparison for dataset 270511.921.
+DATA2,Fig. S5,FS5-D1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs5-d1_mass_dat270511.521.csv,Mass comparison for dataset 270511.521.
+DATA2,Fig. S5,FS5-D1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs5-d1_concentration_dat270511.521.csv,Concentration comparison for dataset 270511.521.
+DATA2,Fig. S5,FS5-D2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs5-d2_mass_dat270511.621.csv,Mass comparison for dataset 270511.621.
+DATA2,Fig. S5,FS5-D2,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs5-d2_concentration_dat270511.621.csv,Concentration comparison for dataset 270511.621.
+DATA2,Fig. S6,FS6-E1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs6-e1_mass_dat270511.721.csv,Mass comparison for dataset 270511.721.
+DATA2,Fig. S6,FS6-E1,timeseries,run_cross_verification.py logic via utility.solve_model_B_fix,data2_si/cross_verification/data2_fs6-e1_concentration_dat270511.721.csv,Concentration comparison for dataset 270511.721.
+DATA2,Fig. S7,A,timeseries,run_pre_B_dependence.py logic via utility.solve_model(B_form='pervial'),data2_si/figs7/data2_figs7_B_vs_cin.csv,Discrete-B curves grouped by case and vial.
+DATA2,Fig. S7,B,timeseries,run_pre_B_dependence.py logic via utility.solve_model(B_form='pervial'),data2_si/figs7/data2_figs7_js_over_jw_vs_cin.csv,Js/Jw versus interface concentration grouped by case and vial.
