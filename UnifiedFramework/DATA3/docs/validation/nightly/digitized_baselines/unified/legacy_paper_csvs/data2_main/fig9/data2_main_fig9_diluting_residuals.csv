@@ -1,0 +1,2773 @@
+solute_transport,residual_type,weighted_residual
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,-0.14281821830360364
+Diffusion Only,Mass,-0.09432058005252096
+Diffusion Only,Mass,-0.04582294180143834
+Diffusion Only,Mass,-0.15038104990903192
+Diffusion Only,Mass,-0.1018834116579493
+Diffusion Only,Mass,-0.05338577340686667
+Diffusion Only,Mass,-0.04315207174545307
+Diffusion Only,Mass,-0.18597411644271558
+Diffusion Only,Mass,-0.137476478191633
+Diffusion Only,Mass,-0.05071490335088124
+Diffusion Only,Mass,-0.19353694804814392
+Diffusion Only,Mass,-0.1067753732073922
+Diffusion Only,Mass,-0.09654167154597865
+Diffusion Only,Mass,-0.086307969884565
+Diffusion Only,Mass,-0.1908660779921586
+Diffusion Only,Mass,-0.14236843974107585
+Diffusion Only,Mass,-0.09387080148999334
+Diffusion Only,Mass,-0.274956782776925
+Diffusion Only,Mass,-0.18819520793617317
+Diffusion Only,Mass,-0.13969756968509064
+Diffusion Only,Mass,-0.0911999314340081
+Diffusion Only,Mass,-0.23402197613127057
+Diffusion Only,Mass,-0.18552433788018782
+Diffusion Only,Mass,-0.13702669962910533
+Diffusion Only,Mass,-0.27984874432636797
+Diffusion Only,Mass,-0.26961504266495434
+Diffusion Only,Mass,-0.22111740441387162
+Diffusion Only,Mass,-0.21088370275245816
+Diffusion Only,Mass,-0.3154418108600518
+Diffusion Only,Mass,-0.26694417260896924
+Diffusion Only,Mass,-0.2184465343578865
+Diffusion Only,Mass,-0.361268579055149
+Diffusion Only,Mass,-0.3510348773937355
+Diffusion Only,Mass,-0.2642733025529839
+Diffusion Only,Mass,-0.4070953472502466
+Diffusion Only,Mass,-0.35859770899916404
+Diffusion Only,Mass,-0.31010007074808155
+Diffusion Only,Mass,-0.26160243249699855
+Diffusion Only,Mass,-0.4044244771942609
+Diffusion Only,Mass,-0.35592683894317806
+Diffusion Only,Mass,-0.30742920069209556
+Diffusion Only,Mass,-0.45025124538935846
+Diffusion Only,Mass,-0.3634896705486064
+Diffusion Only,Mass,-0.3149920322975239
+Diffusion Only,Mass,-0.30475833063611046
+Diffusion Only,Mass,-0.48584431192304156
+Diffusion Only,Mass,-0.43734667367195906
+Diffusion Only,Mass,-0.38884903542087657
+Diffusion Only,Mass,-0.49340714352847037
+Diffusion Only,Mass,-0.4449095052773874
+Diffusion Only,Mass,-0.4346758036159739
+Diffusion Only,Mass,-0.3861781653648914
+Diffusion Only,Mass,-0.4907362734724852
+Diffusion Only,Mass,-0.4422386352214023
+Diffusion Only,Mass,-0.3937409969703197
+Diffusion Only,Mass,-0.5365630416675822
+Diffusion Only,Mass,-0.5263293400061684
+Diffusion Only,Mass,-0.43956776516541674
+Diffusion Only,Mass,-0.5823898098626796
+Diffusion Only,Mass,-0.5721561082012662
+Diffusion Only,Mass,-0.5236584699501837
+Diffusion Only,Mass,-0.4751608316991007
+Diffusion Only,Mass,-0.6562468129860323
+Diffusion Only,Mass,-0.5694852381452803
+Diffusion Only,Mass,-0.5209875998941976
+Diffusion Only,Mass,-0.6638096445914606
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.15243933207356547
+Diffusion Only,Mass,0.050195420941524654
+Diffusion Only,Mass,0.10100725616816018
+Diffusion Only,Mass,0.15181909139479566
+Diffusion Only,Mass,-0.02695269291658333
+Diffusion Only,Mass,0.06212307889972125
+Diffusion Only,Mass,0.11293491412635673
+Diffusion Only,Mass,-0.06583687018502135
+Diffusion Only,Mass,-0.01502503495838586
+Diffusion Only,Mass,0.07405073685791871
+Diffusion Only,Mass,0.12486257208455422
+Diffusion Only,Mass,-0.053909212226824786
+Diffusion Only,Mass,0.03516655958947979
+Diffusion Only,Mass,0.08597839481611529
+Diffusion Only,Mass,-0.054529452905594626
+Diffusion Only,Mass,-0.0037176176789591327
+Diffusion Only,Mass,0.04709421754767626
+Diffusion Only,Mass,0.059642116184642775
+Diffusion Only,Mass,0.07219001482160908
+Diffusion Only,Mass,0.12300185004824468
+Diffusion Only,Mass,-0.017505997673465338
+Diffusion Only,Mass,0.033305837553170264
+Diffusion Only,Mass,0.08411767277980564
+Diffusion Only,Mass,0.17319344459611033
+Diffusion Only,Mass,-0.0055783397152679185
+Diffusion Only,Mass,0.04523349551136768
+Diffusion Only,Mass,0.09604533073800306
+Diffusion Only,Mass,-0.08272645357337581
+Diffusion Only,Mass,-0.031914618346740434
+Diffusion Only,Mass,0.057161153469564255
+Diffusion Only,Mass,-0.08334669425214576
+Diffusion Only,Mass,0.005729077564158915
+Diffusion Only,Mass,0.056540912790794304
+Diffusion Only,Mass,0.06908881142776083
+Diffusion Only,Mass,-0.03315509970428012
+Diffusion Only,Mass,0.017656735522355697
+Diffusion Only,Mass,0.030204634159321793
+Diffusion Only,Mass,-0.07203927697271852
+Diffusion Only,Mass,-0.059491378335752416
+Diffusion Only,Mass,0.02958439348055227
+Diffusion Only,Mass,-0.11092345424115797
+Diffusion Only,Mass,-0.09837555560419017
+Diffusion Only,Mass,-0.047563720377555
+Diffusion Only,Mass,0.003248114849080604
+Diffusion Only,Mass,-0.13725973287262963
+Diffusion Only,Mass,-0.0864478976459936
+Diffusion Only,Mass,-0.035636062419358426
+Diffusion Only,Mass,-0.02308816378239191
+Diffusion Only,Mass,-0.12533207491443307
+Diffusion Only,Mass,-0.07452023968779704
+Diffusion Only,Mass,-0.023708404461161858
+Diffusion Only,Mass,-0.16421625218287167
+Diffusion Only,Mass,-0.1134044169562365
+Diffusion Only,Mass,-0.06259258172960047
+Diffusion Only,Mass,-0.2031004294513107
+Diffusion Only,Mass,-0.1522885942246751
+Diffusion Only,Mass,-0.10147675899803993
+Diffusion Only,Mass,-0.24198460671974845
+Diffusion Only,Mass,-0.19117277149311326
+Diffusion Only,Mass,-0.1403609362664777
+Diffusion Only,Mass,-0.1278130376295116
+Diffusion Only,Mass,-0.2300569487615519
+Diffusion Only,Mass,-0.1792451135349167
+Diffusion Only,Mass,-0.1284332783082811
+Diffusion Only,Mass,-0.2689411260299913
+Diffusion Only,Mass,-0.2181292908033553
+Diffusion Only,Mass,-0.16731745557672012
+Diffusion Only,Mass,-0.11650562035008455
+Diffusion Only,Mass,-0.18048559489245578
+Diffusion Only,Mass,-0.12967375966581973
+Diffusion Only,Mass,-0.07886192443918456
+Diffusion Only,Mass,-0.2193697721608952
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.013512439942881203
+Diffusion Only,Mass,0.06528499008177167
+Diffusion Only,Mass,-0.07426214272768412
+Diffusion Only,Mass,-0.022489592588793635
+Diffusion Only,Mass,0.02928295755009682
+Diffusion Only,Mass,0.04279157109931905
+Diffusion Only,Mass,-0.0967555617101367
+Diffusion Only,Mass,-0.04498301157124624
+Diffusion Only,Mass,0.0450534751573141
+Diffusion Only,Mass,-0.13275759424180988
+Diffusion Only,Mass,-0.08098504410291943
+Diffusion Only,Mass,-0.02921249396402897
+Diffusion Only,Mass,-0.16875962677348297
+Diffusion Only,Mass,-0.11698707663459251
+Diffusion Only,Mass,-0.06521452649570215
+Diffusion Only,Mass,-0.20476165930515786
+Diffusion Only,Mass,-0.1529891091662674
+Diffusion Only,Mass,-0.10121655902737704
+Diffusion Only,Mass,-0.04944400888848658
+Diffusion Only,Mass,-0.15072720510827245
+Diffusion Only,Mass,-0.13721859155905022
+Diffusion Only,Mass,-0.08544604142015977
+Diffusion Only,Mass,-0.03367349128126931
+Diffusion Only,Mass,-0.09669275091138695
+Diffusion Only,Mass,-0.044920200772496276
+Diffusion Only,Mass,-0.03141158722327405
+Diffusion Only,Mass,-0.17095872003272986
+Diffusion Only,Mass,-0.11918616989383939
+Diffusion Only,Mass,-0.06741361975494894
+Diffusion Only,Mass,-0.20696075256440324
+Diffusion Only,Mass,-0.11692426583584287
+Diffusion Only,Mass,-0.06515171569695219
+Diffusion Only,Mass,-0.24296278509607622
+Diffusion Only,Mass,-0.19119023495718576
+Diffusion Only,Mass,-0.1394176848182953
+Diffusion Only,Mass,-0.125909071269075
+Diffusion Only,Mass,-0.22719226748886046
+Diffusion Only,Mass,-0.17541971734996997
+Diffusion Only,Mass,-0.12364716721107953
+Diffusion Only,Mass,-0.07187461707218906
+Diffusion Only,Mass,-0.24968568647131312
+Diffusion Only,Mass,-0.1596491997427527
+Diffusion Only,Mass,-0.10787664960386183
+Diffusion Only,Mass,-0.20915984582364813
+Diffusion Only,Mass,-0.19565123227442716
+Diffusion Only,Mass,-0.14387868213553714
+Diffusion Only,Mass,-0.2451618783553213
+Diffusion Only,Mass,-0.19338932821643084
+Diffusion Only,Mass,-0.1416167780775404
+Diffusion Only,Mass,-0.28116391088699577
+Diffusion Only,Mass,-0.22939136074810573
+Diffusion Only,Mass,-0.17761881060921483
+Diffusion Only,Mass,-0.24063807023933123
+Diffusion Only,Mass,-0.30365732986944843
+Diffusion Only,Mass,-0.21362084314088847
+Diffusion Only,Mass,-0.16184829300199757
+Diffusion Only,Mass,-0.3013954258114534
+Diffusion Only,Mass,-0.24962287567256292
+Diffusion Only,Mass,-0.19785032553367246
+Diffusion Only,Mass,-0.2226056485741206
+Diffusion Only,Mass,-0.20909703502489793
+Diffusion Only,Mass,-0.15732448488600792
+Diffusion Only,Mass,-0.2968716176954633
+Diffusion Only,Mass,-0.24509906755657282
+Diffusion Only,Mass,-0.19332651741768236
+Diffusion Only,Mass,-0.3328736502271365
+Diffusion Only,Mass,-0.281101100088246
+Diffusion Only,Mass,-0.22932854994935553
+Diffusion Only,Mass,-0.17755599981046508
+Diffusion Only,Mass,-0.31710313261991924
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.16315673016558643
+Diffusion Only,Mass,0.2158581718540204
+Diffusion Only,Mass,0.2685596135424544
+Diffusion Only,Mass,0.3212610552308883
+Diffusion Only,Mass,0.3356985603296524
+Diffusion Only,Mass,0.19708031906974177
+Diffusion Only,Mass,0.24978176075817574
+Diffusion Only,Mass,0.3024832024466097
+Diffusion Only,Mass,0.20212889777636733
+Diffusion Only,Mass,0.2548303394648013
+Diffusion Only,Mass,0.30753178115323526
+Diffusion Only,Mass,0.16891353989332467
+Diffusion Only,Mass,0.2598789181714269
+Diffusion Only,Mass,0.2743164232701925
+Diffusion Only,Mass,0.1356981820102802
+Diffusion Only,Mass,0.18839962369871419
+Diffusion Only,Mass,0.24110106538714815
+Diffusion Only,Mass,0.10248282412723754
+Diffusion Only,Mass,0.15518426581567152
+Diffusion Only,Mass,0.20788570750410548
+Diffusion Only,Mass,0.26058714919253945
+Diffusion Only,Mass,0.1984967811119653
+Diffusion Only,Mass,0.2511982228003993
+Diffusion Only,Mass,0.30389966448883327
+Diffusion Only,Mass,0.16528142322892264
+Diffusion Only,Mass,0.2179828649173566
+Diffusion Only,Mass,0.27068430660579057
+Diffusion Only,Mass,0.13206606534587997
+Diffusion Only,Mass,0.18476750703431397
+Diffusion Only,Mass,0.19920501213307798
+Diffusion Only,Mass,0.09885070746283563
+Diffusion Only,Mass,0.1515521491512698
+Diffusion Only,Mass,0.20425359083970376
+Diffusion Only,Mass,0.25695503252813773
+Diffusion Only,Mass,0.19486466444756528
+Diffusion Only,Mass,0.24756610613599928
+Diffusion Only,Mass,0.3002675478244332
+Diffusion Only,Mass,0.16164930656452092
+Diffusion Only,Mass,0.17608681166328666
+Diffusion Only,Mass,0.22878825335172062
+Diffusion Only,Mass,0.09017001209180835
+Diffusion Only,Mass,0.18113539036991225
+Diffusion Only,Mass,0.2338368320583462
+Diffusion Only,Mass,0.09521859079843392
+Diffusion Only,Mass,0.1479200324868679
+Diffusion Only,Mass,0.20062147417530185
+Diffusion Only,Mass,0.062003232915391254
+Diffusion Only,Mass,0.11470467460382522
+Diffusion Only,Mass,0.12914217970259095
+Diffusion Only,Mass,-0.009476061557321343
+Diffusion Only,Mass,0.04322538013111262
+Diffusion Only,Mass,0.09592682181954659
+Diffusion Only,Mass,0.14862826350798056
+Diffusion Only,Mass,0.08653789542740813
+Diffusion Only,Mass,0.10097540052617217
+Diffusion Only,Mass,0.19194077880427604
+Diffusion Only,Mass,0.01505860095469553
+Diffusion Only,Mass,0.0677600426431295
+Diffusion Only,Mass,0.12046148433156346
+Diffusion Only,Mass,0.020107179661321098
+Diffusion Only,Mass,0.03454468476008513
+Diffusion Only,Mass,0.0872461264485191
+Diffusion Only,Mass,0.13994756813695308
+Diffusion Only,Mass,0.0013293268770424688
+Diffusion Only,Mass,0.09229470515514467
+Diffusion Only,Mass,0.14499614684357864
+Diffusion Only,Mass,0.006377905583668038
+Diffusion Only,Mass,0.020815410682433345
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,-0.1377251442962619
+Diffusion Only,Mass,-0.12239836862750983
+Diffusion Only,Mass,-0.22186340272776245
+Diffusion Only,Mass,-0.13000875387966712
+Diffusion Only,Mass,-0.07641804162124342
+Diffusion Only,Mass,0.015436607226848535
+Diffusion Only,Mass,-0.007500553694067663
+Diffusion Only,Mass,-0.10696558779432026
+Diffusion Only,Mass,-0.015110938946224919
+Diffusion Only,Mass,0.038479773312198755
+Diffusion Only,Mass,-0.0609852607880538
+Diffusion Only,Mass,-0.04565848511929837
+Diffusion Only,Mass,0.007932227139125194
+Diffusion Only,Mass,-0.12979674355079898
+Diffusion Only,Mass,-0.07620603129237533
+Diffusion Only,Mass,-0.02261531903395155
+Diffusion Only,Mass,-0.12208035313420422
+Diffusion Only,Mass,-0.06848964087578055
+Diffusion Only,Mass,-0.05316286520702511
+Diffusion Only,Mass,-0.190891835896946
+Diffusion Only,Mass,-0.13730112363852234
+Diffusion Only,Mass,-0.08371041138009845
+Diffusion Only,Mass,-0.22143938207001934
+Diffusion Only,Mass,-0.16784866981159569
+Diffusion Only,Mass,-0.114257957553172
+Diffusion Only,Mass,-0.060667245294748554
+Diffusion Only,Mass,-0.160132279395001
+Diffusion Only,Mass,-0.10654156713657734
+Diffusion Only,Mass,-0.052950854878153666
+Diffusion Only,Mass,-0.2289437621577462
+Diffusion Only,Mass,-0.1370891133096509
+Diffusion Only,Mass,-0.08349840105122701
+Diffusion Only,Mass,-0.2212273717411513
+Diffusion Only,Mass,-0.16763665948272763
+Diffusion Only,Mass,-0.11404594722430418
+Diffusion Only,Mass,-0.06045523496587988
+Diffusion Only,Mass,-0.1981842056558012
+Diffusion Only,Mass,-0.1445934933973771
+Diffusion Only,Mass,-0.09100278113895344
+Diffusion Only,Mass,-0.22873175182887434
+Diffusion Only,Mass,-0.17514103957045066
+Diffusion Only,Mass,-0.12155032731202699
+Diffusion Only,Mass,-0.29754323459161613
+Diffusion Only,Mass,-0.20568858574352378
+Diffusion Only,Mass,-0.15209787348510057
+Diffusion Only,Mass,-0.1367710978163447
+Diffusion Only,Mass,-0.08318038555792144
+Diffusion Only,Mass,-0.06785360988916898
+Diffusion Only,Mass,-0.16731864398942164
+Diffusion Only,Mass,-0.11372793173099797
+Diffusion Only,Mass,-0.09840115606224255
+Diffusion Only,Mass,-0.2743940633418321
+Diffusion Only,Mass,-0.220803351083408
+Diffusion Only,Mass,-0.1289487022353161
+Diffusion Only,Mass,-0.3049416095149086
+Diffusion Only,Mass,-0.25135089725648496
+Diffusion Only,Mass,-0.15949624840838966
+Diffusion Only,Mass,-0.29722521909831395
+Diffusion Only,Mass,-0.24363450683988985
+Diffusion Only,Mass,-0.1900437945814666
+Diffusion Only,Mass,-0.17471701891271074
+Diffusion Only,Mass,-0.2359181164232922
+Diffusion Only,Mass,-0.1823274041648681
+Diffusion Only,Mass,-0.32005637485479244
+Diffusion Only,Mass,-0.2664656625963687
+Diffusion Only,Mass,-0.17461101374827345
+Diffusion Only,Mass,-0.15928423807952138
+Diffusion Only,Mass,-0.2970132087694423
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.01616734508985442
+Diffusion Only,Mass,0.07059480037571811
+Diffusion Only,Mass,-0.06629742728676277
+Diffusion Only,Mass,-0.011869972000899074
+Diffusion Only,Mass,0.08082141987463283
+Diffusion Only,Mass,0.058721001981156644
+Diffusion Only,Mass,-0.0016433525019843272
+Diffusion Only,Mass,0.05278410278387935
+Diffusion Only,Mass,0.06894762148007133
+Diffusion Only,Mass,0.008583266996930367
+Diffusion Only,Mass,0.06301072228279399
+Diffusion Only,Mass,0.07917424097898948
+Diffusion Only,Mass,-0.01945405009382312
+Diffusion Only,Mass,0.03497340519204061
+Diffusion Only,Mass,0.05113692388823259
+Diffusion Only,Mass,-0.08575530377424824
+Diffusion Only,Mass,-0.03132784848838451
+Diffusion Only,Mass,0.0230996067974789
+Diffusion Only,Mass,0.039263125493674396
+Diffusion Only,Mass,-0.021101228989469978
+Diffusion Only,Mass,0.03332622629639375
+Diffusion Only,Mass,0.011225808402920801
+Diffusion Only,Mass,-0.04913854608022357
+Diffusion Only,Mass,-0.03297502738402808
+Diffusion Only,Mass,0.05971636449150389
+Diffusion Only,Mass,-0.11543979976064518
+Diffusion Only,Mass,-0.02274840788511322
+Diffusion Only,Mass,-0.006584889188917726
+Diffusion Only,Mass,-0.10521318026173053
+Diffusion Only,Mass,-0.050785724975866815
+Diffusion Only,Mass,0.0036417303099969146
+Diffusion Only,Mass,0.01980524900618901
+Diffusion Only,Mass,-0.11708697865629182
+Diffusion Only,Mass,-0.0626595233704281
+Diffusion Only,Mass,-0.008232068084564581
+Diffusion Only,Mass,-0.10686035915737718
+Diffusion Only,Mass,-0.014168967281844799
+Diffusion Only,Mass,0.0019945514143502713
+Diffusion Only,Mass,-0.13489767624813057
+Diffusion Only,Mass,-0.08047022096226684
+Diffusion Only,Mass,-0.02604276567640311
+Diffusion Only,Mass,-0.16293499333888392
+Diffusion Only,Mass,-0.10850753805302021
+Diffusion Only,Mass,-0.054080082767156916
+Diffusion Only,Mass,-0.037916564070960994
+Diffusion Only,Mass,-0.136544855143774
+Diffusion Only,Mass,-0.08211739985791029
+Diffusion Only,Mass,-0.0659538811617182
+Diffusion Only,Mass,-0.1645821722345308
+Diffusion Only,Mass,-0.11015471694866708
+Diffusion Only,Mass,-0.05572726166280377
+Diffusion Only,Mass,-0.1926194893252842
+Diffusion Only,Mass,-0.13819203403942087
+Diffusion Only,Mass,-0.045500642163888494
+Diffusion Only,Mass,-0.22065680641603796
+Diffusion Only,Mass,-0.16622935113017384
+Diffusion Only,Mass,-0.11180189584431054
+Diffusion Only,Mass,-0.24869412350679135
+Diffusion Only,Mass,-0.1942666682209276
+Diffusion Only,Mass,-0.1398392129350639
+Diffusion Only,Mass,-0.08541175764920018
+Diffusion Only,Mass,-0.10751217554267632
+Diffusion Only,Mass,-0.1678765300258177
+Diffusion Only,Mass,-0.07518513815028532
+Diffusion Only,Mass,-0.25034130240243824
+Diffusion Only,Mass,-0.15764991052690241
+Diffusion Only,Mass,-0.10322245524103914
+Diffusion Only,Mass,-0.08705893654484662
+Diffusion Only,Mass,-0.18568722761765966
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.012620988141493842
+Diffusion Only,Mass,0.06784529084366424
+Diffusion Only,Mass,0.12306959354583462
+Diffusion Only,Mass,-0.01302578670033952
+Diffusion Only,Mass,0.0421985160018309
+Diffusion Only,Mass,0.09742281870400125
+Diffusion Only,Mass,0.07611924822683516
+Diffusion Only,Mass,0.09307961433933734
+Diffusion Only,Mass,0.14830391704150778
+Diffusion Only,Mass,0.012208536795330224
+Diffusion Only,Mass,0.06743283949750054
+Diffusion Only,Mass,0.12265714219967105
+Diffusion Only,Mass,-0.013438238046503192
+Diffusion Only,Mass,0.04178606465566723
+Diffusion Only,Mass,0.05874643076816941
+Diffusion Only,Mass,-0.07734894947800494
+Diffusion Only,Mass,-0.022124646775834315
+Diffusion Only,Mass,-0.00516428066333574
+Diffusion Only,Mass,-0.10299572431984165
+Diffusion Only,Mass,-0.047771421617671235
+Diffusion Only,Mass,-0.03081105550516905
+Diffusion Only,Mass,-0.12864249916167494
+Diffusion Only,Mass,-0.11168213304917277
+Diffusion Only,Mass,-0.018193893757334337
+Diffusion Only,Mass,-0.11602533741384002
+Diffusion Only,Mass,-0.13732890789100607
+Diffusion Only,Mass,-0.043840668599167645
+Diffusion Only,Mass,-0.02688030248666546
+Diffusion Only,Mass,-0.16297568273283938
+Diffusion Only,Mass,-0.10775138003066918
+Diffusion Only,Mass,-0.05252707732849877
+Diffusion Only,Mass,0.0026972253736716506
+Diffusion Only,Mass,-0.018606345103497797
+Diffusion Only,Mass,0.036617957598672625
+Diffusion Only,Mass,-0.09947742264750152
+Diffusion Only,Mass,-0.04425311994533068
+Diffusion Only,Mass,0.010971182756839315
+Diffusion Only,Mass,-0.12512419748933484
+Diffusion Only,Mass,-0.06989989478716442
+Diffusion Only,Mass,-0.014675592084993994
+Diffusion Only,Mass,0.04054871061717642
+Diffusion Only,Mass,-0.09554666962899773
+Diffusion Only,Mass,-0.07858630351649894
+Diffusion Only,Mass,0.014901935775343116
+Diffusion Only,Mass,-0.0829295078811628
+Diffusion Only,Mass,-0.06596914176866402
+Diffusion Only,Mass,-0.010744839066493591
+Diffusion Only,Mass,-0.14684021931266775
+Diffusion Only,Mass,-0.05335198002082909
+Diffusion Only,Mass,0.0018723226813409082
+Diffusion Only,Mass,-0.13422305756483324
+Diffusion Only,Mass,-0.11726269145233063
+Diffusion Only,Mass,-0.06203838875016021
+Diffusion Only,Mass,-0.19813376899633434
+Diffusion Only,Mass,-0.14290946629416437
+Diffusion Only,Mass,-0.08768516359199395
+Diffusion Only,Mass,-0.2237805438381681
+Diffusion Only,Mass,-0.16855624113599768
+Diffusion Only,Mass,-0.11333193843382726
+Diffusion Only,Mass,-0.05810763573165641
+Diffusion Only,Mass,-0.11767514279849452
+Diffusion Only,Mass,-0.062450840096324095
+Diffusion Only,Mass,-0.007226537394153675
+Diffusion Only,Mass,-0.18158585422999945
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.017709943985393602
+Diffusion Only,Mass,0.11194393475646472
+Diffusion Only,Mass,-0.061669630600145214
+Diffusion Only,Mass,-0.005699576418742338
+Diffusion Only,Mass,0.05027047776266053
+Diffusion Only,Mass,0.10624053194406341
+Diffusion Only,Mass,-0.06737303341254652
+Diffusion Only,Mass,-0.011402979231143646
+Diffusion Only,Mass,0.08283101153992746
+Diffusion Only,Mass,-0.05251861722701423
+Diffusion Only,Mass,0.041715373544056876
+Diffusion Only,Mass,0.05942149113579151
+Diffusion Only,Mass,-0.03766420104148195
+Diffusion Only,Mass,0.018305853139920926
+Diffusion Only,Mass,0.0742759073213238
+Diffusion Only,Mass,-0.06107372144562129
+Diffusion Only,Mass,-0.04336760385388665
+Diffusion Only,Mass,0.012602450327516111
+Diffusion Only,Mass,-0.12274717843942547
+Diffusion Only,Mass,-0.06677712425802271
+Diffusion Only,Mass,-0.01080707007661973
+Diffusion Only,Mass,0.04516298410478304
+Diffusion Only,Mass,0.06286910169651778
+Diffusion Only,Mass,0.042311282698580685
+Diffusion Only,Mass,0.09828133687998367
+Diffusion Only,Mass,-0.037068291886958135
+Diffusion Only,Mass,0.018901762294444843
+Diffusion Only,Mass,0.0748718164758476
+Diffusion Only,Mass,-0.06047781229109398
+Diffusion Only,Mass,-0.042771694699359444
+Diffusion Only,Mass,0.051462296071711766
+Diffusion Only,Mass,-0.08388733269523002
+Diffusion Only,Mass,-0.0661812151034989
+Diffusion Only,Mass,-0.01021116092209592
+Diffusion Only,Mass,0.0074949566696386125
+Diffusion Only,Mass,-0.12785467209730275
+Diffusion Only,Mass,-0.03362068132623176
+Diffusion Only,Mass,0.02234937285517143
+Diffusion Only,Mass,-0.11300025591177079
+Diffusion Only,Mass,-0.01876626514069937
+Diffusion Only,Mass,0.0372037890407034
+Diffusion Only,Mass,0.09317384322210659
+Diffusion Only,Mass,-0.08043972213450387
+Diffusion Only,Mass,-0.02446966795310068
+Diffusion Only,Mass,-0.006763550361366146
+Diffusion Only,Mass,-0.1038492425386393
+Diffusion Only,Mass,-0.047879188357236944
+Diffusion Only,Mass,0.008090865824166247
+Diffusion Only,Mass,-0.12725876294277896
+Diffusion Only,Mass,-0.03302477217170413
+Diffusion Only,Mass,0.022945282009698212
+Diffusion Only,Mass,-0.11240434675724656
+Diffusion Only,Mass,-0.05643429257584379
+Diffusion Only,Mass,-0.00046423839444060237
+Diffusion Only,Mass,-0.13581386716138283
+Diffusion Only,Mass,-0.11810774956964787
+Diffusion Only,Mass,-0.0621376953882451
+Diffusion Only,Mass,-0.006167641206841911
+Diffusion Only,Mass,-0.10325333338411251
+Diffusion Only,Mass,-0.08554721579238435
+Diffusion Only,Mass,0.008686774978693454
+Diffusion Only,Mass,-0.16492679037791955
+Diffusion Only,Mass,-0.10895673619651722
+Diffusion Only,Mass,-0.014722745425445785
+Diffusion Only,Mass,-0.1883363107820592
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,0.05669701897518537
+Diffusion Only,Mass,0.1700834041382382
+Diffusion Only,Mass,0.03545691377142345
+Diffusion Only,Mass,0.13041404294261807
+Diffusion Only,Mass,0.14884329893447626
+Diffusion Only,Mass,0.09074468174699118
+Diffusion Only,Mass,0.1474378743285176
+Diffusion Only,Mass,0.20413106691004398
+Diffusion Only,Mass,0.031240639953560956
+Diffusion Only,Mass,0.12619776912475567
+Diffusion Only,Mass,0.18289096170628205
+Diffusion Only,Mass,0.010000534749792326
+Diffusion Only,Mass,0.0666937273313187
+Diffusion Only,Mass,0.12338691991284517
+Diffusion Only,Mass,-0.011239570453976413
+Diffusion Only,Mass,0.04545362212754986
+Diffusion Only,Mass,0.10214681470907623
+Diffusion Only,Mass,0.1588400072906026
+Diffusion Only,Mass,0.024213516923787808
+Diffusion Only,Mass,0.04264277291564616
+Diffusion Only,Mass,0.09933596549717252
+Diffusion Only,Mass,0.1560291580786989
+Diffusion Only,Mass,0.021402667711877318
+Diffusion Only,Mass,0.0780958602934039
+Diffusion Only,Mass,0.1347890528749303
+Diffusion Only,Mass,0.00016256250810868457
+Diffusion Only,Mass,0.09511969167931009
+Diffusion Only,Mass,0.11354894767116143
+Diffusion Only,Mass,-0.02107754269565315
+Diffusion Only,Mass,0.03561564988587322
+Diffusion Only,Mass,0.0923088424673996
+Diffusion Only,Mass,-0.042317647899421995
+Diffusion Only,Mass,0.014375544682104592
+Diffusion Only,Mass,0.1093326738532992
+Diffusion Only,Mass,0.1660258664348256
+Diffusion Only,Mass,-0.0068645605216570305
+Diffusion Only,Mass,0.04982863205986892
+Diffusion Only,Mass,0.10652182464139572
+Diffusion Only,Mass,-0.0281046657254263
+Diffusion Only,Mass,0.06685246344576873
+Diffusion Only,Mass,0.1235456560272951
+Diffusion Only,Mass,-0.04934477092919472
+Diffusion Only,Mass,0.007348421652331654
+Diffusion Only,Mass,0.06404161423385803
+Diffusion Only,Mass,0.1207348068153844
+Diffusion Only,Mass,-0.013891683551430393
+Diffusion Only,Mass,0.04280150903009598
+Diffusion Only,Mass,0.13775863820129058
+Diffusion Only,Mass,0.003132147834469421
+Diffusion Only,Mass,0.05982534041599537
+Diffusion Only,Mass,0.11651853299752217
+Diffusion Only,Mass,0.09668385239971165
+Diffusion Only,Mass,0.03858523521223375
+Diffusion Only,Mass,0.13354236438342837
+Diffusion Only,Mass,0.11370768378561827
+Diffusion Only,Mass,0.017345130008464903
+Diffusion Only,Mass,0.07403832258999128
+Diffusion Only,Mass,0.13073151517151765
+Diffusion Only,Mass,0.18742470775304443
+Diffusion Only,Mass,0.05279821738622923
+Diffusion Only,Mass,0.071227473378081
+Diffusion Only,Mass,0.16618460254928238
+Diffusion Only,Mass,-0.006705824407207423
+Diffusion Only,Mass,0.04998736817431895
+Diffusion Only,Mass,0.10668056075584532
+Diffusion Only,Mass,-0.027945929610976267
+Diffusion Only,Mass,3.826393658966905e-06
+Diffusion Only,Mass,-0.05740060073496521
+Diffusion Only,Mass,-1.3218094584665193e-05
+Diffusion Only,Mass,-0.13394551840255212
+Diffusion Only,Mass,-0.07655813576217156
+Diffusion Only,Mass,-0.019170753121791066
+Diffusion Only,Mass,-0.03831124366074701
+Diffusion Only,Mass,0.01907613897963357
+Diffusion Only,Mass,0.0764635216200141
+Diffusion Only,Mass,-0.05746877868795334
+Diffusion Only,Mass,-8.139604757286934e-05
+Diffusion Only,Mass,0.05730598659280771
+Diffusion Only,Mass,-0.076626313715153
+Diffusion Only,Mass,-0.019238931074772408
+Diffusion Only,Mass,0.03814845156560817
+Diffusion Only,Mass,-0.05751991215269109
+Diffusion Only,Mass,-0.03839646610197874
+Diffusion Only,Mass,0.018990916538401625
+Diffusion Only,Mass,-0.11494138376955895
+Diffusion Only,Mass,-0.057554001129178384
+Diffusion Only,Mass,-0.00016661848879801858
+Diffusion Only,Mass,-0.17236285538643364
+Diffusion Only,Mass,-0.07671153615638483
+Diffusion Only,Mass,0.018939783073663986
+Diffusion Only,Mass,0.03806322912437612
+Diffusion Only,Mass,-0.019341198004248
+Diffusion Only,Mass,0.038046184636132574
+Diffusion Only,Mass,-0.057622179082166575
+Diffusion Only,Mass,-0.00023479644178599706
+Diffusion Only,Mass,0.018888649608926136
+Diffusion Only,Mass,-0.11504365069904125
+Diffusion Only,Mass,-0.05765626805866067
+Diffusion Only,Mass,-0.0002688854182800925
+Diffusion Only,Mass,-0.1342011857262411
+Diffusion Only,Mass,-0.0768138030858601
+Diffusion Only,Mass,0.018837516144188285
+Diffusion Only,Mass,-0.1533587207534469
+Diffusion Only,Mass,-0.09597133811306675
+Diffusion Only,Mass,-0.038583955472685755
+Diffusion Only,Mass,-0.17251625578064678
+Diffusion Only,Mass,-0.1151288731402662
+Diffusion Only,Mass,-0.05774149049988561
+Diffusion Only,Mass,-0.0003541078595050293
+Diffusion Only,Mass,-0.019494598398467716
+Diffusion Only,Mass,0.037892784241912864
+Diffusion Only,Mass,0.09528016688229302
+Diffusion Only,Mass,-0.07691607001533537
+Diffusion Only,Mass,-0.019528687374955226
+Diffusion Only,Mass,0.03785869526542535
+Diffusion Only,Mass,-0.09607360504254203
+Diffusion Only,Mass,-0.038686222402161456
+Diffusion Only,Mass,0.018701160238219126
+Diffusion Only,Mass,-0.11523114006974826
+Diffusion Only,Mass,-0.09610769401903634
+Diffusion Only,Mass,-0.03872031137865534
+Diffusion Only,Mass,0.018667071261724816
+Diffusion Only,Mass,-0.03873735586689888
+Diffusion Only,Mass,0.018650026773481276
+Diffusion Only,Mass,0.03777347282419362
+Diffusion Only,Mass,-0.05789489089410553
+Diffusion Only,Mass,-0.0005075082537249541
+Diffusion Only,Mass,-0.019647998792681268
+Diffusion Only,Mass,-0.038788489331636734
+Diffusion Only,Mass,-0.01966504328092481
+Diffusion Only,Mass,-0.03880553381988027
+Diffusion Only,Mass,-0.13447389753817984
+Diffusion Only,Permeate,-7.990501257773596
+Diffusion Only,Permeate,0.3422640476280527
+Diffusion Only,Permeate,0.5965782628129033
+Diffusion Only,Permeate,0.545993368868145
+Diffusion Only,Permeate,0.7146725780706825
+Diffusion Only,Permeate,0.6200407682554993
+Diffusion Only,Permeate,0.7101550604543202
+Diffusion Only,Permeate,0.9188997431469201
+Diffusion Only,Permeate,0.9938092787547754
+Diffusion Only,Permeate,0.9856828128043525
+Diffusion Only,Retentate,0.0
+Diffusion Only,Retentate,0.0004927044687678861
+Diffusion Only,Retentate,0.0008324168377837245
+Diffusion Only,Retentate,0.0010962735884209093
+Diffusion Only,Retentate,0.0012862954572213671
+Diffusion Only,Retentate,0.00129464139978597
+Diffusion Only,Retentate,0.0013374331993857096
+Diffusion Only,Retentate,0.0013124880677556953
+Diffusion Only,Retentate,0.001239663143408458
+Diffusion Only,Retentate,0.0010175159016746515
+Diffusion Only,Retentate,0.0009120068855470301
+Diffusion Only,Retentate,0.0009290017395159498
+Diffusion Only,Retentate,0.0011938323255654172
+Diffusion Only,Retentate,0.0014222526926241106
+Diffusion Only,Retentate,0.0014553785359844135
+Diffusion Only,Retentate,0.0013039022970908025
+Diffusion Only,Retentate,0.0012484975463853978
+Diffusion Only,Retentate,0.0010405438019724508
+Diffusion Only,Retentate,0.0007671769911852741
+Diffusion Only,Retentate,0.000558477367661152
+Diffusion Only,Retentate,0.0004943918653532886
+Diffusion Only,Retentate,0.0005606620010402409
+Diffusion Only,Retentate,0.0005504998351541899
+Diffusion Only,Retentate,0.000515535403729369
+Diffusion Only,Retentate,0.0003981992185563537
+Diffusion Only,Retentate,0.00047025509478104997
+Diffusion Only,Retentate,0.00019229858311490996
+Diffusion Only,Retentate,-0.00044669459542794016
+Diffusion Only,Retentate,-0.0012100103288345302
+Diffusion Only,Retentate,-0.0016134369549472445
+Diffusion Only,Retentate,-0.0017841443718897604
+Diffusion Only,Retentate,-0.0019279260939205802
+Diffusion Only,Retentate,-0.0025565142536872172
+Diffusion Only,Retentate,-0.003278106263271471
+Diffusion Only,Retentate,-0.003774697468570518
+Diffusion Only,Retentate,-0.0039013042762152464
+Diffusion Only,Retentate,-0.0038744407036165594
+Diffusion Only,Retentate,-0.003987677583229989
+Diffusion Only,Retentate,-0.004294966499751608
+Diffusion Only,Retentate,-0.0046712476516475995
+Diffusion Only,Retentate,-0.005107547185401525
+Diffusion Only,Retentate,-0.005663450416008851
+Diffusion Only,Retentate,-0.006407867913206225
+Diffusion Only,Retentate,-0.0071500531321942494
+Diffusion Only,Retentate,-0.007831576460445671
+Diffusion Only,Retentate,-0.008366309982455921
+Diffusion Only,Retentate,-0.008865210523803058
+Diffusion Only,Retentate,-0.009455655904264533
+Diffusion Only,Retentate,-0.010180381757136767
+Diffusion Only,Retentate,-0.01082463173335059
+Diffusion Only,Retentate,-0.011406638066681093
+Diffusion Only,Retentate,-0.011829493914678569
+Diffusion Only,Retentate,-0.012058231448188133
+Diffusion Only,Retentate,-0.012369281241212593
+Diffusion Only,Retentate,-0.012767466483423532
+Diffusion Only,Retentate,-0.013249532114708655
+Diffusion Only,Retentate,-0.013775200614590703
+Diffusion Only,Retentate,-0.014463796006650168
+Diffusion Only,Retentate,-0.015268202721935067
+Diffusion Only,Retentate,-0.01610985458416462
+Diffusion Only,Retentate,-0.01671737820565652
+Diffusion Only,Retentate,-0.0171645269804087
+Diffusion Only,Retentate,-0.017608946928021122
+Diffusion Only,Retentate,-0.018186691881633552
+Diffusion Only,Retentate,-0.018931831826466298
+Diffusion Only,Retentate,-0.019821453846917143
+Diffusion Only,Retentate,-0.0208162569473708
+Diffusion Only,Retentate,-0.0208162569473708
+Diffusion Only,Retentate,-0.020434858596899287
+Diffusion Only,Retentate,-0.020035330432949597
+Diffusion Only,Retentate,-0.019645667228304096
+Diffusion Only,Retentate,-0.019378161214064098
+Diffusion Only,Retentate,-0.01928578141245302
+Diffusion Only,Retentate,-0.019132348368796293
+Diffusion Only,Retentate,-0.01880400240309072
+Diffusion Only,Retentate,-0.018395342006765472
+Diffusion Only,Retentate,-0.017896766015734717
+Diffusion Only,Retentate,-0.01743850243589377
+Diffusion Only,Retentate,-0.016864205312386662
+Diffusion Only,Retentate,-0.016077019873049842
+Diffusion Only,Retentate,-0.01530145990166574
+Diffusion Only,Retentate,-0.014906746158385364
+Diffusion Only,Retentate,-0.014785251732353481
+Diffusion Only,Retentate,-0.01479705826703232
+Diffusion Only,Retentate,-0.01444945496514335
+Diffusion Only,Retentate,-0.0138196339286991
+Diffusion Only,Retentate,-0.013182830215647524
+Diffusion Only,Retentate,-0.012812879482643442
+Diffusion Only,Retentate,-0.012703342394446404
+Diffusion Only,Retentate,-0.012552071507586105
+Diffusion Only,Retentate,-0.012112959389655327
+Diffusion Only,Retentate,-0.01139358703754267
+Diffusion Only,Retentate,-0.010468199927915195
+Diffusion Only,Retentate,-0.00956742308684719
+Diffusion Only,Retentate,-0.009110011280116157
+Diffusion Only,Retentate,-0.00916755143376914
+Diffusion Only,Retentate,-0.009671977203265476
+Diffusion Only,Retentate,-0.010195098850974223
+Diffusion Only,Retentate,-0.010272777885861286
+Diffusion Only,Retentate,-0.00981415033836265
+Diffusion Only,Retentate,-0.009179776184689856
+Diffusion Only,Retentate,-0.008563513323520268
+Diffusion Only,Retentate,-0.008108291618389189
+Diffusion Only,Retentate,-0.007790497673613166
+Diffusion Only,Retentate,-0.0076549841205414805
+Diffusion Only,Retentate,-0.0077142384247808685
+Diffusion Only,Retentate,-0.007919336704815438
+Diffusion Only,Retentate,-0.007953581593393187
+Diffusion Only,Retentate,-0.00781293985390986
+Diffusion Only,Retentate,-0.007559768982028356
+Diffusion Only,Retentate,-0.007451204467130967
+Diffusion Only,Retentate,-0.007453736471511308
+Diffusion Only,Retentate,-0.007205700756096072
+Diffusion Only,Retentate,-0.006797326998398377
+Diffusion Only,Retentate,-0.006639275479632677
+Diffusion Only,Retentate,-0.006694555107265549
+Diffusion Only,Retentate,-0.006849514303226916
+Diffusion Only,Retentate,-0.0070727884089071165
+Diffusion Only,Retentate,-0.007194237078309833
+Diffusion Only,Retentate,-0.007408402806359278
+Diffusion Only,Retentate,-0.0075851421172003315
+Diffusion Only,Retentate,-0.007570733005128029
+Diffusion Only,Retentate,-0.007462335816738982
+Diffusion Only,Retentate,-0.0073635298556013595
+Diffusion Only,Retentate,-0.007271896381267716
+Diffusion Only,Retentate,-0.007386858736584415
+Diffusion Only,Retentate,-0.007711363342693862
+Diffusion Only,Retentate,-0.008221387319563544
+Diffusion Only,Retentate,-0.008653735245750274
+Diffusion Only,Retentate,-0.008825400512820616
+Diffusion Only,Retentate,-0.008793484001385894
+Diffusion Only,Retentate,-0.008583292752824472
+Diffusion Only,Retentate,-0.008297707514799075
+Diffusion Only,Retentate,-0.008232033155332306
+Diffusion Only,Retentate,-0.0083128865857173
+Diffusion Only,Retentate,-0.008387704602126511
+Diffusion Only,Retentate,-0.008334285462962943
+Diffusion Only,Retentate,-0.008228896330665269
+Diffusion Only,Retentate,-0.00827539736273305
+Diffusion Only,Retentate,-0.00859046575107038
+Diffusion Only,Retentate,-0.009031100136018768
+Diffusion Only,Retentate,-0.00966449521948281
+Diffusion Only,Retentate,-0.00966449521948281
+Diffusion Only,Retentate,-0.009574960840566148
+Diffusion Only,Retentate,-0.009347522856653355
+Diffusion Only,Retentate,-0.008994265049657847
+Diffusion Only,Retentate,-0.008603138975472546
+Diffusion Only,Retentate,-0.008208883688579461
+Diffusion Only,Retentate,-0.007863797763071917
+Diffusion Only,Retentate,-0.007438383601276099
+Diffusion Only,Retentate,-0.0070733949751010505
+Diffusion Only,Retentate,-0.006887587107902262
+Diffusion Only,Retentate,-0.00683267032614385
+Diffusion Only,Retentate,-0.006900207087031088
+Diffusion Only,Retentate,-0.0068777510462725774
+Diffusion Only,Retentate,-0.006791387983975437
+Diffusion Only,Retentate,-0.0066986186729493455
+Diffusion Only,Retentate,-0.006659642796444026
+Diffusion Only,Retentate,-0.0065189153007686575
+Diffusion Only,Retentate,-0.006008555414893196
+Diffusion Only,Retentate,-0.005238270493821865
+Diffusion Only,Retentate,-0.004454080515086979
+Diffusion Only,Retentate,-0.003933137405726595
+Diffusion Only,Retentate,-0.003838798897183503
+Diffusion Only,Retentate,-0.004199863162667293
+Diffusion Only,Retentate,-0.004721856215113689
+Diffusion Only,Retentate,-0.005259803156923584
+Diffusion Only,Retentate,-0.005476086625087134
+Diffusion Only,Retentate,-0.005287698591810562
+Diffusion Only,Retentate,-0.00485452104742349
+Diffusion Only,Retentate,-0.004410475923711783
+Diffusion Only,Retentate,-0.00392254429267528
+Diffusion Only,Retentate,-0.0036700304018293696
+Diffusion Only,Retentate,-0.003642088377815252
+Diffusion Only,Retentate,-0.0038634326826514015
+Diffusion Only,Retentate,-0.0037783124178640422
+Diffusion Only,Retentate,-0.003489189261683481
+Diffusion Only,Retentate,-0.0031944850657840665
+Diffusion Only,Retentate,-0.0033919481759254744
+Diffusion Only,Retentate,-0.003520751270933507
+Diffusion Only,Retentate,-0.0034618527561732244
+Diffusion Only,Retentate,-0.003162337162185031
+Diffusion Only,Retentate,-0.0032695037961130245
+Diffusion Only,Retentate,-0.00358058523917417
+Diffusion Only,Retentate,-0.003867787926680118
+Diffusion Only,Retentate,-0.003715245605119919
+Diffusion Only,Retentate,-0.003672918942500953
+Diffusion Only,Retentate,-0.0038310590709740022
+Diffusion Only,Retentate,-0.004069214409462979
+Diffusion Only,Retentate,-0.004057973650562013
+Diffusion Only,Retentate,-0.003754202460260923
+Diffusion Only,Retentate,-0.003422839995808691
+Diffusion Only,Retentate,-0.0036975934994628494
+Diffusion Only,Retentate,-0.004499786873363855
+Diffusion Only,Retentate,-0.005528079247060928
+Diffusion Only,Retentate,-0.006312148475086381
+Diffusion Only,Retentate,-0.006662515064485122
+Diffusion Only,Retentate,-0.0066844139420355
+Diffusion Only,Retentate,-0.006450943167530622
+Diffusion Only,Retentate,-0.006188533120996067
+Diffusion Only,Retentate,-0.005954253763787966
+Diffusion Only,Retentate,-0.005844366453206574
+Diffusion Only,Retentate,-0.006128458113241569
+Diffusion Only,Retentate,-0.006619992113191436
+Diffusion Only,Retentate,-0.007358512920404919
+Diffusion Only,Retentate,-0.007961278148071625
+Diffusion Only,Retentate,-0.008306663532584952
+Diffusion Only,Retentate,-0.008622566622797784
+Diffusion Only,Retentate,-0.00888409469012194
+Diffusion Only,Retentate,-0.009007424561235567
+Diffusion Only,Retentate,-0.009255290328109863
+Diffusion Only,Retentate,-0.009347688923599986
+Diffusion Only,Retentate,-0.009643423614496108
+Diffusion Only,Retentate,-0.009643423614496108
+Diffusion Only,Retentate,-0.009355513713552558
+Diffusion Only,Retentate,-0.008938462205934127
+Diffusion Only,Retentate,-0.008610094067530825
+Diffusion Only,Retentate,-0.008366683548439403
+Diffusion Only,Retentate,-0.008175535960215462
+Diffusion Only,Retentate,-0.008204079001490467
+Diffusion Only,Retentate,-0.00814038306813184
+Diffusion Only,Retentate,-0.008006654705948498
+Diffusion Only,Retentate,-0.007897804636981622
+Diffusion Only,Retentate,-0.007992296202662605
+Diffusion Only,Retentate,-0.008057839967058208
+Diffusion Only,Retentate,-0.007872002286465158
+Diffusion Only,Retentate,-0.007434169638741378
+Diffusion Only,Retentate,-0.007064561076730477
+Diffusion Only,Retentate,-0.006797853035105066
+Diffusion Only,Retentate,-0.006492197398925708
+Diffusion Only,Retentate,-0.00595608774259062
+Diffusion Only,Retentate,-0.005413760407640139
+Diffusion Only,Retentate,-0.0052393674784845115
+Diffusion Only,Retentate,-0.005339203128756221
+Diffusion Only,Retentate,-0.005468535264284595
+Diffusion Only,Retentate,-0.005475284201604353
+Diffusion Only,Retentate,-0.0054673515575538525
+Diffusion Only,Retentate,-0.005472773852582971
+Diffusion Only,Retentate,-0.005567838885994577
+Diffusion Only,Retentate,-0.005701878999006066
+Diffusion Only,Retentate,-0.005860248287580241
+Diffusion Only,Retentate,-0.005650105107830129
+Diffusion Only,Retentate,-0.00525843515104061
+Diffusion Only,Retentate,-0.004911787099511727
+Diffusion Only,Retentate,-0.004869743334882757
+Diffusion Only,Retentate,-0.005142459883567873
+Diffusion Only,Retentate,-0.00551254112258917
+Diffusion Only,Retentate,-0.005888583802302803
+Diffusion Only,Retentate,-0.006443190690258046
+Diffusion Only,Retentate,-0.006848864726531317
+Diffusion Only,Retentate,-0.007018852725907744
+Diffusion Only,Retentate,-0.006951250762754919
+Diffusion Only,Retentate,-0.006911943279071071
+Diffusion Only,Retentate,-0.006991695795747192
+Diffusion Only,Retentate,-0.0070485444419900135
+Diffusion Only,Retentate,-0.007100062326882812
+Diffusion Only,Retentate,-0.007219506057731902
+Diffusion Only,Retentate,-0.0071069275248011226
+Diffusion Only,Retentate,-0.00695203044274858
+Diffusion Only,Retentate,-0.00667309318315809
+Diffusion Only,Retentate,-0.006542089516311177
+Diffusion Only,Retentate,-0.006731062753934231
+Diffusion Only,Retentate,-0.007341663795389189
+Diffusion Only,Retentate,-0.00818378233780476
+Diffusion Only,Retentate,-0.009012140646625548
+Diffusion Only,Retentate,-0.009498797732772384
+Diffusion Only,Retentate,-0.009766063767085966
+Diffusion Only,Retentate,-0.010166493499316212
+Diffusion Only,Retentate,-0.010592197947297129
+Diffusion Only,Retentate,-0.01085685507886446
+Diffusion Only,Retentate,-0.010905221954968524
+Diffusion Only,Retentate,-0.010896014067122772
+Diffusion Only,Retentate,-0.010937624256387777
+Diffusion Only,Retentate,-0.011276284732452173
+Diffusion Only,Retentate,-0.011798478418716316
+Diffusion Only,Retentate,-0.012394461986328032
+Diffusion Only,Retentate,-0.012897670587651103
+Diffusion Only,Retentate,-0.013120353375389622
+Diffusion Only,Retentate,-0.013125337792464787
+Diffusion Only,Retentate,-0.013195250723751169
+Diffusion Only,Retentate,-0.013160215148983313
+Diffusion Only,Retentate,-0.01310436840256364
+Diffusion Only,Retentate,-0.013239516069713268
+Diffusion Only,Retentate,-0.013622931661994124
+Diffusion Only,Retentate,-0.014180304453006356
+Diffusion Only,Retentate,-0.014785732222206995
+Diffusion Only,Retentate,-0.015426824667283626
+Diffusion Only,Retentate,-0.015426824667283626
+Diffusion Only,Retentate,-0.015814406546886036
+Diffusion Only,Retentate,-0.016340256106288642
+Diffusion Only,Retentate,-0.016613587524741534
+Diffusion Only,Retentate,-0.016462519892491097
+Diffusion Only,Retentate,-0.01594178976567598
+Diffusion Only,Retentate,-0.015485778590678543
+Diffusion Only,Retentate,-0.015059742769387307
+Diffusion Only,Retentate,-0.01477556846298943
+Diffusion Only,Retentate,-0.014718933921281967
+Diffusion Only,Retentate,-0.0147895944563558
+Diffusion Only,Retentate,-0.014899591254826447
+Diffusion Only,Retentate,-0.015026582307018485
+Diffusion Only,Retentate,-0.01509063341582659
+Diffusion Only,Retentate,-0.015295198658524323
+Diffusion Only,Retentate,-0.015497268688090685
+Diffusion Only,Retentate,-0.015685590522660223
+Diffusion Only,Retentate,-0.01591220128377303
+Diffusion Only,Retentate,-0.016071559245877772
+Diffusion Only,Retentate,-0.01581958736768638
+Diffusion Only,Retentate,-0.015376754159524416
+Diffusion Only,Retentate,-0.014890827776564548
+Diffusion Only,Retentate,-0.014698039303545875
+Diffusion Only,Retentate,-0.014896696187270686
+Diffusion Only,Retentate,-0.015186242989705336
+Diffusion Only,Retentate,-0.015464905426199613
+Diffusion Only,Retentate,-0.01575817342798794
+Diffusion Only,Retentate,-0.015996573217070934
+Diffusion Only,Retentate,-0.01616862407324681
+Diffusion Only,Retentate,-0.016313952941867542
+Diffusion Only,Retentate,-0.016392682953356583
+Diffusion Only,Retentate,-0.01642315930831976
+Diffusion Only,Retentate,-0.01649355887109532
+Diffusion Only,Retentate,-0.01661965107425391
+Diffusion Only,Retentate,-0.016713139047962032
+Diffusion Only,Retentate,-0.01668829799764916
+Diffusion Only,Retentate,-0.016727705191960495
+Diffusion Only,Retentate,-0.016742867409019053
+Diffusion Only,Retentate,-0.01711576318711369
+Diffusion Only,Retentate,-0.017483508927161908
+Diffusion Only,Retentate,-0.01779450789570234
+Diffusion Only,Retentate,-0.018001309070159545
+Diffusion Only,Retentate,-0.018082139563112654
+Diffusion Only,Retentate,-0.018211936318536362
+Diffusion Only,Retentate,-0.018650982621249233
+Diffusion Only,Retentate,-0.019129544863699912
+Diffusion Only,Retentate,-0.01962899618152369
+Diffusion Only,Retentate,-0.01973450147144449
+Diffusion Only,Retentate,-0.019595072214557446
+Diffusion Only,Retentate,-0.01971226599366492
+Diffusion Only,Retentate,-0.02017333335578981
+Diffusion Only,Retentate,-0.020934243246012365
+Diffusion Only,Retentate,-0.021755584347770928
+Diffusion Only,Retentate,-0.022242441764982846
+Diffusion Only,Retentate,-0.022673577966223678
+Diffusion Only,Retentate,-0.023045967002887403
+Diffusion Only,Retentate,-0.023260853484298547
+Diffusion Only,Retentate,-0.023309155534565505
+Diffusion Only,Retentate,-0.023075702636467695
+Diffusion Only,Retentate,-0.023045420478668394
+Diffusion Only,Retentate,-0.023364322233483358
+Diffusion Only,Retentate,-0.024130772280937098
+Diffusion Only,Retentate,-0.025119864418120325
+Diffusion Only,Retentate,-0.02598357474423874
+Diffusion Only,Retentate,-0.026564057273956592
+Diffusion Only,Retentate,-0.027237432679082147
+Diffusion Only,Retentate,-0.027850470464842136
+Diffusion Only,Retentate,-0.028386956078090757
+Diffusion Only,Retentate,-0.02874427847029288
+Diffusion Only,Retentate,-0.02874427847029288
+Diffusion Only,Retentate,-0.028435922518087436
+Diffusion Only,Retentate,-0.02826486149235145
+Diffusion Only,Retentate,-0.028322377907864012
+Diffusion Only,Retentate,-0.02846806753029343
+Diffusion Only,Retentate,-0.028589003810513765
+Diffusion Only,Retentate,-0.028646904518716067
+Diffusion Only,Retentate,-0.0286578094741829
+Diffusion Only,Retentate,-0.028799789925026298
+Diffusion Only,Retentate,-0.02903630636890393
+Diffusion Only,Retentate,-0.029311525451589812
+Diffusion Only,Retentate,-0.029327410240649908
+Diffusion Only,Retentate,-0.029070058833915283
+Diffusion Only,Retentate,-0.02859054073649061
+Diffusion Only,Retentate,-0.028207888485400137
+Diffusion Only,Retentate,-0.027712063796693567
+Diffusion Only,Retentate,-0.02765858247006905
+Diffusion Only,Retentate,-0.028005487004189998
+Diffusion Only,Retentate,-0.028722489408217193
+Diffusion Only,Retentate,-0.029314298547329073
+Diffusion Only,Retentate,-0.029753900180078063
+Diffusion Only,Retentate,-0.029987420518730747
+Diffusion Only,Retentate,-0.03034484674664093
+Diffusion Only,Retentate,-0.03077133891610462
+Diffusion Only,Retentate,-0.031068787477214036
+Diffusion Only,Retentate,-0.031080268367419835
+Diffusion Only,Retentate,-0.03076030730253522
+Diffusion Only,Retentate,-0.030275441306369964
+Diffusion Only,Retentate,-0.029613273330839022
+Diffusion Only,Retentate,-0.029328735756148295
+Diffusion Only,Retentate,-0.029777833233277918
+Diffusion Only,Retentate,-0.030834743875124304
+Diffusion Only,Retentate,-0.03205365402573462
+Diffusion Only,Retentate,-0.03300861736733377
+Diffusion Only,Retentate,-0.03354742767988326
+Diffusion Only,Retentate,-0.03389616512966967
+Diffusion Only,Retentate,-0.03418075897997043
+Diffusion Only,Retentate,-0.03418579800043249
+Diffusion Only,Retentate,-0.034151671747933446
+Diffusion Only,Retentate,-0.034238115906792585
+Diffusion Only,Retentate,-0.03445296000157378
+Diffusion Only,Retentate,-0.034665119873139194
+Diffusion Only,Retentate,-0.034836809114106915
+Diffusion Only,Retentate,-0.03515396512360612
+Diffusion Only,Retentate,-0.035872694351891304
+Diffusion Only,Retentate,-0.03667125262553929
+Diffusion Only,Retentate,-0.037370970314931744
+Diffusion Only,Retentate,-0.03762584056723357
+Diffusion Only,Retentate,-0.03760789190302229
+Diffusion Only,Retentate,-0.03776613371767557
+Diffusion Only,Retentate,-0.03833053622443046
+Diffusion Only,Retentate,-0.03900076749890619
+Diffusion Only,Retentate,-0.03958676012944867
+Diffusion Only,Retentate,-0.0398232430356294
+Diffusion Only,Retentate,-0.03996556611689941
+Diffusion Only,Retentate,-0.04002266581199343
+Diffusion Only,Retentate,-0.04016232351356481
+Diffusion Only,Retentate,-0.04063996505299024
+Diffusion Only,Retentate,-0.04143492832527635
+Diffusion Only,Retentate,-0.04255704905729736
+Diffusion Only,Retentate,-0.043418940547193696
+Diffusion Only,Retentate,-0.04372124176889862
+Diffusion Only,Retentate,-0.04359917265943773
+Diffusion Only,Retentate,-0.043426245275105066
+Diffusion Only,Retentate,-0.04375694622784372
+Diffusion Only,Retentate,-0.04464623493955344
+Diffusion Only,Retentate,-0.045636844304640156
+Diffusion Only,Retentate,-0.046527322974689624
+Diffusion Only,Retentate,-0.047396028648915636
+Diffusion Only,Retentate,-0.04830611831486687
+Diffusion Only,Retentate,-0.04830611831486687
+Diffusion Only,Retentate,-0.0487146667433542
+Diffusion Only,Retentate,-0.0489030762640502
+Diffusion Only,Retentate,-0.048846139330245175
+Diffusion Only,Retentate,-0.04853863797546506
+Diffusion Only,Retentate,-0.0483637232305087
+Diffusion Only,Retentate,-0.04835888383392917
+Diffusion Only,Retentate,-0.04870893359689689
+Diffusion Only,Retentate,-0.048732270863748824
+Diffusion Only,Retentate,-0.04823255407248566
+Diffusion Only,Retentate,-0.047472567601617735
+Diffusion Only,Retentate,-0.04706895511101034
+Diffusion Only,Retentate,-0.047256044099108066
+Diffusion Only,Retentate,-0.04798844961936159
+Diffusion Only,Retentate,-0.04856453411237947
+Diffusion Only,Retentate,-0.04880308748667224
+Diffusion Only,Retentate,-0.04877046227574082
+Diffusion Only,Retentate,-0.0488080668526957
+Diffusion Only,Retentate,-0.04911925927978116
+Diffusion Only,Retentate,-0.049349589756494484
+Diffusion Only,Retentate,-0.04933138060932669
+Diffusion Only,Retentate,-0.04927554551551323
+Diffusion Only,Retentate,-0.049578653687386516
+Diffusion Only,Retentate,-0.050286994762261956
+Diffusion Only,Retentate,-0.051118821925176416
+Diffusion Only,Retentate,-0.05174134616823016
+Diffusion Only,Retentate,-0.05210225537489208
+Diffusion Only,Retentate,-0.05213489902779734
+Diffusion Only,Retentate,-0.05208099289679123
+Diffusion Only,Retentate,-0.05218773345791268
+Diffusion Only,Retentate,-0.05256588260735697
+Diffusion Only,Retentate,-0.05303297807751075
+Diffusion Only,Retentate,-0.053497622838124995
+Diffusion Only,Retentate,-0.05389343192060549
+Diffusion Only,Retentate,-0.054188627620709494
+Diffusion Only,Retentate,-0.05425003005294228
+Diffusion Only,Retentate,-0.054143621124626486
+Diffusion Only,Retentate,-0.05413374841922428
+Diffusion Only,Retentate,-0.054520493379578185
+Diffusion Only,Retentate,-0.05526821754383667
+Diffusion Only,Retentate,-0.05609012321033965
+Diffusion Only,Retentate,-0.05677810792794199
+Diffusion Only,Retentate,-0.05720303560449606
+Diffusion Only,Retentate,-0.05749487816820824
+Diffusion Only,Retentate,-0.05796562117507062
+Diffusion Only,Retentate,-0.05869536474318194
+Diffusion Only,Retentate,-0.059608068910828246
+Diffusion Only,Retentate,-0.060405561554009383
+Diffusion Only,Retentate,-0.061052467913827756
+Diffusion Only,Retentate,-0.06144295439889214
+Diffusion Only,Retentate,-0.061762044961406415
+Diffusion Only,Retentate,-0.06165891608296791
+Diffusion Only,Retentate,-0.0614690796721302
+Diffusion Only,Retentate,-0.06167188318666788
+Diffusion Only,Retentate,-0.0626662596026793
+Diffusion Only,Retentate,-0.0640153717776267
+Diffusion Only,Retentate,-0.0654226111691959
+Diffusion Only,Retentate,-0.06627230449168355
+Diffusion Only,Retentate,-0.06701706740947594
+Diffusion Only,Retentate,-0.0676566807872164
+Diffusion Only,Retentate,-0.0681570891831652
+Diffusion Only,Retentate,-0.06857119404185466
+Diffusion Only,Retentate,-0.06904887646176455
+Diffusion Only,Retentate,-0.06954021757686674
+Diffusion Only,Retentate,-0.07016806325238897
+Diffusion Only,Retentate,-0.07038286478397031
+Diffusion Only,Retentate,-0.0705931542135674
+Diffusion Only,Retentate,-0.0705931542135674
+Diffusion Only,Retentate,-0.07065533051523566
+Diffusion Only,Retentate,-0.0712249444129715
+Diffusion Only,Retentate,-0.07203704328596498
+Diffusion Only,Retentate,-0.07286164593331108
+Diffusion Only,Retentate,-0.07332688626969032
+Diffusion Only,Retentate,-0.07383343778982196
+Diffusion Only,Retentate,-0.07440740586610138
+Diffusion Only,Retentate,-0.07459162848477635
+Diffusion Only,Retentate,-0.0743933829565538
+Diffusion Only,Retentate,-0.07402366219335726
+Diffusion Only,Retentate,-0.07377733873888424
+Diffusion Only,Retentate,-0.07387349965673384
+Diffusion Only,Retentate,-0.07405967134991827
+Diffusion Only,Retentate,-0.07417581674913283
+Diffusion Only,Retentate,-0.07427741239284884
+Diffusion Only,Retentate,-0.07462152663960506
+Diffusion Only,Retentate,-0.07522015877719655
+Diffusion Only,Retentate,-0.07595576507883638
+Diffusion Only,Retentate,-0.07656772502362201
+Diffusion Only,Retentate,-0.07706399615965093
+Diffusion Only,Retentate,-0.07718306016849683
+Diffusion Only,Retentate,-0.07715100849622732
+Diffusion Only,Retentate,-0.07710080258761241
+Diffusion Only,Retentate,-0.07726299809535256
+Diffusion Only,Retentate,-0.07780620144938194
+Diffusion Only,Retentate,-0.07839968747043186
+Diffusion Only,Retentate,-0.07899239664450189
+Diffusion Only,Retentate,-0.07948357408105734
+Diffusion Only,Retentate,-0.07990110680862211
+Diffusion Only,Retentate,-0.08011250682285048
+Diffusion Only,Retentate,-0.08024146161825475
+Diffusion Only,Retentate,-0.08020329577736211
+Diffusion Only,Retentate,-0.0805331320485592
+Diffusion Only,Retentate,-0.08124505854904866
+Diffusion Only,Retentate,-0.08232822712318225
+Diffusion Only,Retentate,-0.08343949159911626
+Diffusion Only,Retentate,-0.08425812010204026
+Diffusion Only,Retentate,-0.08466377424142364
+Diffusion Only,Retentate,-0.08490524702679693
+Diffusion Only,Retentate,-0.08517208239431136
+Diffusion Only,Retentate,-0.08568272065620815
+Diffusion Only,Retentate,-0.08641766273762642
+Diffusion Only,Retentate,-0.08716370155406708
+Diffusion Only,Retentate,-0.08782230233076907
+Diffusion Only,Retentate,-0.0882010480873323
+Diffusion Only,Retentate,-0.0886439413761513
+Diffusion Only,Retentate,-0.08925491442382251
+Diffusion Only,Retentate,-0.08993045924141743
+Diffusion Only,Retentate,-0.09054833523607492
+Diffusion Only,Retentate,-0.09114868315508305
+Diffusion Only,Retentate,-0.09176503858495728
+Diffusion Only,Retentate,-0.09260069989688585
+Diffusion Only,Retentate,-0.09358382790891392
+Diffusion Only,Retentate,-0.09456164619970628
+Diffusion Only,Retentate,-0.09521266858088147
+Diffusion Only,Retentate,-0.09561201035346656
+Diffusion Only,Retentate,-0.09590745662176946
+Diffusion Only,Retentate,-0.09644121859329921
+Diffusion Only,Retentate,-0.09742649822849302
+Diffusion Only,Retentate,-0.09870878722144602
+Diffusion Only,Retentate,-0.09989823629367806
+Diffusion Only,Retentate,-0.10085600202760552
+Diffusion Only,Retentate,-0.10148855582372256
+Diffusion Only,Retentate,-0.10207803465726425
+Diffusion Only,Retentate,-0.10281754334625018
+Diffusion Only,Retentate,-0.10281754334625018
+Diffusion Only,Retentate,-0.10313167658157833
+Diffusion Only,Retentate,-0.10350736669914751
+Diffusion Only,Retentate,-0.10395493434048196
+Diffusion Only,Retentate,-0.10408874726937188
+Diffusion Only,Retentate,-0.10413432329744399
+Diffusion Only,Retentate,-0.10424294233437838
+Diffusion Only,Retentate,-0.10467194456552784
+Diffusion Only,Retentate,-0.10530098907613189
+Diffusion Only,Retentate,-0.10575014386294149
+Diffusion Only,Retentate,-0.10588761370250697
+Diffusion Only,Retentate,-0.1062080534469658
+Diffusion Only,Retentate,-0.10661443239399829
+Diffusion Only,Retentate,-0.10707956110571465
+Diffusion Only,Retentate,-0.10750428977954442
+Diffusion Only,Retentate,-0.10795704647997996
+Diffusion Only,Retentate,-0.10852016191253964
+Diffusion Only,Retentate,-0.10905665088164528
+Diffusion Only,Retentate,-0.1092540806232674
+Diffusion Only,Retentate,-0.109498184576194
+Diffusion Only,Retentate,-0.10987672863194782
+Diffusion Only,Retentate,-0.11048116555741604
+Diffusion Only,Retentate,-0.11102107021958074
+Diffusion Only,Retentate,-0.11143430264180744
+Diffusion Only,Retentate,-0.11179815998135083
+Diffusion Only,Retentate,-0.11239196856853423
+Diffusion Only,Retentate,-0.11303669511991594
+Diffusion Only,Retentate,-0.11340081985098181
+Diffusion Only,Retentate,-0.11342669753032343
+Diffusion Only,Retentate,-0.11341109695511166
+Diffusion Only,Retentate,-0.113696705625479
+Diffusion Only,Retentate,-0.1143690705454292
+Diffusion Only,Retentate,-0.11542376881727848
+Diffusion Only,Retentate,-0.11668285896995717
+Diffusion Only,Retentate,-0.11804257424906656
+Diffusion Only,Retentate,-0.11924436900925273
+Diffusion Only,Retentate,-0.12018371638809139
+Diffusion Only,Retentate,-0.1207644908380023
+Diffusion Only,Retentate,-0.12136003910833669
+Diffusion Only,Retentate,-0.12222284005366854
+Diffusion Only,Retentate,-0.12333250924305608
+Diffusion Only,Retentate,-0.12460408369546934
+Diffusion Only,Retentate,-0.12586692741087918
+Diffusion Only,Retentate,-0.12671789868457925
+Diffusion Only,Retentate,-0.12732210315427422
+Diffusion Only,Retentate,-0.1278223408183212
+Diffusion Only,Retentate,-0.12823063295298576
+Diffusion Only,Retentate,-0.12870779793917891
+Diffusion Only,Retentate,-0.12910686693646126
+Diffusion Only,Retentate,-0.1295450957936577
+Diffusion Only,Retentate,-0.13020147255784478
+Diffusion Only,Retentate,-0.13106415483264985
+Diffusion Only,Retentate,-0.13214233337926298
+Diffusion Only,Retentate,-0.1334592455782509
+Diffusion Only,Retentate,-0.1347867556600461
+Diffusion Only,Retentate,-0.13599294426312175
+Diffusion Only,Retentate,-0.1368223468368843
+Diffusion Only,Retentate,-0.13741866990857884
+Diffusion Only,Retentate,-0.13808992007529577
+Diffusion Only,Retentate,-0.1387163009416002
+Diffusion Only,Retentate,-0.13958191908739725
+Diffusion Only,Retentate,-0.14067311550027276
+Diffusion Only,Retentate,-0.14185422776121417
+Diffusion Only,Retentate,-0.14285661863856977
+Diffusion Only,Retentate,-0.14357022598430078
+Diffusion Only,Retentate,-0.14395372376172352
+Diffusion Only,Retentate,-0.14438743791779074
+Diffusion Only,Retentate,-0.14486792589952335
+Diffusion Only,Retentate,-0.14486792589952335
+Diffusion Only,Retentate,-0.14508932424987256
+Diffusion Only,Retentate,-0.1455525910598405
+Diffusion Only,Retentate,-0.1462137936030912
+Diffusion Only,Retentate,-0.14673009798306438
+Diffusion Only,Retentate,-0.1470905330627601
+Diffusion Only,Retentate,-0.1473873805243542
+Diffusion Only,Retentate,-0.14778624228192158
+Diffusion Only,Retentate,-0.14811969834898767
+Diffusion Only,Retentate,-0.14832693053297072
+Diffusion Only,Retentate,-0.14830408074714277
+Diffusion Only,Retentate,-0.14822400117306908
+Diffusion Only,Retentate,-0.14830299500233668
+Diffusion Only,Retentate,-0.14875621695242378
+Diffusion Only,Retentate,-0.14957906383887745
+Diffusion Only,Retentate,-0.15047115625523996
+Diffusion Only,Retentate,-0.15132861213255663
+Diffusion Only,Retentate,-0.15184092460649412
+Diffusion Only,Retentate,-0.15203073677228293
+Diffusion Only,Retentate,-0.15201775479595508
+Diffusion Only,Retentate,-0.1518266901969692
+Diffusion Only,Retentate,-0.15188733097480514
+Diffusion Only,Retentate,-0.15247943248864182
+Diffusion Only,Retentate,-0.1534797070422151
+Diffusion Only,Retentate,-0.15463643755678733
+Diffusion Only,Retentate,-0.1555421102132421
+Diffusion Only,Retentate,-0.15588568408103556
+Diffusion Only,Retentate,-0.15604906383019296
+Diffusion Only,Retentate,-0.15616386212387168
+Diffusion Only,Retentate,-0.15649600367732835
+Diffusion Only,Retentate,-0.15721979645051368
+Diffusion Only,Retentate,-0.15824903970878518
+Diffusion Only,Retentate,-0.15914915212746897
+Diffusion Only,Retentate,-0.15984188279559786
+Diffusion Only,Retentate,-0.1602796150123498
+Diffusion Only,Retentate,-0.16066893567317203
+Diffusion Only,Retentate,-0.16120064782437601
+Diffusion Only,Retentate,-0.16193326208243106
+Diffusion Only,Retentate,-0.16267238344648455
+Diffusion Only,Retentate,-0.16347267720312847
+Diffusion Only,Retentate,-0.16415197723693084
+Diffusion Only,Retentate,-0.16495446822253543
+Diffusion Only,Retentate,-0.16600450262478939
+Diffusion Only,Retentate,-0.16724044068498956
+Diffusion Only,Retentate,-0.16826060414499047
+Diffusion Only,Retentate,-0.16884517150036044
+Diffusion Only,Retentate,-0.1692238175960897
+Diffusion Only,Retentate,-0.16977332958731917
+Diffusion Only,Retentate,-0.1704244345553655
+Diffusion Only,Retentate,-0.1710398142387347
+Diffusion Only,Retentate,-0.17144324022629212
+Diffusion Only,Retentate,-0.1716948589711988
+Diffusion Only,Retentate,-0.17209754810849986
+Diffusion Only,Retentate,-0.17264611754972392
+Diffusion Only,Retentate,-0.17344023916017293
+Diffusion Only,Retentate,-0.17443988524919785
+Diffusion Only,Retentate,-0.1756325495251497
+Diffusion Only,Retentate,-0.1768047346944515
+Diffusion Only,Retentate,-0.17779223784592227
+Diffusion Only,Retentate,-0.17856517879460426
+Diffusion Only,Retentate,-0.17919516683045775
+Diffusion Only,Retentate,-0.17975214792686905
+Diffusion Only,Retentate,-0.18047457671757183
+Diffusion Only,Retentate,-0.1814571759692958
+Diffusion Only,Retentate,-0.18272822148645115
+Diffusion Only,Retentate,-0.1841251617901476
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,-0.1419572977998463
+Convection-Diffusion,Mass,-0.09259873904500632
+Convection-Diffusion,Mass,-0.04324018029016633
+Convection-Diffusion,Mass,-0.1469373678940026
+Convection-Diffusion,Mass,-0.09757880913916267
+Convection-Diffusion,Mass,-0.04822025038432266
+Convection-Diffusion,Mass,-0.03712562821915173
+Convection-Diffusion,Mass,-0.17908675241265698
+Convection-Diffusion,Mass,-0.12972819365781701
+Convection-Diffusion,Mass,-0.042105698313307974
+Convection-Diffusion,Mass,-0.1840668225068133
+Convection-Diffusion,Mass,-0.09644432716230418
+Convection-Diffusion,Mass,-0.08534970499713342
+Convection-Diffusion,Mass,-0.07425508283196233
+Convection-Diffusion,Mass,-0.1779522704357986
+Convection-Diffusion,Mass,-0.12859371168095865
+Convection-Diffusion,Mass,-0.07923515292611867
+Convection-Diffusion,Mass,-0.259460213709293
+Convection-Diffusion,Mass,-0.17183771836478387
+Convection-Diffusion,Mass,-0.12247915960994411
+Convection-Diffusion,Mass,-0.07312060085510416
+Convection-Diffusion,Mass,-0.2150817250486094
+Convection-Diffusion,Mass,-0.1657231662937692
+Convection-Diffusion,Mass,-0.11636460753892927
+Convection-Diffusion,Mass,-0.25832573173243495
+Convection-Diffusion,Mass,-0.24723110956726385
+Convection-Diffusion,Mass,-0.1978725508124237
+Convection-Diffusion,Mass,-0.1867779286472528
+Convection-Diffusion,Mass,-0.2904751162510892
+Convection-Diffusion,Mass,-0.24111655749624922
+Convection-Diffusion,Mass,-0.19175799874140925
+Convection-Diffusion,Mass,-0.3337191229349145
+Convection-Diffusion,Mass,-0.32262450076974364
+Convection-Diffusion,Mass,-0.2350020054252346
+Convection-Diffusion,Mass,-0.37696312961874007
+Convection-Diffusion,Mass,-0.3276045708639001
+Convection-Diffusion,Mass,-0.27824601210906036
+Convection-Diffusion,Mass,-0.22888745335421995
+Convection-Diffusion,Mass,-0.37084857754772477
+Convection-Diffusion,Mass,-0.3214900187928851
+Convection-Diffusion,Mass,-0.27213146003804484
+Convection-Diffusion,Mass,-0.41409258423155054
+Convection-Diffusion,Mass,-0.3264700888870413
+Convection-Diffusion,Mass,-0.2771115301322015
+Convection-Diffusion,Mass,-0.26601690796703087
+Convection-Diffusion,Mass,-0.44624196875020433
+Convection-Diffusion,Mass,-0.39688340999536464
+Convection-Diffusion,Mass,-0.34752485124052446
+Convection-Diffusion,Mass,-0.451222038844361
+Convection-Diffusion,Mass,-0.4018634800895213
+Convection-Diffusion,Mass,-0.39076885792435023
+Convection-Diffusion,Mass,-0.3414102991695105
+Convection-Diffusion,Mass,-0.4451074867733466
+Convection-Diffusion,Mass,-0.3957489280185065
+Convection-Diffusion,Mass,-0.3463903692636667
+Convection-Diffusion,Mass,-0.4883514934571715
+Convection-Diffusion,Mass,-0.47725687129200084
+Convection-Diffusion,Mass,-0.3896343759474916
+Convection-Diffusion,Mass,-0.5315955001409972
+Convection-Diffusion,Mass,-0.5205008779758262
+Convection-Diffusion,Mass,-0.4711423192209864
+Convection-Diffusion,Mass,-0.42178376046614624
+Convection-Diffusion,Mass,-0.6020088212493202
+Convection-Diffusion,Mass,-0.5143863259048114
+Convection-Diffusion,Mass,-0.4650277671499712
+Convection-Diffusion,Mass,-0.6069888913434768
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.15803582552017315
+Convection-Diffusion,Mass,0.05765741220366821
+Convection-Diffusion,Mass,0.11033474524583962
+Convection-Diffusion,Mass,0.163012078288011
+Convection-Diffusion,Mass,-0.01389420820783209
+Convection-Diffusion,Mass,0.07704706142400838
+Convection-Diffusion,Mass,0.12972439446617975
+Convection-Diffusion,Mass,-0.047181892029662435
+Convection-Diffusion,Mass,0.005495441012508951
+Convection-Diffusion,Mass,0.09643671064434943
+Convection-Diffusion,Mass,0.14911404368652081
+Convection-Diffusion,Mass,-0.027792242809322302
+Convection-Diffusion,Mass,0.06314902682251818
+Convection-Diffusion,Mass,0.11582635986468956
+Convection-Diffusion,Mass,-0.022815990041484466
+Convection-Diffusion,Mass,0.02986134300068692
+Convection-Diffusion,Mass,0.0825386760428581
+Convection-Diffusion,Mass,0.09695207249536061
+Convection-Diffusion,Mass,0.11136546894786271
+Convection-Diffusion,Mass,0.16404280199003432
+Convection-Diffusion,Mass,0.02540045208386007
+Convection-Diffusion,Mass,0.07807778512603167
+Convection-Diffusion,Mass,0.13075511816820304
+Convection-Diffusion,Mass,0.22169638780004353
+Convection-Diffusion,Mass,0.04479010130420127
+Convection-Diffusion,Mass,0.09746743434637266
+Convection-Diffusion,Mass,0.15014476738854404
+Convection-Diffusion,Mass,-0.026761519107299066
+Convection-Diffusion,Mass,0.02591581393487232
+Convection-Diffusion,Mass,0.11685708356671279
+Convection-Diffusion,Mass,-0.021785266339461234
+Convection-Diffusion,Mass,0.06915600329237924
+Convection-Diffusion,Mass,0.12183333633455062
+Convection-Diffusion,Mass,0.13624673278705293
+Convection-Diffusion,Mass,0.0358683194705482
+Convection-Diffusion,Mass,0.08854565251271937
+Convection-Diffusion,Mass,0.1029590489652219
+Convection-Diffusion,Mass,0.0025806356487171607
+Convection-Diffusion,Mass,0.016994032101219254
+Convection-Diffusion,Mass,0.10793530173305951
+Convection-Diffusion,Mass,-0.0307070481731143
+Convection-Diffusion,Mass,-0.016293651720610935
+Convection-Diffusion,Mass,0.03638368132156024
+Convection-Diffusion,Mass,0.08906101436373141
+Convection-Diffusion,Mass,-0.0495813355424424
+Convection-Diffusion,Mass,0.003095997499729202
+Convection-Diffusion,Mass,0.05577333054190038
+Convection-Diffusion,Mass,0.0701867269944029
+Convection-Diffusion,Mass,-0.03019168632210226
+Convection-Diffusion,Mass,0.02248564672006934
+Convection-Diffusion,Mass,0.07516297976224051
+Convection-Diffusion,Mass,-0.0634793701439333
+Convection-Diffusion,Mass,-0.010802037101762123
+Convection-Diffusion,Mass,0.04187529594040948
+Convection-Diffusion,Mass,-0.09676705396576477
+Convection-Diffusion,Mass,-0.04408972092359316
+Convection-Diffusion,Mass,0.008587612118578013
+Convection-Diffusion,Mass,-0.13005473778759497
+Convection-Diffusion,Mass,-0.07737740474542378
+Convection-Diffusion,Mass,-0.024700071703252176
+Convection-Diffusion,Mass,-0.010286675250750082
+Convection-Diffusion,Mass,-0.11066508856725482
+Convection-Diffusion,Mass,-0.057987755525083215
+Convection-Diffusion,Mass,-0.005310422482912037
+Convection-Diffusion,Mass,-0.14395277238908627
+Convection-Diffusion,Mass,-0.09127543934691468
+Convection-Diffusion,Mass,-0.03859810630474308
+Convection-Diffusion,Mass,0.0140792267374281
+Convection-Diffusion,Mass,-0.04803524998940712
+Convection-Diffusion,Mass,0.004642083052764477
+Convection-Diffusion,Mass,0.05731941609493523
+Convection-Diffusion,Mass,-0.08132293381123944
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.015330814737256336
+Convection-Diffusion,Mass,0.06892173967052195
+Convection-Diffusion,Mass,-0.06880701834455868
+Convection-Diffusion,Mass,-0.015216093411293104
+Convection-Diffusion,Mass,0.038374831521972505
+Convection-Diffusion,Mass,0.05370181986556991
+Convection-Diffusion,Mass,-0.0840269381495107
+Convection-Diffusion,Mass,-0.03043601321624518
+Convection-Diffusion,Mass,0.061418848306690386
+Convection-Diffusion,Mass,-0.11457384629805853
+Convection-Diffusion,Mass,-0.060982921364792934
+Convection-Diffusion,Mass,-0.007391996431527243
+Convection-Diffusion,Mass,-0.14512075444660621
+Convection-Diffusion,Mass,-0.09152982951334053
+Convection-Diffusion,Mass,-0.03793890458007505
+Convection-Diffusion,Mass,-0.17566766259515573
+Convection-Diffusion,Mass,-0.12207673766189005
+Convection-Diffusion,Mass,-0.06848581272862456
+Convection-Diffusion,Mass,-0.014894887795358974
+Convection-Diffusion,Mass,-0.11435970922076971
+Convection-Diffusion,Mass,-0.09903272087717237
+Convection-Diffusion,Mass,-0.04544179594390678
+Convection-Diffusion,Mass,0.008149128989359017
+Convection-Diffusion,Mass,-0.0530517558463835
+Convection-Diffusion,Mass,0.00053916908688209
+Convection-Diffusion,Mass,0.015866157430479443
+Convection-Diffusion,Mass,-0.12186260058460123
+Convection-Diffusion,Mass,-0.06827167565133543
+Convection-Diffusion,Mass,-0.014680750718069853
+Convection-Diffusion,Mass,-0.15240950873314904
+Convection-Diffusion,Mass,-0.06055464721021353
+Convection-Diffusion,Mass,-0.006963722276947941
+Convection-Diffusion,Mass,-0.18295641688169662
+Convection-Diffusion,Mass,-0.12936549194843106
+Convection-Diffusion,Mass,-0.07577456701516547
+Convection-Diffusion,Mass,-0.06044757867156961
+Convection-Diffusion,Mass,-0.15991240009698013
+Convection-Diffusion,Mass,-0.10632147516371476
+Convection-Diffusion,Mass,-0.052730550230448966
+Convection-Diffusion,Mass,0.0008603747028164075
+Convection-Diffusion,Mass,-0.1751323199019323
+Convection-Diffusion,Mass,-0.08327745837899699
+Convection-Diffusion,Mass,-0.02968653344573119
+Convection-Diffusion,Mass,-0.12915135487114215
+Convection-Diffusion,Mass,-0.11382436652754628
+Convection-Diffusion,Mass,-0.060233441594280485
+Convection-Diffusion,Mass,-0.15969826301968973
+Convection-Diffusion,Mass,-0.10610733808642395
+Convection-Diffusion,Mass,-0.052516413153158574
+Convection-Diffusion,Mass,-0.19024517116823902
+Convection-Diffusion,Mass,-0.13665424623497366
+Convection-Diffusion,Mass,-0.08306332130170786
+Convection-Diffusion,Mass,-0.1442642061374489
+Convection-Diffusion,Mass,-0.20546509097319118
+Convection-Diffusion,Mass,-0.11361022945025546
+Convection-Diffusion,Mass,-0.06001930451698966
+Convection-Diffusion,Mass,-0.19774806253207053
+Convection-Diffusion,Mass,-0.14415713759880475
+Convection-Diffusion,Mass,-0.09056621266553938
+Convection-Diffusion,Mass,-0.11350316091161218
+Convection-Diffusion,Mass,-0.09817617256801461
+Convection-Diffusion,Mass,-0.04458524763474924
+Convection-Diffusion,Mass,-0.18231400564982972
+Convection-Diffusion,Mass,-0.12872308071656433
+Convection-Diffusion,Mass,-0.07513215578329853
+Convection-Diffusion,Mass,-0.2128609137983773
+Convection-Diffusion,Mass,-0.15926998886511148
+Convection-Diffusion,Mass,-0.10567906393184613
+Convection-Diffusion,Mass,-0.05208813899858033
+Convection-Diffusion,Mass,-0.18981689701365953
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.17383055610655135
+Convection-Diffusion,Mass,0.22831096878514606
+Convection-Diffusion,Mass,0.2827913814637409
+Convection-Diffusion,Mass,0.33727179414233566
+Convection-Diffusion,Mass,0.3534882702312605
+Convection-Diffusion,Mass,0.21664899996151074
+Convection-Diffusion,Mass,0.27112941264010554
+Convection-Diffusion,Mass,0.3256098253187002
+Convection-Diffusion,Mass,0.22703449163861866
+Convection-Diffusion,Mass,0.2815149043172135
+Convection-Diffusion,Mass,0.33599531699580826
+Convection-Diffusion,Mass,0.1991560467260585
+Convection-Diffusion,Mass,0.29190039599432144
+Convection-Diffusion,Mass,0.3081168720832479
+Convection-Diffusion,Mass,0.1712776018134965
+Convection-Diffusion,Mass,0.22575801449209118
+Convection-Diffusion,Mass,0.2802384271706861
+Convection-Diffusion,Mass,0.14339915690093621
+Convection-Diffusion,Mass,0.1978795695795311
+Convection-Diffusion,Mass,0.2523599822581258
+Convection-Diffusion,Mass,0.3068403949367205
+Convection-Diffusion,Mass,0.24652899784630725
+Convection-Diffusion,Mass,0.30100941052490193
+Convection-Diffusion,Mass,0.35548982320349687
+Convection-Diffusion,Mass,0.21865055293374697
+Convection-Diffusion,Mass,0.27313096561234185
+Convection-Diffusion,Mass,0.32761137829093656
+Convection-Diffusion,Mass,0.19077210802118666
+Convection-Diffusion,Mass,0.24525252069978157
+Convection-Diffusion,Mass,0.26146899678870633
+Convection-Diffusion,Mass,0.1628936631086251
+Convection-Diffusion,Mass,0.21737407578721998
+Convection-Diffusion,Mass,0.2718544884658145
+Convection-Diffusion,Mass,0.32633490114440983
+Convection-Diffusion,Mass,0.2660235040539979
+Convection-Diffusion,Mass,0.32050391673259276
+Convection-Diffusion,Mass,0.37498432941118726
+Convection-Diffusion,Mass,0.23814505914143586
+Convection-Diffusion,Mass,0.25436153523036253
+Convection-Diffusion,Mass,0.3088419479089574
+Convection-Diffusion,Mass,0.17200267763920565
+Convection-Diffusion,Mass,0.2647470269074705
+Convection-Diffusion,Mass,0.31922743958606536
+Convection-Diffusion,Mass,0.18238816931631402
+Convection-Diffusion,Mass,0.23686858199490848
+Convection-Diffusion,Mass,0.2913489946735034
+Convection-Diffusion,Mass,0.1545097244037533
+Convection-Diffusion,Mass,0.2089901370823486
+Convection-Diffusion,Mass,0.22520661317127486
+Convection-Diffusion,Mass,0.08836734290152348
+Convection-Diffusion,Mass,0.14284775558011797
+Convection-Diffusion,Mass,0.19732816825871285
+Convection-Diffusion,Mass,0.25180858093730774
+Convection-Diffusion,Mass,0.19149718384689624
+Convection-Diffusion,Mass,0.2077136599358208
+Convection-Diffusion,Mass,0.3004580092040856
+Convection-Diffusion,Mass,0.12535480234466603
+Convection-Diffusion,Mass,0.1798352150232609
+Convection-Diffusion,Mass,0.23431562770185538
+Convection-Diffusion,Mass,0.13574029402177396
+Convection-Diffusion,Mass,0.1519567701106985
+Convection-Diffusion,Mass,0.20643718278929382
+Convection-Diffusion,Mass,0.2609175954678883
+Convection-Diffusion,Mass,0.12407832519813863
+Convection-Diffusion,Mass,0.21682267446640133
+Convection-Diffusion,Mass,0.2713030871449958
+Convection-Diffusion,Mass,0.13446381687524614
+Convection-Diffusion,Mass,0.15068029296417282
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,-0.13597788368012814
+Convection-Diffusion,Mass,-0.1189038473952423
+Convection-Diffusion,Mass,-0.21662162087936115
+Convection-Diffusion,Mass,-0.12301971141513209
+Convection-Diffusion,Mass,-0.06768173854057463
+Convection-Diffusion,Mass,0.025920170923651058
+Convection-Diffusion,Mass,0.00473027061886865
+Convection-Diffusion,Mass,-0.09298750286525022
+Convection-Diffusion,Mass,0.0006144065989788661
+Convection-Diffusion,Mass,0.05595237947353632
+Convection-Diffusion,Mass,-0.041765394010582546
+Convection-Diffusion,Mass,-0.024691357725693325
+Convection-Diffusion,Mass,0.030646615148864135
+Convection-Diffusion,Mass,-0.10533509492492636
+Convection-Diffusion,Mass,-0.04999712205036891
+Convection-Diffusion,Mass,0.005340850824188545
+Convection-Diffusion,Mass,-0.09237692265993032
+Convection-Diffusion,Mass,-0.03703894978537298
+Convection-Diffusion,Mass,-0.019964913500483752
+Convection-Diffusion,Mass,-0.15594662357427086
+Convection-Diffusion,Mass,-0.10060865069971339
+Convection-Diffusion,Mass,-0.045270677825155946
+Convection-Diffusion,Mass,-0.18125238789894307
+Convection-Diffusion,Mass,-0.12591441502438558
+Convection-Diffusion,Mass,-0.07057644214982814
+Convection-Diffusion,Mass,-0.015238469275270674
+Convection-Diffusion,Mass,-0.11295624275938954
+Convection-Diffusion,Mass,-0.05761826988483209
+Convection-Diffusion,Mass,-0.002280297010274631
+Convection-Diffusion,Mass,-0.1765259436737334
+Convection-Diffusion,Mass,-0.08292403420950427
+Convection-Diffusion,Mass,-0.027586061334946822
+Convection-Diffusion,Mass,-0.16356777140873735
+Convection-Diffusion,Mass,-0.10822979853417986
+Convection-Diffusion,Mass,-0.0528918256596222
+Convection-Diffusion,Mass,0.00244614721493526
+Convection-Diffusion,Mass,-0.13353556285885185
+Convection-Diffusion,Mass,-0.0781975899842944
+Convection-Diffusion,Mass,-0.02285961710973693
+Convection-Diffusion,Mass,-0.15884132718352403
+Convection-Diffusion,Mass,-0.10350335430896658
+Convection-Diffusion,Mass,-0.04816538143440912
+Convection-Diffusion,Mass,-0.22241102809786445
+Convection-Diffusion,Mass,-0.12880911863363878
+Convection-Diffusion,Mass,-0.07347114575908131
+Convection-Diffusion,Mass,-0.05639710947419209
+Convection-Diffusion,Mass,-0.0010591365996346278
+Convection-Diffusion,Mass,0.0160148996852512
+Convection-Diffusion,Mass,-0.08170287379886768
+Convection-Diffusion,Mass,-0.02636490092431022
+Convection-Diffusion,Mass,-0.009290864639420991
+Convection-Diffusion,Mass,-0.18353651130287632
+Convection-Diffusion,Mass,-0.12819853842831888
+Convection-Diffusion,Mass,-0.034596628964093185
+Convection-Diffusion,Mass,-0.2088422756275519
+Convection-Diffusion,Mass,-0.15350430275299445
+Convection-Diffusion,Mass,-0.05990239328876537
+Convection-Diffusion,Mass,-0.19588410336255585
+Convection-Diffusion,Mass,-0.1405461304879984
+Convection-Diffusion,Mass,-0.08520815761344096
+Convection-Diffusion,Mass,-0.06813412132855173
+Convection-Diffusion,Mass,-0.12758795822299898
+Convection-Diffusion,Mass,-0.07224998534844151
+Convection-Diffusion,Mass,-0.20823169542223202
+Convection-Diffusion,Mass,-0.15289372254767458
+Convection-Diffusion,Mass,-0.05929181308344548
+Convection-Diffusion,Mass,-0.042217776798559654
+Convection-Diffusion,Mass,-0.17819948687234674
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.017890629463869216
+Convection-Diffusion,Mass,0.0740413691237477
+Convection-Diffusion,Mass,-0.06112757416471837
+Convection-Diffusion,Mass,-0.00497683450483989
+Convection-Diffusion,Mass,0.08943784174470681
+Convection-Diffusion,Mass,0.06906070822524546
+Convection-Diffusion,Mass,0.010419638116119265
+Convection-Diffusion,Mass,0.06657037777599772
+Convection-Diffusion,Mass,0.08445718084620453
+Convection-Diffusion,Mass,0.02581611073707834
+Convection-Diffusion,Mass,0.08196685039695684
+Convection-Diffusion,Mass,0.09985365346716711
+Convection-Diffusion,Mass,0.002948646768369288
+Convection-Diffusion,Mass,0.05909938642824779
+Convection-Diffusion,Mass,0.07698618949845457
+Convection-Diffusion,Mass,-0.058182753790011504
+Convection-Diffusion,Mass,-0.0020320141301329976
+Convection-Diffusion,Mass,0.054118725529745296
+Convection-Diffusion,Mass,0.07200552859995557
+Convection-Diffusion,Mass,0.013364458490825971
+Convection-Diffusion,Mass,0.06951519815070469
+Convection-Diffusion,Mass,0.049138064631246516
+Convection-Diffusion,Mass,-0.00950300547788308
+Convection-Diffusion,Mass,0.008383797592327191
+Convection-Diffusion,Mass,0.10279847384187392
+Convection-Diffusion,Mass,-0.07063440603626037
+Convection-Diffusion,Mass,0.023780270213286374
+Convection-Diffusion,Mass,0.04166707328349664
+Convection-Diffusion,Mass,-0.0552379334153014
+Convection-Diffusion,Mass,0.0009128062445771075
+Convection-Diffusion,Mass,0.057063545904455615
+Convection-Diffusion,Mass,0.07495034897466249
+Convection-Diffusion,Mass,-0.06021859431380358
+Convection-Diffusion,Mass,-0.004067854653925072
+Convection-Diffusion,Mass,0.05208288500595386
+Convection-Diffusion,Mass,-0.04482212169284439
+Convection-Diffusion,Mass,0.04959255455670277
+Convection-Diffusion,Mass,0.06747935762691261
+Convection-Diffusion,Mass,-0.06768958566155345
+Convection-Diffusion,Mass,-0.011538846001674943
+Convection-Diffusion,Mass,0.04461189365820356
+Convection-Diffusion,Mass,-0.09055704963026208
+Convection-Diffusion,Mass,-0.034406309970384
+Convection-Diffusion,Mass,0.02174442968949451
+Convection-Diffusion,Mass,0.03963123275970478
+Convection-Diffusion,Mass,-0.057273773939093046
+Convection-Diffusion,Mass,-0.001123034279214542
+Convection-Diffusion,Mass,0.01676376879099233
+Convection-Diffusion,Mass,-0.0801412379078055
+Convection-Diffusion,Mass,-0.023990498247926994
+Convection-Diffusion,Mass,0.03216024141195109
+Convection-Diffusion,Mass,-0.10300870187651455
+Convection-Diffusion,Mass,-0.04685796221663647
+Convection-Diffusion,Mass,0.047556714032910695
+Convection-Diffusion,Mass,-0.12587616584522401
+Convection-Diffusion,Mass,-0.0697254261853451
+Convection-Diffusion,Mass,-0.013574686525466593
+Convection-Diffusion,Mass,-0.14874362981393308
+Convection-Diffusion,Mass,-0.09259289015405416
+Convection-Diffusion,Mass,-0.03644215049417607
+Convection-Diffusion,Mass,0.01970858916570286
+Convection-Diffusion,Mass,-0.0006685443537589254
+Convection-Diffusion,Mass,-0.05930961446288512
+Convection-Diffusion,Mass,0.03510506178666162
+Convection-Diffusion,Mass,-0.13832781809147607
+Convection-Diffusion,Mass,-0.04391314184192594
+Convection-Diffusion,Mass,0.012237597817952564
+Convection-Diffusion,Mass,0.030124400888159437
+Convection-Diffusion,Mass,-0.06678060581063881
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.017739086418021573
+Convection-Diffusion,Mass,0.07466942187903455
+Convection-Diffusion,Mass,0.13159975734004753
+Convection-Diffusion,Mass,-0.002789590147284057
+Convection-Diffusion,Mass,0.054140745313728936
+Convection-Diffusion,Mass,0.11107108077474191
+Convection-Diffusion,Mass,0.09147354305641837
+Convection-Diffusion,Mass,0.11013994192776314
+Convection-Diffusion,Mass,0.1670702773887761
+Convection-Diffusion,Mass,0.03268092990144115
+Convection-Diffusion,Mass,0.08961126536245413
+Convection-Diffusion,Mass,0.14654160082346712
+Convection-Diffusion,Mass,0.012152253336135439
+Convection-Diffusion,Mass,0.06908258879714853
+Convection-Diffusion,Mass,0.08774898766849318
+Convection-Diffusion,Mass,-0.0466403598188385
+Convection-Diffusion,Mass,0.010289975642174588
+Convection-Diffusion,Mass,0.028956374513515837
+Convection-Diffusion,Mass,-0.06716903638414762
+Convection-Diffusion,Mass,-0.010238700923134522
+Convection-Diffusion,Mass,0.008427697948210338
+Convection-Diffusion,Mass,-0.08769771294945311
+Convection-Diffusion,Mass,-0.06903131407810846
+Convection-Diffusion,Mass,0.026162957972572863
+Convection-Diffusion,Mass,-0.06996245292509037
+Convection-Diffusion,Mass,-0.08955999064341397
+Convection-Diffusion,Mass,0.005634281407267151
+Convection-Diffusion,Mass,0.0243006802786118
+Convection-Diffusion,Mass,-0.11008866720871946
+Convection-Diffusion,Mass,-0.05315833174770658
+Convection-Diffusion,Mass,0.003772003713306301
+Convection-Diffusion,Mass,0.06070233917431961
+Convection-Diffusion,Mass,0.041104801455992414
+Convection-Diffusion,Mass,0.09803513691700551
+Convection-Diffusion,Mass,-0.036354210570326395
+Convection-Diffusion,Mass,0.020576124890687126
+Convection-Diffusion,Mass,0.07750646035170022
+Convection-Diffusion,Mass,-0.05688288713563168
+Convection-Diffusion,Mass,4.744832538141413e-05
+Convection-Diffusion,Mass,0.056977783786394086
+Convection-Diffusion,Mass,0.11390811924740718
+Convection-Diffusion,Mass,-0.020481228239924296
+Convection-Diffusion,Mass,-0.0018148293685832596
+Convection-Diffusion,Mass,0.0933794426821019
+Convection-Diffusion,Mass,-0.002745968215561773
+Convection-Diffusion,Mass,0.015920430655779687
+Convection-Diffusion,Mass,0.07285076611679278
+Convection-Diffusion,Mass,-0.061538581370539115
+Convection-Diffusion,Mass,0.03365569068014221
+Convection-Diffusion,Mass,0.09058602614115531
+Convection-Diffusion,Mass,-0.043803321346176594
+Convection-Diffusion,Mass,-0.02513692247483131
+Convection-Diffusion,Mass,0.03179341298618136
+Convection-Diffusion,Mass,-0.10259593450115011
+Convection-Diffusion,Mass,-0.04566559904013702
+Convection-Diffusion,Mass,0.011264736420875651
+Convection-Diffusion,Mass,-0.12312461106645582
+Convection-Diffusion,Mass,-0.06619427560544315
+Convection-Diffusion,Mass,-0.00926394014443006
+Convection-Diffusion,Mass,0.04766639531658346
+Convection-Diffusion,Mass,-0.010195078991411971
+Convection-Diffusion,Mass,0.046735256469601125
+Convection-Diffusion,Mass,0.1036655919306138
+Convection-Diffusion,Mass,-0.06898769214638932
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.019405126167966625
+Convection-Diffusion,Mass,0.11533429912161075
+Convection-Diffusion,Mass,-0.05658408405242616
+Convection-Diffusion,Mass,0.001081152311549744
+Convection-Diffusion,Mass,0.05874638867552564
+Convection-Diffusion,Mass,0.1164116250395015
+Convection-Diffusion,Mass,-0.05550675813453535
+Convection-Diffusion,Mass,0.0021584782294405175
+Convection-Diffusion,Mass,0.09808765118308467
+Convection-Diffusion,Mass,-0.03556679540128402
+Convection-Diffusion,Mass,0.06036237755236009
+Convection-Diffusion,Mass,0.07976367732666773
+Convection-Diffusion,Mass,-0.015626832668032622
+Convection-Diffusion,Mass,0.04203840369594325
+Convection-Diffusion,Mass,0.09970364005991912
+Convection-Diffusion,Mass,-0.03395080652445297
+Convection-Diffusion,Mass,-0.014549506750145432
+Convection-Diffusion,Mass,0.04311572961383055
+Convection-Diffusion,Mass,-0.09053871697053825
+Convection-Diffusion,Mass,-0.03287348060656227
+Convection-Diffusion,Mass,0.024791755757413707
+Convection-Diffusion,Mass,0.08245699212138947
+Convection-Diffusion,Mass,0.10185829189569721
+Convection-Diffusion,Mass,0.08299565508033312
+Convection-Diffusion,Mass,0.1406608914443091
+Convection-Diffusion,Mass,0.007006444859940515
+Convection-Diffusion,Mass,0.06467168122391628
+Convection-Diffusion,Mass,0.12233691758789227
+Convection-Diffusion,Mass,-0.011317528996476537
+Convection-Diffusion,Mass,0.008083770777831208
+Convection-Diffusion,Mass,0.10401294373147542
+Convection-Diffusion,Mass,-0.029641502852893378
+Convection-Diffusion,Mass,-0.010240203078589243
+Convection-Diffusion,Mass,0.04742503328538695
+Convection-Diffusion,Mass,0.06682633305969449
+Convection-Diffusion,Mass,-0.0668281135246739
+Convection-Diffusion,Mass,0.02910105942897011
+Convection-Diffusion,Mass,0.08676629579294588
+Convection-Diffusion,Mass,-0.046888150791422924
+Convection-Diffusion,Mass,0.049041022162221504
+Convection-Diffusion,Mass,0.10670625852619728
+Convection-Diffusion,Mass,0.16437149489017347
+Convection-Diffusion,Mass,-0.007546888283863995
+Convection-Diffusion,Mass,0.050118348080112195
+Convection-Diffusion,Mass,0.06951964785441973
+Convection-Diffusion,Mass,-0.02587086214028041
+Convection-Diffusion,Mass,0.03179437422369536
+Convection-Diffusion,Mass,0.08945961058767113
+Convection-Diffusion,Mass,-0.04419483599670107
+Convection-Diffusion,Mass,0.05173433695694675
+Convection-Diffusion,Mass,0.10939957332092252
+Convection-Diffusion,Mass,-0.024254873263449255
+Convection-Diffusion,Mass,0.033410363100526086
+Convection-Diffusion,Mass,0.09107559946450228
+Convection-Diffusion,Mass,-0.04257884711986652
+Convection-Diffusion,Mass,-0.02317754734555856
+Convection-Diffusion,Mass,0.03448768901841721
+Convection-Diffusion,Mass,0.09215292538239298
+Convection-Diffusion,Mass,-0.003237584612304193
+Convection-Diffusion,Mass,0.01616371516199697
+Convection-Diffusion,Mass,0.11209288811564777
+Convection-Diffusion,Mass,-0.05982549505839224
+Convection-Diffusion,Mass,-0.002160258694416898
+Convection-Diffusion,Mass,0.09376891425922752
+Convection-Diffusion,Mass,-0.0781494689148129
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,0.05838688183144012
+Convection-Diffusion,Mass,0.17515299270700244
+Convection-Diffusion,Mass,0.042216365196442424
+Convection-Diffusion,Mass,0.1388633572238918
+Convection-Diffusion,Mass,0.1589824760720047
+Convection-Diffusion,Mass,0.10257372174077439
+Convection-Diffusion,Mass,0.16095677717855553
+Convection-Diffusion,Mass,0.2193398326163367
+Convection-Diffusion,Mass,0.04813926851610842
+Convection-Diffusion,Mass,0.14478626054355792
+Convection-Diffusion,Mass,0.20316931598133892
+Convection-Diffusion,Mass,0.031968751881103985
+Convection-Diffusion,Mass,0.09035180731888512
+Convection-Diffusion,Mass,0.14873486275666636
+Convection-Diffusion,Mass,0.015798235246099447
+Convection-Diffusion,Mass,0.07418129068388048
+Convection-Diffusion,Mass,0.13256434612166162
+Convection-Diffusion,Mass,0.19094740155944276
+Convection-Diffusion,Mass,0.05801077404888274
+Convection-Diffusion,Mass,0.07812989289699586
+Convection-Diffusion,Mass,0.13651294833477698
+Convection-Diffusion,Mass,0.1948960037725581
+Convection-Diffusion,Mass,0.061959376261991106
+Convection-Diffusion,Mass,0.12034243169977246
+Convection-Diffusion,Mass,0.1787254871375536
+Convection-Diffusion,Mass,0.045788859626986776
+Convection-Diffusion,Mass,0.14243585165444295
+Convection-Diffusion,Mass,0.16255497050254905
+Convection-Diffusion,Mass,0.029618342991989243
+Convection-Diffusion,Mass,0.08800139842977017
+Convection-Diffusion,Mass,0.1463844538675513
+Convection-Diffusion,Mass,0.013447826356984913
+Convection-Diffusion,Mass,0.07183088179476584
+Convection-Diffusion,Mass,0.168477873822215
+Convection-Diffusion,Mass,0.22686092925999635
+Convection-Diffusion,Mass,0.05566036515976831
+Convection-Diffusion,Mass,0.11404342059754924
+Convection-Diffusion,Mass,0.1724264760353306
+Convection-Diffusion,Mass,0.03948984852476355
+Convection-Diffusion,Mass,0.13613684055221315
+Convection-Diffusion,Mass,0.1945198959899945
+Convection-Diffusion,Mass,0.023319331889759227
+Convection-Diffusion,Mass,0.08170238732754058
+Convection-Diffusion,Mass,0.14008544276532192
+Convection-Diffusion,Mass,0.19846849820310286
+Convection-Diffusion,Mass,0.06553187069254263
+Convection-Diffusion,Mass,0.12391492613032355
+Convection-Diffusion,Mass,0.22056191815777312
+Convection-Diffusion,Mass,0.08762529064720653
+Convection-Diffusion,Mass,0.14600834608498744
+Convection-Diffusion,Mass,0.2043914015227688
+Convection-Diffusion,Mass,0.18624658378121325
+Convection-Diffusion,Mass,0.12983782944998992
+Convection-Diffusion,Mass,0.2264848214774395
+Convection-Diffusion,Mass,0.20834000373588396
+Convection-Diffusion,Mass,0.1136673128149856
+Convection-Diffusion,Mass,0.17205036825276654
+Convection-Diffusion,Mass,0.23043342369054787
+Convection-Diffusion,Mass,0.28881647912832925
+Convection-Diffusion,Mass,0.15587985161776854
+Convection-Diffusion,Mass,0.1759989704658749
+Convection-Diffusion,Mass,0.2726459624933313
+Convection-Diffusion,Mass,0.101445398393096
+Convection-Diffusion,Mass,0.15982845383087735
+Convection-Diffusion,Mass,0.2182115092686583
+Convection-Diffusion,Mass,0.08527488175809125
+Convection-Diffusion,Mass,3.826393658966905e-06
+Convection-Diffusion,Mass,-0.05571077945882684
+Convection-Diffusion,Mass,0.0033664244576920737
+Convection-Diffusion,Mass,-0.12887605457413698
+Convection-Diffusion,Mass,-0.0697988506576181
+Convection-Diffusion,Mass,-0.010721646741099173
+Convection-Diffusion,Mass,-0.028172316003916724
+Convection-Diffusion,Mass,0.03090488791260214
+Convection-Diffusion,Mass,0.08998209182912105
+Convection-Diffusion,Mass,-0.042260387202708
+Convection-Diffusion,Mass,0.01681681671381092
+Convection-Diffusion,Mass,0.07589402063032984
+Convection-Diffusion,Mass,-0.05634845840149242
+Convection-Diffusion,Mass,0.0027287455150263877
+Convection-Diffusion,Mass,0.0618059494315453
+Convection-Diffusion,Mass,-0.032172593010615515
+Convection-Diffusion,Mass,-0.011359325683764833
+Convection-Diffusion,Mass,0.047717878232753974
+Convection-Diffusion,Mass,-0.08452460079906828
+Convection-Diffusion,Mass,-0.02544739688254936
+Convection-Diffusion,Mass,0.033629807033969554
+Convection-Diffusion,Mass,-0.13687660858752773
+Convection-Diffusion,Mass,-0.039535468081340584
+Convection-Diffusion,Mass,0.05780567242484657
+Convection-Diffusion,Mass,0.07861893975169724
+Convection-Diffusion,Mass,0.02290433389921125
+Convection-Diffusion,Mass,0.08198153781573016
+Convection-Diffusion,Mass,-0.01199700462643065
+Convection-Diffusion,Mass,0.04708019929008826
+Convection-Diffusion,Mass,0.06789346661693894
+Convection-Diffusion,Mass,-0.0643490124148901
+Convection-Diffusion,Mass,-0.005271808498371189
+Convection-Diffusion,Mass,0.053805395418147724
+Convection-Diffusion,Mass,-0.07843708361367453
+Convection-Diffusion,Mass,-0.0193598796971554
+Convection-Diffusion,Mass,0.07798126080903153
+Convection-Diffusion,Mass,-0.09252515481246554
+Convection-Diffusion,Mass,-0.033447950895946835
+Convection-Diffusion,Mass,0.025629253020572295
+Convection-Diffusion,Mass,-0.10661322601125017
+Convection-Diffusion,Mass,-0.04753602209473104
+Convection-Diffusion,Mass,0.011541181821787662
+Convection-Diffusion,Mass,0.07061838573830678
+Convection-Diffusion,Mass,0.05316771647548223
+Convection-Diffusion,Mass,0.11224492039200136
+Convection-Diffusion,Mass,0.17132212430852006
+Convection-Diffusion,Mass,0.0008157086870297824
+Convection-Diffusion,Mass,0.05989291260354849
+Convection-Diffusion,Mass,0.11897011652006761
+Convection-Diffusion,Mass,-0.013272362511762075
+Convection-Diffusion,Mass,0.04580484140475705
+Convection-Diffusion,Mass,0.10488204532127576
+Convection-Diffusion,Mass,-0.02736043371055308
+Convection-Diffusion,Mass,-0.006547166383702613
+Convection-Diffusion,Mass,0.052530037532816515
+Convection-Diffusion,Mass,0.11160724144933522
+Convection-Diffusion,Mass,0.05589263559684964
+Convection-Diffusion,Mass,0.11496983951336835
+Convection-Diffusion,Mass,0.13578310684021924
+Convection-Diffusion,Mass,0.041804564398058214
+Convection-Diffusion,Mass,0.10088176831457733
+Convection-Diffusion,Mass,0.08343109905175958
+Convection-Diffusion,Mass,0.06598042978894224
+Convection-Diffusion,Mass,0.0867936971157927
+Convection-Diffusion,Mass,0.06934302785297536
+Convection-Diffusion,Mass,-0.02463551458918609
+Convection-Diffusion,Permeate,-8.07324545429289
+Convection-Diffusion,Permeate,0.010713138554145626
+Convection-Diffusion,Permeate,0.3161378347657473
+Convection-Diffusion,Permeate,0.22820611819599723
+Convection-Diffusion,Permeate,0.3592294179568209
+Convection-Diffusion,Permeate,0.2386704240674738
+Convection-Diffusion,Permeate,0.3003228351695904
+Convection-Diffusion,Permeate,0.4788648615517985
+Convection-Diffusion,Permeate,0.5323833496393849
+Convection-Diffusion,Permeate,0.5090933102468569
+Convection-Diffusion,Retentate,0.0
+Convection-Diffusion,Retentate,0.0007849801435301856
+Convection-Diffusion,Retentate,0.0014174731067623755
+Convection-Diffusion,Retentate,0.001974611378491937
+Convection-Diffusion,Retentate,0.0024584118763224853
+Convection-Diffusion,Retentate,0.002761017189885786
+Convection-Diffusion,Retentate,0.00309856773679906
+Convection-Diffusion,Retentate,0.0033688677921374535
+Convection-Diffusion,Retentate,0.0035917746921359404
+Convection-Diffusion,Retentate,0.0036658225885035575
+Convection-Diffusion,Retentate,0.0038570246303394457
+Convection-Diffusion,Retentate,0.004171257413795943
+Convection-Diffusion,Retentate,0.00473389773276186
+Convection-Diffusion,Retentate,0.0052606322652014054
+Convection-Diffusion,Retentate,0.005592523530604722
+Convection-Diffusion,Retentate,0.005740255178439723
+Convection-Diffusion,Retentate,0.005984593928662838
+Convection-Diffusion,Retentate,0.0060768285259823135
+Convection-Diffusion,Retentate,0.006104122038412613
+Convection-Diffusion,Retentate,0.0061966092412589074
+Convection-Diffusion,Retentate,0.0064342804624614785
+Convection-Diffusion,Retentate,0.006802881828045886
+Convection-Diffusion,Retentate,0.007095529170900707
+Convection-Diffusion,Retentate,0.007363876280420989
+Convection-Diffusion,Retentate,0.007550320685107393
+Convection-Diffusion,Retentate,0.00792678160974784
+Convection-Diffusion,Retentate,0.007953538981093128
+Convection-Diffusion,Retentate,0.007619537514049214
+Convection-Diffusion,Retentate,0.007161622974236657
+Convection-Diffusion,Retentate,0.007064331144797539
+Convection-Diffusion,Retentate,0.007200429306774008
+Convection-Diffusion,Retentate,0.007363991161489163
+Convection-Diffusion,Retentate,0.007042899848017231
+Convection-Diffusion,Retentate,0.006629230493191589
+Convection-Diffusion,Retentate,0.00644123886963522
+Convection-Diffusion,Retentate,0.006624046907339222
+Convection-Diffusion,Retentate,0.006960983754590541
+Convection-Diffusion,Retentate,0.007158232743218528
+Convection-Diffusion,Retentate,0.007161784514129045
+Convection-Diffusion,Retentate,0.007096802180887299
+Convection-Diffusion,Retentate,0.006972264411179714
+Convection-Diffusion,Retentate,0.006728524452419222
+Convection-Diffusion,Retentate,0.006296595026849546
+Convection-Diffusion,Retentate,0.005867406202753969
+Convection-Diffusion,Retentate,0.005499450629333185
+Convection-Diffusion,Retentate,0.0052789549465832135
+Convection-Diffusion,Retentate,0.005094852222830187
+Convection-Diffusion,Retentate,0.004819624968542149
+Convection-Diffusion,Retentate,0.004410482765398814
+Convection-Diffusion,Retentate,0.00408242627549363
+Convection-Diffusion,Retentate,0.0038172087305429233
+Convection-Diffusion,Retentate,0.003711862081793523
+Convection-Diffusion,Retentate,0.003801411396704515
+Convection-Diffusion,Retentate,0.003809088657887492
+Convection-Diffusion,Retentate,0.0037300595768164553
+Convection-Diffusion,Retentate,0.0035675783496697715
+Convection-Diffusion,Retentate,0.0033619721058465945
+Convection-Diffusion,Retentate,0.002993750211187545
+Convection-Diffusion,Retentate,0.0025100834398294773
+Convection-Diffusion,Retentate,0.0019896429518626306
+Convection-Diffusion,Retentate,0.001704195992366257
+Convection-Diffusion,Retentate,0.0015798991932512722
+Convection-Diffusion,Retentate,0.0014588825605425881
+Convection-Diffusion,Retentate,0.0012048852606782658
+Convection-Diffusion,Retentate,0.0007837753473391198
+Convection-Diffusion,Retentate,0.0002184905579221223
+Convection-Diffusion,Retentate,-0.0004516145651025691
+Convection-Diffusion,Retentate,-0.0004516145651025691
+Convection-Diffusion,Retentate,-0.00010327933124581634
+Convection-Diffusion,Retentate,0.0002631601668982079
+Convection-Diffusion,Retentate,0.0006196640091852117
+Convection-Diffusion,Retentate,0.0008537602182824819
+Convection-Diffusion,Retentate,0.000912396003098153
+Convection-Diffusion,Retentate,0.0010321287818451617
+Convection-Diffusion,Retentate,0.001326998903639858
+Convection-Diffusion,Retentate,0.001702255971119014
+Convection-Diffusion,Retentate,0.0021675156036968083
+Convection-Diffusion,Retentate,0.002592342639636824
+Convection-Diffusion,Retentate,0.003133330474398278
+Convection-Diffusion,Retentate,0.0038874857079575385
+Convection-Diffusion,Retentate,0.004629938858760657
+Convection-Diffusion,Retentate,0.004990888242769624
+Convection-Diffusion,Retentate,0.00507813277611513
+Convection-Diffusion,Retentate,0.005031812282692155
+Convection-Diffusion,Retentate,0.005345409652950403
+Convection-Diffusion,Retentate,0.005941609104901479
+Convection-Diffusion,Retentate,0.006544743868724537
+Convection-Diffusion,Retentate,0.006880551768594376
+Convection-Diffusion,Retentate,0.006955484208989325
+Convection-Diffusion,Retentate,0.007072159386543529
+Convection-Diffusion,Retentate,0.0074770653767091836
+Convection-Diffusion,Retentate,0.008162606944409692
+Convection-Diffusion,Retentate,0.009054421582811641
+Convection-Diffusion,Retentate,0.009921527179757472
+Convection-Diffusion,Retentate,0.01034452518422804
+Convection-Diffusion,Retentate,0.010251722354571013
+Convection-Diffusion,Retentate,0.00971129347126542
+Convection-Diffusion,Retentate,0.00915208665140824
+Convection-Diffusion,Retentate,0.009038948864211659
+Convection-Diffusion,Retentate,0.009462878650555995
+Convection-Diffusion,Retentate,0.010062763060041325
+Convection-Diffusion,Retentate,0.01064444830143332
+Convection-Diffusion,Retentate,0.011064787957322788
+Convection-Diffusion,Retentate,0.011347432349756562
+Convection-Diffusion,Retentate,0.011447462160288786
+Convection-Diffusion,Retentate,0.01135237251078648
+Convection-Diffusion,Retentate,0.011111162370648383
+Convection-Diffusion,Retentate,0.011041005582491001
+Convection-Diffusion,Retentate,0.011145939834058179
+Convection-Diffusion,Retentate,0.011363512752247847
+Convection-Diffusion,Retentate,0.011436203968062077
+Convection-Diffusion,Retentate,0.011397574330329091
+Convection-Diffusion,Retentate,0.011609826608616454
+Convection-Diffusion,Retentate,0.011982594937880673
+Convection-Diffusion,Retentate,0.012104609296563828
+Convection-Diffusion,Retentate,0.012012917464884478
+Convection-Diffusion,Retentate,0.011821340388625437
+Convection-Diffusion,Retentate,0.011561289627549164
+Convection-Diffusion,Retentate,0.011403156008171794
+Convection-Diffusion,Retentate,0.011152110682227274
+Convection-Diffusion,Retentate,0.010938488288076467
+Convection-Diffusion,Retentate,0.010916234932349568
+Convection-Diffusion,Retentate,0.010988046802979946
+Convection-Diffusion,Retentate,0.011050192915317114
+Convection-Diffusion,Retentate,0.011105095457640449
+Convection-Diffusion,Retentate,0.010953041990247539
+Convection-Diffusion,Retentate,0.010591083492824482
+Convection-Diffusion,Retentate,0.01004327921321464
+Convection-Diffusion,Retentate,0.00957320518084715
+Convection-Diffusion,Retentate,0.009364130252506863
+Convection-Diffusion,Retentate,0.00935886918816838
+Convection-Diffusion,Retentate,0.009532076768907676
+Convection-Diffusion,Retentate,0.009780723534309511
+Convection-Diffusion,Retentate,0.0098090827719065
+Convection-Diffusion,Retentate,0.009690643774422157
+Convection-Diffusion,Retentate,0.009578187504219295
+Convection-Diffusion,Retentate,0.009594088635482582
+Convection-Diffusion,Retentate,0.009661970878947854
+Convection-Diffusion,Retentate,0.009577685839028169
+Convection-Diffusion,Retentate,0.009224393261275983
+Convection-Diffusion,Retentate,0.008745297661650749
+Convection-Diffusion,Retentate,0.008073111116411773
+Convection-Diffusion,Retentate,0.008073111116411773
+Convection-Diffusion,Retentate,0.00818980703252858
+Convection-Diffusion,Retentate,0.008444643201204484
+Convection-Diffusion,Retentate,0.008825519810050175
+Convection-Diffusion,Retentate,0.00924436216364492
+Convection-Diffusion,Retentate,0.00966638248284921
+Convection-Diffusion,Retentate,0.010039208328200384
+Convection-Diffusion,Retentate,0.010492520571762066
+Convection-Diffusion,Retentate,0.010885366326037002
+Convection-Diffusion,Retentate,0.011098821301118831
+Convection-Diffusion,Retentate,0.011181242847194402
+Convection-Diffusion,Retentate,0.011141079787163055
+Convection-Diffusion,Retentate,0.01119108109117532
+Convection-Diffusion,Retentate,0.011305124368156696
+Convection-Diffusion,Retentate,0.011425627019094808
+Convection-Diffusion,Retentate,0.011492303162732805
+Convection-Diffusion,Retentate,0.011660921042759589
+Convection-Diffusion,Retentate,0.0121997475976571
+Convection-Diffusion,Retentate,0.012998919937786497
+Convection-Diffusion,Retentate,0.013812064885649534
+Convection-Diffusion,Retentate,0.014361630159205118
+Convection-Diffusion,Retentate,0.014484019942458163
+Convection-Diffusion,Retentate,0.014150391598351311
+Convection-Diffusion,Retentate,0.01365564374501116
+Convection-Diffusion,Retentate,0.013144961122997692
+Convection-Diffusion,Retentate,0.012956452773907712
+Convection-Diffusion,Retentate,0.013173250043898977
+Convection-Diffusion,Retentate,0.013635240197822791
+Convection-Diffusion,Retentate,0.014108160820515027
+Convection-Diffusion,Retentate,0.014625079406460103
+Convection-Diffusion,Retentate,0.014906282241524862
+Convection-Diffusion,Retentate,0.014962629671108521
+Convection-Diffusion,Retentate,0.01476936945418549
+Convection-Diffusion,Retentate,0.014883070215176637
+Convection-Diffusion,Retentate,0.015201121172002157
+Convection-Diffusion,Retentate,0.015524808553336406
+Convection-Diffusion,Retentate,0.015355647008646405
+Convection-Diffusion,Retentate,0.015255292476864414
+Convection-Diffusion,Retentate,0.01534296396610905
+Convection-Diffusion,Retentate,0.01567165706080112
+Convection-Diffusion,Retentate,0.015593109696880042
+Convection-Diffusion,Retentate,0.015310389226777165
+Convection-Diffusion,Retentate,0.01505162839441574
+Convection-Diffusion,Retentate,0.01523331623510609
+Convection-Diffusion,Retentate,0.01530467071754881
+Convection-Diffusion,Retentate,0.015175304557496855
+Convection-Diffusion,Retentate,0.014965849201834757
+Convection-Diffusion,Retentate,0.015006211635576179
+Convection-Diffusion,Retentate,0.015339593090833804
+Convection-Diffusion,Retentate,0.015700656311857207
+Convection-Diffusion,Retentate,0.015454735573533452
+Convection-Diffusion,Retentate,0.014680622103721052
+Convection-Diffusion,Retentate,0.013680110540263508
+Convection-Diffusion,Retentate,0.01292423642532111
+Convection-Diffusion,Retentate,0.012602769500390918
+Convection-Diffusion,Retentate,0.012610317537037338
+Convection-Diffusion,Retentate,0.012873673272781843
+Convection-Diffusion,Retentate,0.013166061962905963
+Convection-Diffusion,Retentate,0.013430326561748071
+Convection-Diffusion,Retentate,0.01357005797563986
+Convection-Diffusion,Retentate,0.013315254358818715
+Convection-Diffusion,Retentate,0.012852736698682973
+Convection-Diffusion,Retentate,0.012142898240006039
+Convection-Diffusion,Retentate,0.011569070450259906
+Convection-Diffusion,Retentate,0.011253066667559682
+Convection-Diffusion,Retentate,0.010966638476498865
+Convection-Diffusion,Retentate,0.010734717528935173
+Convection-Diffusion,Retentate,0.010641257669424297
+Convection-Diffusion,Retentate,0.010423117299595523
+Convection-Diffusion,Retentate,0.010360734855072476
+Convection-Diffusion,Retentate,0.010094748568739847
+Convection-Diffusion,Retentate,0.010094748568739847
+Convection-Diffusion,Retentate,0.01046933394776435
+Convection-Diffusion,Retentate,0.010973402857545228
+Convection-Diffusion,Retentate,0.011388789028057705
+Convection-Diffusion,Retentate,0.01171922263222245
+Convection-Diffusion,Retentate,0.011997449060838793
+Convection-Diffusion,Retentate,0.012055771804951907
+Convection-Diffusion,Retentate,0.012206617822811643
+Convection-Diffusion,Retentate,0.012427746935853742
+Convection-Diffusion,Retentate,0.01262409627736553
+Convection-Diffusion,Retentate,0.012616911666315173
+Convection-Diffusion,Retentate,0.012638858566025684
+Convection-Diffusion,Retentate,0.012912736889401375
+Convection-Diffusion,Retentate,0.01343916673168735
+Convection-Diffusion,Retentate,0.013897404224332626
+Convection-Diffusion,Retentate,0.014252714170502957
+Convection-Diffusion,Retentate,0.01464717980638685
+Convection-Diffusion,Retentate,0.015272629931025261
+Convection-Diffusion,Retentate,0.01590445569799039
+Convection-Diffusion,Retentate,0.01616787268953648
+Convection-Diffusion,Retentate,0.01615673847889099
+Convection-Diffusion,Retentate,0.01611619707735598
+Convection-Diffusion,Retentate,0.016198588303030895
+Convection-Diffusion,Retentate,0.016295827931140348
+Convection-Diffusion,Retentate,0.016379831683786074
+Convection-Diffusion,Retentate,0.01637417956288713
+Convection-Diffusion,Retentate,0.016329625858763873
+Convection-Diffusion,Retentate,0.016260841581591058
+Convection-Diffusion,Retentate,0.016561357602063058
+Convection-Diffusion,Retentate,0.01704386696333605
+Convection-Diffusion,Retentate,0.017481424413765462
+Convection-Diffusion,Retentate,0.017613985862021175
+Convection-Diffusion,Retentate,0.017431370987070934
+Convection-Diffusion,Retentate,0.017151358272486435
+Convection-Diffusion,Retentate,0.016865513538080534
+Convection-Diffusion,Retentate,0.016400922672633496
+Convection-Diffusion,Retentate,0.01608567271497437
+Convection-Diffusion,Retentate,0.01600667824919763
+Convection-Diffusion,Retentate,0.016165852127341493
+Convection-Diffusion,Retentate,0.016296827807682143
+Convection-Diffusion,Retentate,0.016308672398544784
+Convection-Diffusion,Retentate,0.01634360994379875
+Convection-Diffusion,Retentate,0.016384035579007528
+Convection-Diffusion,Retentate,0.016356556695310446
+Convection-Diffusion,Retentate,0.01656168125817293
+Convection-Diffusion,Retentate,0.016809354813452835
+Convection-Diffusion,Retentate,0.01718145432245718
+Convection-Diffusion,Retentate,0.01740549447547612
+Convection-Diffusion,Retentate,0.01730910226754217
+Convection-Diffusion,Retentate,0.016790426268127892
+Convection-Diffusion,Retentate,0.016039931749220984
+Convection-Diffusion,Retentate,0.015303363011042412
+Convection-Diffusion,Retentate,0.014909294307789355
+Convection-Diffusion,Retentate,0.014735186548834362
+Convection-Diffusion,Retentate,0.014427804892876381
+Convection-Diffusion,Retentate,0.014095246243787173
+Convection-Diffusion,Retentate,0.01392419738878001
+Convection-Diffusion,Retentate,0.013970013846530363
+Convection-Diffusion,Retentate,0.014073672083854568
+Convection-Diffusion,Retentate,0.014126566185183917
+Convection-Diffusion,Retentate,0.013881973512565147
+Convection-Diffusion,Retentate,0.013453631432919723
+Convection-Diffusion,Retentate,0.012951499394983721
+Convection-Diffusion,Retentate,0.012542475935492754
+Convection-Diffusion,Retentate,0.012414693377224412
+Convection-Diffusion,Retentate,0.012505203693312466
+Convection-Diffusion,Retentate,0.012530810502457232
+Convection-Diffusion,Retentate,0.01266173652463312
+Convection-Diffusion,Retentate,0.012813674804628227
+Convection-Diffusion,Retentate,0.012774385026518
+Convection-Diffusion,Retentate,0.012486471486744689
+Convection-Diffusion,Retentate,0.012024393579567139
+Convection-Diffusion,Retentate,0.011514311728959798
+Convection-Diffusion,Retentate,0.010968641369025948
+Convection-Diffusion,Retentate,0.010968641369025948
+Convection-Diffusion,Retentate,0.01072415000034245
+Convection-Diffusion,Retentate,0.01034131515797074
+Convection-Diffusion,Retentate,0.010211747410435271
+Convection-Diffusion,Retentate,0.010507703405267379
+Convection-Diffusion,Retentate,0.011174344314569247
+Convection-Diffusion,Retentate,0.011776365573076656
+Convection-Diffusion,Retentate,0.012348584404829333
+Convection-Diffusion,Retentate,0.012778870413872176
+Convection-Diffusion,Retentate,0.01298135335723852
+Convection-Diffusion,Retentate,0.01305649130898113
+Convection-Diffusion,Retentate,0.013092433888286247
+Convection-Diffusion,Retentate,0.013111571984426898
+Convection-Diffusion,Retentate,0.013194018508972442
+Convection-Diffusion,Retentate,0.013135864741124756
+Convection-Diffusion,Retentate,0.013080438824070612
+Convection-Diffusion,Retentate,0.01303901992383238
+Convection-Diffusion,Retentate,0.012959453139005248
+Convection-Diffusion,Retentate,0.012947521579794128
+Convection-Diffusion,Retentate,0.01334809876658634
+Convection-Diffusion,Retentate,0.013940220131812925
+Convection-Diffusion,Retentate,0.014575780536901485
+Convection-Diffusion,Retentate,0.014917763677477634
+Convection-Diffusion,Retentate,0.014867620979853762
+Convection-Diffusion,Retentate,0.014726605472945702
+Convection-Diffusion,Retentate,0.014596730691590476
+Convection-Diffusion,Retentate,0.014452446749808487
+Convection-Diffusion,Retentate,0.014363394244681242
+Convection-Diffusion,Retentate,0.014341084102565672
+Convection-Diffusion,Retentate,0.014345796229548355
+Convection-Diffusion,Retentate,0.014417506169337247
+Convection-Diffusion,Retentate,0.014537826757679015
+Convection-Diffusion,Retentate,0.014618366495177818
+Convection-Diffusion,Retentate,0.01464331610779019
+Convection-Diffusion,Retentate,0.014701190388094424
+Convection-Diffusion,Retentate,0.01487792986911247
+Convection-Diffusion,Retentate,0.014990504181715646
+Convection-Diffusion,Retentate,0.015127627843319757
+Convection-Diffusion,Retentate,0.014906356472587048
+Convection-Diffusion,Retentate,0.014690484626354902
+Convection-Diffusion,Retentate,0.014531741705380257
+Convection-Diffusion,Retentate,0.014477703255103617
+Convection-Diffusion,Retentate,0.014550202728609754
+Convection-Diffusion,Retentate,0.014573854756912391
+Convection-Diffusion,Retentate,0.014287696781716678
+Convection-Diffusion,Retentate,0.01396215767490649
+Convection-Diffusion,Retentate,0.013615912410907583
+Convection-Diffusion,Retentate,0.013664891824641555
+Convection-Diffusion,Retentate,0.013959704014817888
+Convection-Diffusion,Retentate,0.01399746369028966
+Convection-Diffusion,Retentate,0.013690677738849546
+Convection-Diffusion,Retentate,0.013083483598668821
+Convection-Diffusion,Retentate,0.012415929280892045
+Convection-Diffusion,Retentate,0.012084000479051064
+Convection-Diffusion,Retentate,0.01180818723479648
+Convection-Diffusion,Retentate,0.01159152645459075
+Convection-Diffusion,Retentate,0.01153304817906717
+Convection-Diffusion,Retentate,0.011641865880547908
+Convection-Diffusion,Retentate,0.012033476839453053
+Convection-Diffusion,Retentate,0.012221613466131967
+Convection-Diffusion,Retentate,0.012059846370332788
+Convection-Diffusion,Retentate,0.011449521762897576
+Convection-Diffusion,Retentate,0.01061616562234545
+Convection-Diffusion,Retentate,0.009908782580766082
+Convection-Diffusion,Retentate,0.009485674271122903
+Convection-Diffusion,Retentate,0.008969653507178852
+Convection-Diffusion,Retentate,0.008514388906323748
+Convection-Diffusion,Retentate,0.008136144789796601
+Convection-Diffusion,Retentate,0.007937833661878124
+Convection-Diffusion,Retentate,0.007937833661878124
+Convection-Diffusion,Retentate,0.008444913875892678
+Convection-Diffusion,Retentate,0.008814613409459065
+Convection-Diffusion,Retentate,0.008955374680314723
+Convection-Diffusion,Retentate,0.009008008352707953
+Convection-Diffusion,Retentate,0.009085774282534246
+Convection-Diffusion,Retentate,0.009227071350181056
+Convection-Diffusion,Retentate,0.009415815104222205
+Convection-Diffusion,Retentate,0.009473397785601955
+Convection-Diffusion,Retentate,0.009436464668285982
+Convection-Diffusion,Retentate,0.009361016244949205
+Convection-Diffusion,Retentate,0.00954600542160788
+Convection-Diffusion,Retentate,0.010005390210714215
+Convection-Diffusion,Retentate,0.010687956147912852
+Convection-Diffusion,Retentate,0.011273685129884695
+Convection-Diffusion,Retentate,0.011973271303292203
+Convection-Diffusion,Retentate,0.012229451301103388
+Convection-Diffusion,Retentate,0.012084295241569837
+Convection-Diffusion,Retentate,0.011568169150486304
+Convection-Diffusion,Retentate,0.011177934556422377
+Convection-Diffusion,Retentate,0.010940699485585667
+Convection-Diffusion,Retentate,0.010910520237243128
+Convection-Diffusion,Retentate,0.0107563466642246
+Convection-Diffusion,Retentate,0.010533192759998165
+Convection-Diffusion,Retentate,0.010439816475846566
+Convection-Diffusion,Retentate,0.01063366713850916
+Convection-Diffusion,Retentate,0.011160384668111782
+Convection-Diffusion,Retentate,0.011852893622852238
+Convection-Diffusion,Retentate,0.01272364148077361
+Convection-Diffusion,Retentate,0.013215836510705202
+Convection-Diffusion,Retentate,0.012972251561241504
+Convection-Diffusion,Retentate,0.012119101062157361
+Convection-Diffusion,Retentate,0.011103692781781074
+Convection-Diffusion,Retentate,0.010353428207785016
+Convection-Diffusion,Retentate,0.010021052418355719
+Convection-Diffusion,Retentate,0.009879722889572784
+Convection-Diffusion,Retentate,0.009803081932922834
+Convection-Diffusion,Retentate,0.010007298588170014
+Convection-Diffusion,Retentate,0.010251152743841358
+Convection-Diffusion,Retentate,0.010374347156683164
+Convection-Diffusion,Retentate,0.010369019297243433
+Convection-Diffusion,Retentate,0.010366715166043013
+Convection-Diffusion,Retentate,0.010405357481745151
+Convection-Diffusion,Retentate,0.01029834237789064
+Convection-Diffusion,Retentate,0.009788630726850482
+Convection-Diffusion,Retentate,0.009199116208282324
+Convection-Diffusion,Retentate,0.008709117320838875
+Convection-Diffusion,Retentate,0.00866591539853729
+Convection-Diffusion,Retentate,0.008896871509501716
+Convection-Diffusion,Retentate,0.008951329319887187
+Convection-Diffusion,Retentate,0.008598455601838596
+Convection-Diffusion,Retentate,0.008139684010461879
+Convection-Diffusion,Retentate,0.0077657903740076875
+Convection-Diffusion,Retentate,0.007743050498433079
+Convection-Diffusion,Retentate,0.007815166531106116
+Convection-Diffusion,Retentate,0.007973173697529262
+Convection-Diffusion,Retentate,0.008048654958772022
+Convection-Diffusion,Retentate,0.007785201104842072
+Convection-Diffusion,Retentate,0.007203537329529597
+Convection-Diffusion,Retentate,0.006293774303276535
+Convection-Diffusion,Retentate,0.005645566510145288
+Convection-Diffusion,Retentate,0.0055594583204309975
+Convection-Diffusion,Retentate,0.0058997291324037636
+Convection-Diffusion,Retentate,0.0062914181157419325
+Convection-Diffusion,Retentate,0.00617784793304568
+Convection-Diffusion,Retentate,0.0055038154117349625
+Convection-Diffusion,Retentate,0.004728384796572983
+Convection-Diffusion,Retentate,0.004053810642692058
+Convection-Diffusion,Retentate,0.003401425752426609
+Convection-Diffusion,Retentate,0.0027078196646241484
+Convection-Diffusion,Retentate,0.0027078196646241484
+Convection-Diffusion,Retentate,0.0025474008631776266
+Convection-Diffusion,Retentate,0.0026083902039380972
+Convection-Diffusion,Retentate,0.0029161126570237807
+Convection-Diffusion,Retentate,0.0034758232319225804
+Convection-Diffusion,Retentate,0.00390279917534396
+Convection-Diffusion,Retentate,0.004159388660149247
+Convection-Diffusion,Retentate,0.0040599954328403385
+Convection-Diffusion,Retentate,0.004289065874530117
+Convection-Diffusion,Retentate,0.005043791342639673
+Convection-Diffusion,Retentate,0.006060304718422566
+Convection-Diffusion,Retentate,0.006719349789776173
+Convection-Diffusion,Retentate,0.006785574679366996
+Convection-Diffusion,Retentate,0.0063045248858868185
+Convection-Diffusion,Retentate,0.0059808399062586115
+Convection-Diffusion,Retentate,0.005996527457117873
+Convection-Diffusion,Retentate,0.00628496679434135
+Convection-Diffusion,Retentate,0.006503269866213113
+Convection-Diffusion,Retentate,0.006447179389863844
+Convection-Diffusion,Retentate,0.006472698113005884
+Convection-Diffusion,Retentate,0.006748255100819315
+Convection-Diffusion,Retentate,0.007062010763554104
+Convection-Diffusion,Retentate,0.007015619713061584
+Convection-Diffusion,Retentate,0.0065625625504616425
+Convection-Diffusion,Retentate,0.005985837844934447
+Convection-Diffusion,Retentate,0.0056197416250635575
+Convection-Diffusion,Retentate,0.005516838846550784
+Convection-Diffusion,Retentate,0.005744103036257675
+Convection-Diffusion,Retentate,0.006058725262842822
+Convection-Diffusion,Retentate,0.006212370571169371
+Convection-Diffusion,Retentate,0.006093752802812589
+Convection-Diffusion,Retentate,0.00588617088588592
+Convection-Diffusion,Retentate,0.005681446218930281
+Convection-Diffusion,Retentate,0.005546277821266267
+Convection-Diffusion,Retentate,0.005512599117898604
+Convection-Diffusion,Retentate,0.005714230658824388
+Convection-Diffusion,Retentate,0.006084890981421012
+Convection-Diffusion,Retentate,0.006358975727089228
+Convection-Diffusion,Retentate,0.0062349523274262
+Convection-Diffusion,Retentate,0.005748607727248916
+Convection-Diffusion,Retentate,0.005188111911151711
+Convection-Diffusion,Retentate,0.004762579539012934
+Convection-Diffusion,Retentate,0.004601789294509004
+Convection-Diffusion,Retentate,0.00457514686679491
+Convection-Diffusion,Retentate,0.004369133209165294
+Convection-Diffusion,Retentate,0.00390323997242038
+Convection-Diffusion,Retentate,0.003253870867802926
+Convection-Diffusion,Retentate,0.0027206809145997085
+Convection-Diffusion,Retentate,0.0023392311373518658
+Convection-Diffusion,Retentate,0.0022159003964475695
+Convection-Diffusion,Retentate,0.0021647434783134472
+Convection-Diffusion,Retentate,0.002538376858112871
+Convection-Diffusion,Retentate,0.0029996002674938225
+Convection-Diffusion,Retentate,0.0030666101447851413
+Convection-Diffusion,Retentate,0.002338391029388137
+Convection-Diffusion,Retentate,0.0012539930638870798
+Convection-Diffusion,Retentate,0.00011154584217942874
+Convection-Diffusion,Retentate,-0.00047006389111085443
+Convection-Diffusion,Retentate,-0.0009457889328984829
+Convection-Diffusion,Retentate,-0.0013154011809078548
+Convection-Diffusion,Retentate,-0.0015446572162975322
+Convection-Diffusion,Retentate,-0.0016867293376736758
+Convection-Diffusion,Retentate,-0.0018922912481463402
+Convection-Diffusion,Retentate,-0.0021111599135290814
+Convection-Diffusion,Retentate,-0.00246684153742127
+Convection-Diffusion,Retentate,-0.0024068286729923443
+Convection-Diffusion,Retentate,-0.0023418395183236506
+Convection-Diffusion,Retentate,-0.0023418395183236506
+Convection-Diffusion,Retentate,-0.0021063881442766057
+Convection-Diffusion,Retentate,-0.0023806941854177975
+Convection-Diffusion,Retentate,-0.0028983851342334363
+Convection-Diffusion,Retentate,-0.003428227691185875
+Convection-Diffusion,Retentate,-0.0035962959151996203
+Convection-Diffusion,Retentate,-0.003805465514579774
+Convection-Diffusion,Retentate,-0.0040819896492734625
+Convection-Diffusion,Retentate,-0.003966145139821856
+Convection-Diffusion,Retentate,-0.003465221279763704
+Convection-Diffusion,Retentate,-0.00279137632322873
+Convection-Diffusion,Retentate,-0.0022411450084317925
+Convection-Diffusion,Retentate,-0.0020348724529735476
+Convection-Diffusion,Retentate,-0.0019186618278898722
+Convection-Diffusion,Retentate,-0.001731560493424584
+Convection-Diffusion,Retentate,-0.0015293594420361595
+Convection-Diffusion,Retentate,-0.0015706167536881884
+Convection-Diffusion,Retentate,-0.001867418200748101
+Convection-Diffusion,Retentate,-0.0023015496829808485
+Convection-Diffusion,Retentate,-0.0026108681653082572
+Convection-Diffusion,Retentate,-0.002803368082877589
+Convection-Diffusion,Retentate,-0.0026159720977769053
+Convection-Diffusion,Retentate,-0.0022760880567766952
+Convection-Diffusion,Retentate,-0.0019174595027995022
+Convection-Diffusion,Retentate,-0.0017720226067512008
+Convection-Diffusion,Retentate,-0.002009413836073673
+Convection-Diffusion,Retentate,-0.0022969349087169568
+Convection-Diffusion,Retentate,-0.002583218906553113
+Convection-Diffusion,Retentate,-0.00276689551352079
+Convection-Diffusion,Retentate,-0.002876013871062651
+Convection-Diffusion,Retentate,-0.002777265090613657
+Convection-Diffusion,Retentate,-0.0025950835350349657
+Convection-Diffusion,Retentate,-0.0022442618644321487
+Convection-Diffusion,Retentate,-0.0022632381641594004
+Convection-Diffusion,Retentate,-0.002666214877172592
+Convection-Diffusion,Retentate,-0.00344230329302487
+Convection-Diffusion,Retentate,-0.004246223622389263
+Convection-Diffusion,Retentate,-0.004755217781713552
+Convection-Diffusion,Retentate,-0.004848160682281178
+Convection-Diffusion,Retentate,-0.0047753981948999895
+Convection-Diffusion,Retentate,-0.004727673076804288
+Convection-Diffusion,Retentate,-0.004924829065277488
+Convection-Diffusion,Retentate,-0.005347258676383736
+Convection-Diffusion,Retentate,-0.0057803908669478675
+Convection-Diffusion,Retentate,-0.006125050407372984
+Convection-Diffusion,Retentate,-0.006187557532460925
+Convection-Diffusion,Retentate,-0.00631414481847419
+Convection-Diffusion,Retentate,-0.006609431392935265
+Convection-Diffusion,Retentate,-0.006969237931016222
+Convection-Diffusion,Retentate,-0.00727051789159054
+Convection-Diffusion,Retentate,-0.0075536733901690675
+Convection-Diffusion,Retentate,-0.007852461380649904
+Convection-Diffusion,Retentate,-0.008371542607961484
+Convection-Diffusion,Retentate,-0.009038610386395387
+Convection-Diffusion,Retentate,-0.009699866935493514
+Convection-Diffusion,Retentate,-0.010031645469171584
+Convection-Diffusion,Retentate,-0.010109545954929125
+Convection-Diffusion,Retentate,-0.010082342157386244
+Convection-Diffusion,Retentate,-0.01029458208613679
+Convection-Diffusion,Retentate,-0.010960952170654669
+Convection-Diffusion,Retentate,-0.011925910811254575
+Convection-Diffusion,Retentate,-0.012796927738367552
+Convection-Diffusion,Retentate,-0.013434184887536471
+Convection-Diffusion,Retentate,-0.013743481050525367
+Convection-Diffusion,Retentate,-0.014008904832667736
+Convection-Diffusion,Retentate,-0.014424915528484659
+Convection-Diffusion,Retentate,-0.014424915528484659
+Convection-Diffusion,Retentate,-0.01439795321851993
+Convection-Diffusion,Retentate,-0.014432479624049706
+Convection-Diffusion,Retentate,-0.014538892781494705
+Convection-Diffusion,Retentate,-0.014328808914904421
+Convection-Diffusion,Retentate,-0.014029336901711183
+Convection-Diffusion,Retentate,-0.013792837778321528
+Convection-Diffusion,Retentate,-0.013878516355375823
+Convection-Diffusion,Retentate,-0.014165183669532514
+Convection-Diffusion,Retentate,-0.014270155189679388
+Convection-Diffusion,Retentate,-0.01406065576018226
+Convection-Diffusion,Retentate,-0.014034944336860743
+Convection-Diffusion,Retentate,-0.014095289277729604
+Convection-Diffusion,Retentate,-0.014214306027545868
+Convection-Diffusion,Retentate,-0.01429211238714918
+Convection-Diffusion,Retentate,-0.014397641811501511
+Convection-Diffusion,Retentate,-0.014613842034288973
+Convection-Diffusion,Retentate,-0.014802707417731006
+Convection-Diffusion,Retentate,-0.0146494471656343
+Convection-Diffusion,Retentate,-0.014542682833878454
+Convection-Diffusion,Retentate,-0.01457084940028532
+Convection-Diffusion,Retentate,-0.014826106718047955
+Convection-Diffusion,Retentate,-0.015015826095135121
+Convection-Diffusion,Retentate,-0.015077383826291566
+Convection-Diffusion,Retentate,-0.01508866073330695
+Convection-Diffusion,Retentate,-0.015331138035210084
+Convection-Diffusion,Retentate,-0.015624411085342384
+Convection-Diffusion,Retentate,-0.015634380421927645
+Convection-Diffusion,Retentate,-0.015302924881830889
+Convection-Diffusion,Retentate,-0.01492911206899256
+Convection-Diffusion,Retentate,-0.014858323799608008
+Convection-Diffusion,Retentate,-0.015176807899922875
+Convection-Diffusion,Retentate,-0.015880138382695357
+Convection-Diffusion,Retentate,-0.01678898864419296
+Convection-Diffusion,Retentate,-0.017798779173395004
+Convection-Diffusion,Retentate,-0.018648898334348518
+Convection-Diffusion,Retentate,-0.019233963140529033
+Convection-Diffusion,Retentate,-0.019457047657400316
+Convection-Diffusion,Retentate,-0.019694492917557115
+Convection-Diffusion,Retentate,-0.020200831898285188
+Convection-Diffusion,Retentate,-0.02095553575756983
+Convection-Diffusion,Retentate,-0.021872965658652082
+Convection-Diffusion,Retentate,-0.022781095431556438
+Convection-Diffusion,Retentate,-0.023273454680967563
+Convection-Diffusion,Retentate,-0.023516479061090036
+Convection-Diffusion,Retentate,-0.02365413241993794
+Convection-Diffusion,Retentate,-0.023698525875022223
+Convection-Diffusion,Retentate,-0.02381181433923518
+Convection-Diffusion,Retentate,-0.023845799404642716
+Convection-Diffusion,Retentate,-0.023918716954125598
+Convection-Diffusion,Retentate,-0.024211070975323285
+Convection-Diffusion,Retentate,-0.024710936575851085
+Convection-Diffusion,Retentate,-0.025427599808379765
+Convection-Diffusion,Retentate,-0.02638451453421914
+Convection-Diffusion,Retentate,-0.027351608517201045
+Convection-Diffusion,Retentate,-0.028195826875848946
+Convection-Diffusion,Retentate,-0.028659486963197683
+Convection-Diffusion,Retentate,-0.028887505622093666
+Convection-Diffusion,Retentate,-0.029190545429685247
+Convection-Diffusion,Retentate,-0.029447770158071356
+Convection-Diffusion,Retentate,-0.0299457683822301
+Convection-Diffusion,Retentate,-0.030670781298760136
+Convection-Diffusion,Retentate,-0.03148596965359237
+Convection-Diffusion,Retentate,-0.032120326922660904
+Convection-Diffusion,Retentate,-0.03246279669113937
+Convection-Diffusion,Retentate,-0.03247165743457762
+Convection-Diffusion,Retentate,-0.032530602301833376
+Convection-Diffusion,Retentate,-0.03263616104401493
+Convection-Diffusion,Retentate,-0.03263616104401493
+Convection-Diffusion,Retentate,-0.03247258923873608
+Convection-Diffusion,Retentate,-0.03255250093221132
+Convection-Diffusion,Retentate,-0.032831586629422996
+Convection-Diffusion,Retentate,-0.03296391326559149
+Convection-Diffusion,Retentate,-0.03293839488576139
+Convection-Diffusion,Retentate,-0.03284814193632801
+Convection-Diffusion,Retentate,-0.03286026989340151
+Convection-Diffusion,Retentate,-0.03280582431961204
+Convection-Diffusion,Retentate,-0.0326234172783597
+Convection-Diffusion,Retentate,-0.03220821399950006
+Convection-Diffusion,Retentate,-0.03173465270962511
+Convection-Diffusion,Retentate,-0.03142105014469124
+Convection-Diffusion,Retentate,-0.03148459101912907
+Convection-Diffusion,Retentate,-0.03192066291111289
+Convection-Diffusion,Retentate,-0.03242608614257538
+Convection-Diffusion,Retentate,-0.03289600058499142
+Convection-Diffusion,Retentate,-0.03301694565200712
+Convection-Diffusion,Retentate,-0.03281174612637782
+Convection-Diffusion,Retentate,-0.032401220700442636
+Convection-Diffusion,Retentate,-0.031810297245859195
+Convection-Diffusion,Retentate,-0.03147288212205889
+Convection-Diffusion,Retentate,-0.03167145498104727
+Convection-Diffusion,Retentate,-0.032281583161122895
+Convection-Diffusion,Retentate,-0.0330491405171374
+Convection-Diffusion,Retentate,-0.0335626524991648
+Convection-Diffusion,Retentate,-0.033508009155497454
+Convection-Diffusion,Retentate,-0.03327080894454526
+Convection-Diffusion,Retentate,-0.03298394207992809
+Convection-Diffusion,Retentate,-0.03291595499981899
+Convection-Diffusion,Retentate,-0.033242903432179345
+Convection-Diffusion,Retentate,-0.03387776588374563
+Convection-Diffusion,Retentate,-0.03438165275675824
+Convection-Diffusion,Retentate,-0.0346755158844313
+Convection-Diffusion,Retentate,-0.03471123877850715
+Convection-Diffusion,Retentate,-0.03469746374034088
+Convection-Diffusion,Retentate,-0.03482691652616069
+Convection-Diffusion,Retentate,-0.035158713700445876
+Convection-Diffusion,Retentate,-0.03549650074501439
+Convection-Diffusion,Retentate,-0.03589550020781949
+Convection-Diffusion,Retentate,-0.036171685264462176
+Convection-Diffusion,Retentate,-0.036571735772667556
+Convection-Diffusion,Retentate,-0.03722129652679607
+Convection-Diffusion,Retentate,-0.038058113611867526
+Convection-Diffusion,Retentate,-0.038676359769487294
+Convection-Diffusion,Retentate,-0.03885390359936475
+Convection-Diffusion,Retentate,-0.03882277264922241
+Convection-Diffusion,Retentate,-0.038963677528205974
+Convection-Diffusion,Retentate,-0.03920663323702862
+Convection-Diffusion,Retentate,-0.039412883233028134
+Convection-Diffusion,Retentate,-0.039404331234225674
+Convection-Diffusion,Retentate,-0.039241738854739465
+Convection-Diffusion,Retentate,-0.03923118895317177
+Convection-Diffusion,Retentate,-0.03936744973985379
+Convection-Diffusion,Retentate,-0.03975127323813476
+Convection-Diffusion,Retentate,-0.04034222521718458
+Convection-Diffusion,Retentate,-0.04112768399006956
+Convection-Diffusion,Retentate,-0.041891863418868844
+Convection-Diffusion,Retentate,-0.04246877730685814
+Convection-Diffusion,Retentate,-0.04282820048223172
+Convection-Diffusion,Retentate,-0.043042500081621846
+Convection-Diffusion,Retentate,-0.04318237136474964
+Convection-Diffusion,Retentate,-0.04348887705460543
+Convection-Diffusion,Retentate,-0.04405779809732139
+Convection-Diffusion,Retentate,-0.04491774766442045
+Convection-Diffusion,Retentate,-0.045904401785781805

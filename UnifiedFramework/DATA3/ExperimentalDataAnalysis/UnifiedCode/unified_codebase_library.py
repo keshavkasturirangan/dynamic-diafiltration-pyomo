@@ -3341,6 +3341,12 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
     exp.M_F0_g = cfg.get("M_F0", None)      # [g]
     exp.M_O_g = cfg.get("M_O", None)        # [g] overflow mass
     exp.C_D_value = cfg.get("C_D", None)    # [mMol/L] in legacy files (value only here)
+    if exp.C_D_value is None and str(exp.mode).upper().startswith("F"):
+        # Legacy filtration MAT files omit dialysate concentration because the
+        # physical value is zero. Fill it explicitly so the unified model can
+        # construct the DATA-mode equations without special-casing filtration.
+        exp.C_D_value = 0.0
+        exp.used_defaults.append("C_D_value=0.0_for_filtration_mat")
     exp.C_D_units = "mMol/L" if exp.C_D_value is not None else None
 
     exp.C_F0_value = cfg.get("C_F0", None)  # [mMol/L] in legacy files (value only here)
