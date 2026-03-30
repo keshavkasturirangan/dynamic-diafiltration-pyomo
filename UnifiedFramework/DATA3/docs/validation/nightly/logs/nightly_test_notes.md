@@ -1,4 +1,4 @@
-# Nightly Test Notes
+# Pytest Notes
 
 This running log captures key outcomes from nightly validation runs.
 

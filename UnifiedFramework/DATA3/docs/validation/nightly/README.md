@@ -6,7 +6,7 @@
 > Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
 
 
-This folder contains all nightly-test-specific validation assets.
+This folder contains all pytest-specific nightly validation assets.
 
 Nightly status should be interpreted using the main validation semantics:
 - numeric `PASS` / `FAIL` apply only to published-paper targets with completed numeric comparisons;

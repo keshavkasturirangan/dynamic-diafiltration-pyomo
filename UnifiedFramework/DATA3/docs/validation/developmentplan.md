@@ -62,6 +62,7 @@ Use these sources as the reference corpus for validation and parity decisions.
 2. DATA2 core (`270511.123`, `270611.123`) has source-backed baselines and pass/fail tolerance status.
 3. Unified run path supports both MAT and XLSX from one external API (`run_unified_pipeline_v24`), with compatibility wrappers retained.
 4. Nightly regression scaffold is runnable and tied to target IDs.
+5. Lightweight nightly validation is exercised through committed `pytest` checks against the consolidated status CSV and extracted paper-linked figure artifacts.
 
 ### Explicitly deferred until after above is done
 - Further module splits/renames.
@@ -101,8 +102,14 @@ Use these sources as the reference corpus for validation and parity decisions.
 ### WS4: Regression Test Automation
 - Nightly regression test:
   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/tests/regression/test_data1_data2_nightly.py`
+- Lightweight nightly validation pytests:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_nightly_validation_assets.py`
 - Markers and test config in `pytest.ini`
 - CI mode: slow/nightly for DATA2-heavy workloads
+- Scope of lightweight nightly pytests:
+  - validate `target_validation_status_consolidated.csv` through the allowlisted nightly gate policy,
+  - verify mapped figure targets still resolve to committed generated artifacts and extracted paper pages under `UnifiedFramework/DATA3/results/reproduction/20260306-023356-paper-pdf-extract/`,
+  - keep the solver-heavy full reproduction test separate until runtime is acceptable for scheduled CI.
 
 ### WS5: Repo Cleanup Proposal (No Moves Yet)
 - Deliver a concrete rename/move proposal first.
@@ -161,14 +168,16 @@ Exit Criteria:
 
 ### Stage D
 Goal:
-- Stabilize nightly regression runs and reporting
+- Stabilize nightly `pytest` validation runs and reporting
 
 Deliverables:
-- Deterministic nightly job outputs
+- Deterministic nightly `pytest` outputs
 - Failure summaries tied to target IDs and tolerances
+- Paper-page and artifact existence checks tied to locked/page-matched figure targets
 
 Exit Criteria:
-- Nightly test fails only on true tolerance regressions
+- Lightweight nightly `pytest` suite fails only on true unexpected regressions or broken paper/artifact mappings
+- Full solver-heavy reproduction `pytest` remains available but is not required in scheduled CI until runtime is reduced
 
 ### Stage E
 Goal:

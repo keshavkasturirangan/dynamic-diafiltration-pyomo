@@ -13,7 +13,10 @@ This guide describes the nightly validation gate and storage-aware pruning helpe
 Workflow: `.github/workflows/nightly-validation.yml`
 
 Nightly steps:
-1. Run status gate on `UnifiedFramework/DATA3/docs/validation/target_validation_status_consolidated.csv`.
+1. Run lightweight nightly `pytest` checks for:
+   - consolidated status gate behavior,
+   - extracted paper page availability,
+   - mapped figure artifact availability.
 2. Treat only unexpected `FAIL`/`MISSING_VALUE` targets as hard failures.
 3. Keep documented known non-pass targets as warnings via `UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv`.
 4. Run digitized panel comparison report (`UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/comparison_latest.csv`).
@@ -21,12 +24,11 @@ Nightly steps:
 
 ## Local commands
 
-Run the nightly status gate locally:
+Run the lightweight nightly `pytest` checks locally:
 
 ```bash
-python /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/scripts/validation/nightly/nightly_validation_gate.py \
-  --status-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/target_validation_status_consolidated.csv \
-  --exceptions-csv /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv
+pytest -q /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_nightly_validation_assets.py \
+  -m "nightly and not slow"
 ```
 
 Run digitized paper-vs-unified figure comparison:
@@ -85,6 +87,7 @@ When a target improves to `PASS` or `NOT_APPLICABLE`, remove or deactivate that 
 - `NOT_APPLICABLE` is never treated as a failure in nightly gating.
 - `PASS_WITH_EXPLANATION` is currently treated as pass.
 - The gate fails only on unexpected `FAIL`/`MISSING_VALUE` or status mismatches against the exception list.
+- The lightweight nightly `pytest` suite validates committed paper-page and mapped-artifact availability; it does not yet perform pixel-level image similarity scoring.
 
 ## Running notes document
 

@@ -17,11 +17,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Nightly validation status gate
+      - name: Install pytest dependencies
         run: |
-          python UnifiedFramework/DATA3/scripts/validation/nightly/nightly_validation_gate.py \
-            --status-csv UnifiedFramework/DATA3/docs/validation/target_validation_status_consolidated.csv \
-            --exceptions-csv UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv
+          python -m pip install --upgrade pip
+          python -m pip install pandas pillow pytest
+
+      - name: Nightly validation pytests
+        run: |
+          pytest -q UnifiedFramework/DATA3/tests/regression/test_nightly_validation_assets.py -m "nightly and not slow"
 
       - name: Digitized panel comparison (report)
         run: |

@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Append a nightly test note entry.")
+    p = argparse.ArgumentParser(description="Append a pytest note entry.")
     p.add_argument("--notes-md", type=Path, default=Path("UnifiedFramework/DATA3/docs/validation/nightly/logs/nightly_test_notes.md"))
     p.add_argument("--run-id", required=True, help="Run identifier, e.g., 20260306-nightly-local")
     p.add_argument("--context", default="Nightly validation run")
@@ -40,7 +40,7 @@ def main() -> None:
     path = args.notes_md
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("# Nightly Test Notes\n\nThis running log captures key outcomes from nightly validation runs.\n\n", encoding="utf-8")
+        path.write_text("# Pytest Notes\n\nThis running log captures key outcomes from nightly validation runs.\n\n", encoding="utf-8")
 
     with path.open("a", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
