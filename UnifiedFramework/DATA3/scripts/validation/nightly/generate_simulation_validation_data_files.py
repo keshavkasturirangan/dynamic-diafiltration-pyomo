@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""One-time export of legacy/model-side CSV baselines for DATA1 and DATA2 paper figures."""
+"""Build one-time simulation validation CSV files for DATA1 and DATA2 paper figures."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import os
@@ -17,7 +18,6 @@ import numpy as np
 import pandas as pd
 from pyomo.environ import (
     ConcreteModel,
-    Constraint,
     Expression,
     Objective,
     Param,
@@ -44,10 +44,7 @@ OUT_ROOT = (
     / "DATA3"
     / "docs"
     / "validation"
-    / "nightly"
-    / "digitized_baselines"
-    / "unified"
-    / "legacy_paper_csvs"
+    / "simulation_validation_data_files"
 )
 DATA1_ROOT = REPO_ROOT / "DATA1_matlab" / "data"
 DATA2_DATA_ROOT = REPO_ROOT / "data_library"
@@ -62,6 +59,16 @@ class ManifestRow:
     source_label: str
     relative_csv: str
     notes: str
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--finalize-only",
+        action="store_true",
+        help="Refresh README/metadata for an already-generated export without rerunning heavy solves.",
+    )
+    return parser.parse_args()
 
 
 def ensure_dir(path: Path) -> Path:
@@ -79,8 +86,6 @@ def build_manifest() -> list[ManifestRow]:
 
 
 def loadmat_data1(path: Path) -> dict[str, Any]:
-    import sys
-
     data1_pkg = REPO_ROOT / "DATA1_matlab"
     if str(data1_pkg) not in sys.path:
         sys.path.insert(0, str(data1_pkg))
@@ -272,7 +277,11 @@ def export_data1_fig4(manifest: list[ManifestRow]) -> None:
         ("A", "501.1", "5.2843"),
         ("B", "511.12", "15.2052"),
     ]
-    quantity_map = [("mass", "mV", "mass_g"), ("retentate", "cF", "retentate_concentration_mM"), ("permeate", "cH", "permeate_concentration_mM")]
+    quantity_map = [
+        ("mass", "mV", "mass_g"),
+        ("retentate", "cF", "retentate_concentration_mM"),
+        ("permeate", "cH", "permeate_concentration_mM"),
+    ]
 
     for panel_id, dataset, c_fin in panel_specs:
         sim_bundle = {
@@ -323,10 +332,7 @@ def export_data1_contours(manifest: list[ManifestRow], figure_id: str, axis_key:
     for panel_id, dataset in dataset_specs:
         df = pd.read_csv(DATA1_ROOT / f"{dataset} concpolar" / f"contourdata-x_{axis_key}-y_Lp.csv")
         axis_col = "B" if axis_key == "B" else "sigma"
-        min_idx = {
-            obj_name: int(df[obj_col].idxmin())
-            for obj_name, obj_col in objective_columns
-        }
+        min_idx = {obj_name: int(df[obj_col].idxmin()) for obj_name, obj_col in objective_columns}
         for obj_name, obj_col in objective_columns:
             grid = df[[axis_col, "Lp", obj_col]].copy()
             grid.rename(columns={obj_col: "objective_value"}, inplace=True)
@@ -569,13 +575,7 @@ def export_data2_fig7_fig8(manifest: list[ManifestRow]) -> None:
         mse = sse / max(n_obs - n_param, 1)
         cov = mse * np.linalg.inv(x.T @ x)
         se = np.sqrt(np.diag(cov))
-        return (
-            float(beta[0]),
-            float(beta[1]),
-            float(mse),
-            float(se[0]),
-            float(se[1]),
-        )
+        return float(beta[0]), float(beta[1]), float(mse), float(se[0]), float(se[1])
 
     pe_values = np.logspace(-3, 2, 51)
     rows = []
@@ -594,7 +594,13 @@ def export_data2_fig7_fig8(manifest: list[ManifestRow]) -> None:
             }
         )
     out_path = out_dir8 / "data2_main_fig8_partition_sensitivity.csv"
-    write_csv(normalise_series(rows, ["Pe", "mse", "k0", "k1", "k0_minus_2se", "k0_plus_2se", "k1_minus_2se", "k1_plus_2se"]), out_path)
+    write_csv(
+        normalise_series(
+            rows,
+            ["Pe", "mse", "k0", "k1", "k0_minus_2se", "k0_plus_2se", "k1_minus_2se", "k1_plus_2se"],
+        ),
+        out_path,
+    )
     manifest.append(
         ManifestRow(
             paper="DATA2",
@@ -671,7 +677,7 @@ def export_data2_fig9(manifest: list[ManifestRow]) -> None:
                 else:
                     fit_a, _, _ = solve_model(data_stru, spec_a[0], theta=spec_a[1], sim_opt=False, B_form=spec_a[2], LOUD=False)
                 fit_b, _, _ = solve_model(data_stru, spec_b[0], theta=spec_b[1], sim_opt=False, B_form=spec_b[2], LOUD=False)
-        except Exception as exc:  # pragma: no cover - legacy solver path is environment-sensitive
+        except Exception as exc:  # pragma: no cover
             failure_path = out_dir / f"data2_main_fig9_{regime}_residuals_ERROR.txt"
             failure_path.write_text(str(exc), encoding="utf-8")
             manifest.append(
@@ -768,10 +774,7 @@ def flatten_data2_mass_and_concentration(data_stru: dict[str, Any], sim_stru: di
                     "concentration_mM": float(y_val),
                 }
             )
-    return (
-        normalise_series(mass_rows, ["time_min", "mass_g"]),
-        normalise_series(conc_rows, ["time_min", "concentration_mM"]),
-    )
+    return normalise_series(mass_rows, ["time_min", "mass_g"]), normalise_series(conc_rows, ["time_min", "concentration_mM"])
 
 
 def export_data2_cross_verification(manifest: list[ManifestRow]) -> None:
@@ -909,15 +912,70 @@ def export_data2_pre_b_dependence(manifest: list[ManifestRow]) -> None:
     )
 
 
+def _write_readme(out_root: Path) -> None:
+    readme = out_root / "README.md"
+    readme.write_text(
+        "\n".join(
+            [
+                "# simulation_validation_data_files",
+                "",
+                "One-time generated simulation-side CSV files used to validate legacy paper figures.",
+                "",
+                "Source code paths:",
+                "- `utility.py`",
+                "- `DATA1_model_demo.ipynb`",
+                "- `DATA2_model_demo.ipynb`",
+                "- `DATA2_visualization.ipynb`",
+                "- `run_DATA2_model_variations.py`",
+                "",
+                "These CSVs are intended to stay stable after generation so later pytest checks can compare unified-code outputs against the same published-paper baselines.",
+                "",
+                "This folder is the current source of truth for simulation-side paper-validation CSVs.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_metadata(errors_present: bool) -> None:
+    metadata_json = OUT_ROOT / "simulation_validation_metadata.json"
+    errors_path = OUT_ROOT / "simulation_validation_errors.json"
+    metadata = {
+        "generator": str(Path(__file__).relative_to(REPO_ROOT)),
+        "output_root": str(OUT_ROOT.relative_to(REPO_ROOT)),
+        "manifest_csv": str((OUT_ROOT / "simulation_validation_manifest.csv").relative_to(REPO_ROOT)),
+        "manifest_json": str((OUT_ROOT / "simulation_validation_manifest.json").relative_to(REPO_ROOT)),
+        "errors_file": (
+            str(errors_path.relative_to(REPO_ROOT))
+            if errors_present
+            else None
+        ),
+    }
+    metadata_json.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    _write_readme(OUT_ROOT)
+
+
+def _finalize_existing_export() -> None:
+    errors_path = OUT_ROOT / "simulation_validation_errors.json"
+    _write_metadata(errors_path.exists())
+
+
 def main() -> int:
-    manifest: list[ManifestRow] = build_manifest()
+    args = _parse_args()
     ensure_dir(OUT_ROOT)
+
+    if args.finalize_only:
+        _finalize_existing_export()
+        return 0
+
+    manifest: list[ManifestRow] = build_manifest()
     errors: list[dict[str, str]] = []
 
-    def run_step(label: str, func, *args) -> None:
+    def run_step(label: str, func, *func_args) -> None:
         try:
-            func(*args)
-        except Exception as exc:  # pragma: no cover - legacy export is intentionally best-effort
+            func(*func_args)
+        except Exception as exc:  # pragma: no cover
             errors.append({"step": label, "error": str(exc)})
 
     run_step("data1_fig2", export_data1_fig2, manifest)
@@ -933,16 +991,17 @@ def main() -> int:
     run_step("data2_pre_b_dependence", export_data2_pre_b_dependence, manifest)
 
     manifest_rows = pd.DataFrame([asdict(row) for row in manifest])
-    write_csv(manifest_rows, OUT_ROOT / "manifest_legacy_paper_plot_csvs.csv")
-    (OUT_ROOT / "manifest_legacy_paper_plot_csvs.json").write_text(
+    write_csv(manifest_rows, OUT_ROOT / "simulation_validation_manifest.csv")
+    (OUT_ROOT / "simulation_validation_manifest.json").write_text(
         json.dumps([asdict(row) for row in manifest], indent=2),
         encoding="utf-8",
     )
     if errors:
-        (OUT_ROOT / "manifest_legacy_paper_plot_csvs_errors.json").write_text(
+        (OUT_ROOT / "simulation_validation_errors.json").write_text(
             json.dumps(errors, indent=2),
             encoding="utf-8",
         )
+    _write_metadata(bool(errors))
     return 0
 
 

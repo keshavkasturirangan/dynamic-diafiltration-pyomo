@@ -1,133 +1,103 @@
 # Unified Pytest Data Comparison Guide
 
-This file documents the current pytest-based numeric comparison path for the unified codebase.
+This guide describes the current validation split:
 
-## What is being tested
+1. one-time generation of published-paper simulation CSV baselines
+2. figure-level validation of those baselines against extracted paper figures
+3. unified-code pytest comparisons that will reuse those baselines
 
-Pytest module:
-[`test_unified_codebase_pytest_validation.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py)
+## Current source of truth
 
-Current coverage in that module:
+One-time simulation-side CSV baselines now live in:
 
-- `conductivity_paper.py` snapshot check for `variant_shedlovsky(...)`
-- `unified_codebase_runfile.py` preset/config sanity check
-- `unified_codebase_library.py` DATA1 filtration MAT path can run end-to-end
-- DATA1 Figure 2 unified-vs-legacy numeric comparison using CSV baselines
-- DATA1 Figure 2 unified-vs-paper digitized mass-trace comparison
-- DATA2 Figure 3 unified-loader-vs-committed-measurement comparison
+- [`simulation_validation_data_files/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files)
 
-## Files involved
+Key files there:
 
-Unified code under test:
+- [`README.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/README.md)
+- [`simulation_validation_manifest.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/simulation_validation_manifest.csv)
+- [`simulation_validation_metadata.json`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/simulation_validation_metadata.json)
 
-- [`conductivity_paper.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/conductivity_paper.py)
-- [`unified_codebase_library.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py)
-- [`unified_codebase_runfile.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py)
+These CSVs are generated from the published-paper legacy stack:
 
-Legacy/model-side CSV baselines used for numeric comparison:
+- [`utility.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/utility.py)
+- [`DATA1_model_demo.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA1_model_demo.ipynb)
+- [`DATA2_model_demo.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_model_demo.ipynb)
+- [`DATA2_visualization.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_visualization.ipynb)
+- [`run_DATA2_model_variations.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/run_DATA2_model_variations.py)
 
-- [`legacy_paper_csvs/data1_main/fig2/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/unified/legacy_paper_csvs/data1_main/fig2)
+Generation entrypoint:
 
-Paper-side digitized CSVs created earlier:
+- [`generate_simulation_validation_data_files.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/scripts/validation/nightly/generate_simulation_validation_data_files.py)
 
-- [`digitized_baselines/paper/data1_main/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/digitized_baselines/paper/data1_main)
+## How figure validation works
 
-One-time legacy exporter that generated the model-side baselines:
+Paper evidence root:
 
-- [`generate_legacy_paper_plot_csvs.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/scripts/validation/nightly/generate_legacy_paper_plot_csvs.py)
+- [`pdf_extract/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260306-023356-paper-pdf-extract/pdf_extract)
 
-## What pytest writes
+Figure-validation script:
 
-The legacy-baseline comparison fixture writes a numeric report here:
+- [`validate_simulation_validation_data_files.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/scripts/validation/nightly/validate_simulation_validation_data_files.py)
 
-- [`unified_data1_fig2_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data1_fig2_comparison.csv)
+The script:
 
-The direct paper-digitization comparison fixture writes a second numeric report here:
+1. reads the locked figure mapping from [`target_notebook_source_map.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/target_notebook_source_map.csv)
+2. resolves the generated legacy figure PNGs tied to each published figure target
+3. builds composite images for multi-panel figures
+4. compares those composites against extracted paper images in `pdf_extract/.../images/`
+5. writes a report with `best_score`, chosen layout, and `PASS`/`FAIL`
 
-- [`unified_data1_fig2_paper_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data1_fig2_paper_comparison.csv)
+Outputs:
 
-The current DATA2 comparison fixture writes a third numeric report here:
+- [`simulation_validation_figure_report.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/simulation_validation/simulation_validation_figure_report.csv)
+- [`simulation_validation_figure_report.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/simulation_validation/simulation_validation_figure_report.md)
+- [`composites/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/simulation_validation/composites)
 
-- [`unified_data2_measurement_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data2_measurement_comparison.csv)
+Current result from the latest run:
 
-Columns in that report:
+- `23/23 PASS` for the mapped DATA1 main/SI and DATA2 main/SI figure targets
 
-- `panel_id`
-- `series_id`
-- `n_points`
-- `mae`
-- `max_abs_err`
-- `rmse`
+## Pytests
 
-These are the main files to inspect if you want to see what the pytest actually compared.
+Unified code entrypoint/regression module:
 
-## How the DATA1 comparison works
+- [`test_unified_codebase_pytest_validation.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py)
 
-1. Pytest runs the unified DATA1 MAT pipeline for:
-   - `data_stru-dataset501.1.mat`
-   - `data_stru-dataset511.12.mat`
-2. It extracts unified predicted trajectories from the solved Pyomo model:
-   - mass in vial: `mV`
-   - retentate concentration: `cF`
-   - permeate concentration: `cH`
-   - vial concentration: `cV`
-3. For the legacy-baseline report:
-   - it interpolates unified trajectories onto the time points stored in the legacy baseline CSVs
-   - it computes `MAE`, `max_abs_err`, and `RMSE` for each predicted series
-4. For the paper-digitized report:
-   - it loads the refined paper-side digitized trace CSVs for DATA1 Figure 2 mass panels
-   - it matches each paper trace to the best-fitting unified vial trajectory
-   - it computes `MAE`, `max_abs_err`, and `RMSE` for that direct paper comparison
-5. For the current DATA2 report:
-   - it loads the DATA2 MAT experiment through the unified loader
-   - it extracts the vial-4 measurement series used by the committed Figure 3 baseline
-   - it compares those unified-loaded measurements to the committed CSV in `legacy_paper_csvs/data2_main/fig3`
+Figure-validation pytest module:
 
-## Current pytest status meaning
+- [`test_simulation_validation_figures.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py)
 
-There are three kinds of outcomes in the current unified pytest module:
+What the figure-validation pytest does:
 
-- `PASS`: the check succeeded
-- `XFAIL`: the comparison ran, but the mismatch is a known current gap
-- `FAIL`: something unexpected broke
+- checks that `simulation_validation_data_files` has the committed manifest
+- reruns the paper-figure comparison report
+- fails if any mapped figure target stops matching the extracted paper figure above threshold
 
-Right now:
-
-- DATA1 Figure 2 mass comparisons are expected to pass
-- DATA1 Figure 2 paper-digitized mass comparisons are expected to pass
-- DATA1 Figure 2 concentration comparisons are expected to `xfail`
-  because unified concentration trajectories are not yet legacy-paper parity
-- DATA2 Figure 3 measurement extraction comparison is expected to pass
-
-That means pytest is already comparing against data, even when a result is marked as a known mismatch.
-
-## Command to run
+Command:
 
 ```bash
-MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py
+MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py -m "nightly"
 ```
 
-## If you want to inspect the comparison manually
+## Unified-code defaults relevant to this flow
 
-Open:
+User-facing runfile:
 
-- [`unified_data1_fig2_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data1_fig2_comparison.csv)
-- [`unified_data1_fig2_paper_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data1_fig2_paper_comparison.csv)
-- [`unified_data2_measurement_comparison.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/pytest_validation/unified_data2_measurement_comparison.csv)
+- [`unified_codebase_runfile.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py)
 
-Interpretation:
+The default conductivity-to-concentration model is now `msa`.
 
-- low `mae` and low `max_abs_err` means the unified prediction is close to the legacy baseline
-- in the paper comparison file, `matched_unified_vial` tells you which unified vial trace best aligned with each digitized paper trace
-- large errors on the concentration rows mean the unified code is still diverging from the published-era baseline for those series
-- the DATA2 file currently verifies one exact loader-backed measurement extraction, not yet a full unified-fit-vs-paper curve comparison
+If a user explicitly wants the older conductivity path, they must request:
 
-## Important limitation right now
+- `--conductivity-model variant_shedlovsky`
 
-This pytest data-comparison layer is strongest today for DATA1 Figure 2 because it has both legacy CSV baselines and paper-side digitized trace CSVs.
+## Practical interpretation
 
-DATA2 is partially covered now through a fast measurement-extraction comparison, but full DATA2 unified-fit comparisons are still heavier because:
+At this point:
 
-- unified DATA2 estimation takes longer
-- some legacy DATA2 baseline generation paths are still expensive
-- some DATA2 comparisons should probably be split into a slower pytest mark
+- the paper-era simulation CSV baselines are stored in one reusable folder
+- those baselines are validated against extracted paper figures
+- pytest can rerun the figure validation and report whether the figure mappings still hold
+
+The next layer, which is already partly in place, is to compare unified-code outputs against these same simulation validation CSV baselines instead of relying on ad hoc draft baseline files.

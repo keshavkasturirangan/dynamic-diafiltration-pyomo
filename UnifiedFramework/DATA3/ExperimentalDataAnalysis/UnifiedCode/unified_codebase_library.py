@@ -5906,6 +5906,8 @@ class UnifiedPipelineConfigV24:
     selector: Optional[Union[str, int]] = None
     specs: Optional[Dict[str, object]] = None
     convert_to_concentration: bool = False
+    conductivity_model: str = "msa"
+    conductivity_model_params: Optional[Dict[str, object]] = None
     plot: bool = False
     model_options: Optional[ModelOptions] = None
     run_parmest: bool = True
@@ -6005,6 +6007,8 @@ def run_unified_pipeline_v24(config: UnifiedPipelineConfigV24) -> Dict[str, obje
         selector=config.selector,
         specs=config.specs,
         convert_to_concentration=bool(config.convert_to_concentration),
+        conductivity_model=str(config.conductivity_model),
+        conductivity_model_params=config.conductivity_model_params,
         plot=bool(config.plot),
     )
 

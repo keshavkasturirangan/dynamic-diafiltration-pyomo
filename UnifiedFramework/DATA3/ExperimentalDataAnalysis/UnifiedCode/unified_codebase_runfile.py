@@ -86,6 +86,12 @@ def _parse_args() -> argparse.Namespace:
         help="Convert conductivity to concentration during load stage.",
     )
     parser.add_argument(
+        "--conductivity-model",
+        choices=("msa", "variant_shedlovsky"),
+        default="msa",
+        help="Conductivity->concentration model to use when conversion is enabled (default: msa).",
+    )
+    parser.add_argument(
         "--nfe",
         type=int,
         default=30,
@@ -140,6 +146,7 @@ def _build_data1_config(file_path: Path, args: argparse.Namespace, run_doe: bool
         selector=args.selector,
         specs=None,
         convert_to_concentration=bool(args.convert_to_concentration),
+        conductivity_model=str(args.conductivity_model),
         plot=bool(args.plot),
         model_options=model_options,
         run_parmest=True,
@@ -167,6 +174,7 @@ def _build_data2_config(file_path: Path, args: argparse.Namespace, run_doe: bool
         selector=args.selector,
         specs=None,
         convert_to_concentration=bool(args.convert_to_concentration),
+        conductivity_model=str(args.conductivity_model),
         plot=bool(args.plot),
         model_options=model_options,
         run_parmest=True,
@@ -194,6 +202,7 @@ def _build_data3_config(args: argparse.Namespace, run_doe: bool) -> UnifiedPipel
         selector=selector,
         specs=_base_specs(),
         convert_to_concentration=bool(args.convert_to_concentration),
+        conductivity_model=str(args.conductivity_model),
         plot=bool(args.plot),
         model_options=model_options,
         run_parmest=True,

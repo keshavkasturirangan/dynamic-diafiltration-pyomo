@@ -1,0 +1,7 @@
+{
+  "generator": "UnifiedFramework/DATA3/scripts/validation/nightly/generate_simulation_validation_data_files.py",
+  "output_root": "UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files",
+  "manifest_csv": "UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/simulation_validation_manifest.csv",
+  "manifest_json": "UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/simulation_validation_manifest.json",
+  "errors_file": "UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/simulation_validation_errors.json"
+}

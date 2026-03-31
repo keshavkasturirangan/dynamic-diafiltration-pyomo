@@ -12,6 +12,22 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`
 - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/conductivity_paper.py`
 
+## Validation Update (2026-03-30)
+- The committed simulation-side CSV baseline corpus is now:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/simulation_validation_data_files/`
+- These CSVs are the one-time published-paper baseline export assembled from:
+  - `utility.py`
+  - `DATA1_model_demo.ipynb`
+  - `DATA2_model_demo.ipynb`
+  - `DATA2_visualization.ipynb`
+  - `run_DATA2_model_variations.py`
+- The current figure-validation report comparing mapped/generated legacy figure composites against extracted paper figures is:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/simulation_validation/simulation_validation_figure_report.csv`
+- Latest status from that report: `23/23 PASS` for mapped DATA1 main/SI and DATA2 main/SI figure targets.
+- Dedicated figure-validation pytest:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py`
+- User-facing conductivity default in `unified_codebase_runfile.py` is now `msa`; `variant_shedlovsky` must be requested explicitly with `--conductivity-model variant_shedlovsky`.
+
 ## Validation Baseline Corpus (2026-03-05)
 
 Use these sources as the reference corpus for validation and parity decisions.
@@ -104,11 +120,13 @@ Use these sources as the reference corpus for validation and parity decisions.
   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/tests/regression/test_data1_data2_nightly.py`
 - Lightweight nightly validation pytests:
   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_nightly_validation_assets.py`
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py`
 - Markers and test config in `pytest.ini`
 - CI mode: slow/nightly for DATA2-heavy workloads
 - Scope of lightweight nightly pytests:
   - validate `target_validation_status_consolidated.csv` through the allowlisted nightly gate policy,
   - verify mapped figure targets still resolve to committed generated artifacts and extracted paper pages under `UnifiedFramework/DATA3/results/reproduction/20260306-023356-paper-pdf-extract/`,
+  - rerun figure-composite comparisons against extracted published-paper figures using `simulation_validation_data_files` as the committed simulation-side baseline corpus,
   - keep the solver-heavy full reproduction test separate until runtime is acceptable for scheduled CI.
 
 ### WS5: Repo Cleanup Proposal (No Moves Yet)

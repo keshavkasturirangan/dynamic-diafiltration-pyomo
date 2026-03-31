@@ -32,16 +32,13 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebas
     run_unified_pipeline_v24,
 )
 
-BASELINE_ROOT = (
+SIMULATION_VALIDATION_ROOT = (
     REPO_ROOT
     / "UnifiedFramework"
     / "DATA3"
     / "docs"
     / "validation"
-    / "nightly"
-    / "digitized_baselines"
-    / "unified"
-    / "legacy_paper_csvs"
+    / "simulation_validation_data_files"
 )
 PAPER_DIGITIZED_ROOT = (
     REPO_ROOT
@@ -88,6 +85,7 @@ def test_runfile_data1_presets_build_existing_configs() -> None:
     class Args:
         selector = None
         convert_to_concentration = False
+        conductivity_model = "msa"
         plot = False
         calc_cov = False
         nfe = 30
@@ -98,6 +96,7 @@ def test_runfile_data1_presets_build_existing_configs() -> None:
     assert config.file_path.endswith("data_stru-dataset501.1.mat")
     assert config.run_parmest is True
     assert config.run_doe is False
+    assert config.conductivity_model == "msa"
     assert config.model_options.mode == ExperimentMode.DATA
     assert config.model_options.run_mode == RunMode.ESTIMATION
     assert str(config.model_options.b_form).lower() == "single"
@@ -276,7 +275,7 @@ def data1_fig2_comparison_report() -> pd.DataFrame:
 
     rows.extend(
         _compare_series(
-            pd.read_csv(BASELINE_ROOT / "data1_main" / "fig2" / "data1_main_fig2_a.csv"),
+            pd.read_csv(SIMULATION_VALIDATION_ROOT / "data1_main" / "fig2" / "data1_main_fig2_a.csv"),
             runs["501.1"],
             panel_id="Fig2A",
             quantity_col="mass_g",
@@ -285,14 +284,14 @@ def data1_fig2_comparison_report() -> pd.DataFrame:
     )
     rows.extend(
         _compare_series(
-            pd.read_csv(BASELINE_ROOT / "data1_main" / "fig2" / "data1_main_fig2_c.csv"),
+            pd.read_csv(SIMULATION_VALIDATION_ROOT / "data1_main" / "fig2" / "data1_main_fig2_c.csv"),
             runs["511.12"],
             panel_id="Fig2C",
             quantity_col="mass_g",
             unified_col="mass_g",
         )
     )
-    baseline_d = pd.read_csv(BASELINE_ROOT / "data1_main" / "fig2" / "data1_main_fig2_d.csv")
+    baseline_d = pd.read_csv(SIMULATION_VALIDATION_ROOT / "data1_main" / "fig2" / "data1_main_fig2_d.csv")
     for matcher, ucol in [
         ("retentate_prediction", "retentate_concentration_mM"),
         ("permeate_prediction", "permeate_concentration_mM"),
@@ -309,7 +308,7 @@ def data1_fig2_comparison_report() -> pd.DataFrame:
             )
         )
 
-    baseline_b = pd.read_csv(BASELINE_ROOT / "data1_main" / "fig2" / "data1_main_fig2_b.csv")
+    baseline_b = pd.read_csv(SIMULATION_VALIDATION_ROOT / "data1_main" / "fig2" / "data1_main_fig2_b.csv")
     comparison_rows = []
     for matcher, ucol in [
         ("retentate_prediction", "retentate_concentration_mM"),
@@ -400,7 +399,7 @@ def data2_measurement_comparison_report() -> pd.DataFrame:
     )
     assert ok is True, issues
 
-    baseline = pd.read_csv(BASELINE_ROOT / "data2_main" / "fig3" / "data2_main_fig3_mass_tc.csv")
+    baseline = pd.read_csv(SIMULATION_VALIDATION_ROOT / "data2_main" / "fig3" / "data2_main_fig3_mass_tc.csv")
     baseline_measure = baseline[baseline["series_id"] == "measurements"].copy().sort_values("time_min")
     vial = exp.vials[3]
     unified_measure = pd.DataFrame(
