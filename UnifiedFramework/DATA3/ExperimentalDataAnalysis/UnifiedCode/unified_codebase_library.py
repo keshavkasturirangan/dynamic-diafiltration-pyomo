@@ -6141,9 +6141,20 @@ def _run_unified_doe_stage_v24(
 
 
 def run_unified_pipeline_v24(config: UnifiedPipelineConfigV24) -> Dict[str, object]:
-    """Run the shared data->model->estimate/doe pipeline for MAT or XLSX input."""
-    exp, (ok, issues) = load_experiment_easy(
-        config.file_path,
+    """Run the shared data->model->estimate/doe pipeline for MAT or XLSX input.
+
+    The public procedural API is retained for backward compatibility, but the
+    orchestration now routes through the object-oriented workflow module.
+    """
+    try:
+        from .workflow.unified_workflow import DataLoader, DatasetRequest, ParameterScope, UQEngine
+    except ImportError:
+        from workflow.unified_workflow import DataLoader, DatasetRequest, ParameterScope, UQEngine
+
+    loader = DataLoader()
+    engine = UQEngine(data_loader=loader)
+    request = DatasetRequest(
+        file_path=config.file_path,
         selector=config.selector,
         specs=config.specs,
         convert_to_concentration=bool(config.convert_to_concentration),
@@ -6151,10 +6162,9 @@ def run_unified_pipeline_v24(config: UnifiedPipelineConfigV24) -> Dict[str, obje
         conductivity_model_params=config.conductivity_model_params,
         plot=bool(config.plot),
     )
-
+    exp, (ok, issues) = loader.load(request)
     options = _resolve_model_options_v24(config, exp)
-
-    exp_obj = DiafiltrationExperimentV24(exp=exp, options=options)
+    exp_obj = engine.build_experiments([exp], options, parameter_scope=ParameterScope())[0]
     model = exp_obj.get_labeled_model()
     run_metadata = _build_unified_run_metadata_v24(config, exp)
 
@@ -6172,15 +6182,56 @@ def run_unified_pipeline_v24(config: UnifiedPipelineConfigV24) -> Dict[str, obje
             "inputs": len(model.experiment_inputs),
         },
         "run_metadata": run_metadata,
+        "workflow_class": "UQEngine",
     }
 
     if config.run_parmest:
-        out["parmest"] = _run_unified_estimation_stage_v24(config, exp, options)
+        out["parmest"] = engine.fit_parameters(
+            [exp],
+            options,
+            calc_cov=bool(config.calc_cov),
+            cov_n=config.cov_n,
+            solver=config.solver,
+            solver_options=config.solver_options,
+            tee=bool(config.tee),
+        )
+        out["uncertainty"] = engine.summarize_uncertainty(out["parmest"])
 
     if config.run_doe:
-        out["doe"] = _run_unified_doe_stage_v24(config, exp_obj)
+        out["doe"] = engine.analyze_doe_parameter_estimation(
+            exp,
+            options,
+            solver_name=config.solver,
+            tee=bool(config.tee),
+        )
 
     if config.report_hook is not None:
         config.report_hook(out)
 
     return out
+
+
+try:
+    from .workflow.unified_workflow import (
+        DataLoader,
+        DatasetRequest,
+        DiafiltrationExperiment,
+        ModelSelectionRow,
+        ParameterScope,
+        UQEngine,
+        UQResult,
+    )
+except ImportError:
+    try:
+        from workflow.unified_workflow import (
+            DataLoader,
+            DatasetRequest,
+            DiafiltrationExperiment,
+            ModelSelectionRow,
+            ParameterScope,
+            UQEngine,
+            UQResult,
+        )
+    except ImportError:
+        # Keep legacy import behavior robust in partial environments.
+        pass

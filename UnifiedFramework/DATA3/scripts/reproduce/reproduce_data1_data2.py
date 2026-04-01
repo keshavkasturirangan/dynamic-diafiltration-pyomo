@@ -27,14 +27,14 @@ import numpy as np
 import pandas as pd
 
 # Ensure repository root is importable when running from scripts/.
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 # Ensure matplotlib/font cache paths are writable in restricted environments.
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
 
-from UnifiedFramework.DATA3.ExperimentalDataLoader.UnifiedCode.unified_codebase_library import (
+from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebase_library import (
     DiafiltrationExperimentV24,
     ExperimentMode,
     ModelOptions,
@@ -228,7 +228,7 @@ def run_dataset(
     nfe_eff = int(spec.nfe_override) if spec.nfe_override is not None else int(nfe)
     options = ModelOptions(
         mode=spec.mode,
-        run_mode=RunMode.ESTIMATION,
+        parameter_treatment_mode=RunMode.ESTIMATION,
         b_form=spec.b_form,
         use_sigma_logit_transform=bool(spec.use_sigma_logit_transform),
         fix_sigma_in_estimation=bool(spec.fix_sigma_in_estimation),
@@ -324,7 +324,7 @@ def _compute_curve_metrics(exp, options: ModelOptions, theta: Dict[str, float]) 
 
     sim_opts = ModelOptions(
         mode=options.mode,
-        run_mode=RunMode.SIMULATION,
+        parameter_treatment_mode=RunMode.SIMULATION,
         b_form=options.b_form,
         nfe=options.nfe,
         fd_scheme=options.fd_scheme,
@@ -495,7 +495,7 @@ def _build_data1_stage_a_outputs(
     sigma = float(theta.get("sigma", np.nan))
     options_sim = ModelOptions(
         mode=ExperimentMode.DATA,
-        run_mode=RunMode.SIMULATION,
+        parameter_treatment_mode=RunMode.SIMULATION,
         b_form="single",
         nfe=30,
     )
@@ -749,7 +749,7 @@ def _build_data1_stage_b_outputs(
     sigma = float(theta.get("sigma", np.nan))
     options_sim = ModelOptions(
         mode=ExperimentMode.DATA,
-        run_mode=RunMode.SIMULATION,
+        parameter_treatment_mode=RunMode.SIMULATION,
         b_form="single",
         nfe=30,
     )
@@ -1092,7 +1092,12 @@ def main() -> None:
             )
             est_data1 = estimate_parameters_with_parmest_v24(
                 experiments=[exp_data1],
-                options=ModelOptions(mode=ExperimentMode.DATA, run_mode=RunMode.ESTIMATION, b_form="single", nfe=30),
+                options=ModelOptions(
+                    mode=ExperimentMode.DATA,
+                    parameter_treatment_mode=RunMode.ESTIMATION,
+                    b_form="single",
+                    nfe=30,
+                ),
                 calc_cov=False,
                 solver=args.solver,
                 tee=False,

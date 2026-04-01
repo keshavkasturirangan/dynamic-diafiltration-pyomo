@@ -178,6 +178,24 @@ Role of paper profiles:
    - process-model profile
    - paper-recreation profile
 
+## Implementation status
+
+The refactor now has a dedicated orchestration folder:
+
+- [`workflow/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow)
+- primary module: [`unified_workflow.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/unified_workflow.py)
+
+Current organization in that module:
+
+- `DataLoader`: file-agnostic MAT/XLSX loading requests
+- `DiafiltrationExperiment`: one dataset + one `ModelOptions`
+- `UQEngine`: estimation, uncertainty summaries, model comparison, parameter-estimation DoE, and model-discrimination scoring
+
+Compatibility behavior:
+
+- [`run_unified_pipeline_v24(...)`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py) now routes through `UQEngine`
+- existing tests and scripts can keep using the procedural API while the OO module becomes the maintained orchestration surface
+
 ## Refactor guardrails
 
 Use the existing pytests as the acceptance check for architectural cleanup.

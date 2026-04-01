@@ -7,10 +7,11 @@ This module should stay thin.
 Responsibilities:
 - choose a file-source adapter path indirectly through the input file
 - choose a process-model-oriented preset for DATA1, DATA2, or DATA3
-- pass shared estimation and DoE settings into the common library pipeline
+- pass shared estimation and DoE settings into the object-oriented workflow
+  surfaced through the common library pipeline
 
 It should not become the place where scientific model differences are
-implemented. Those belong in ``unified_codebase_library.py``.
+implemented. Those belong in the unified workflow/model code, not here.
 """
 
 from __future__ import annotations
