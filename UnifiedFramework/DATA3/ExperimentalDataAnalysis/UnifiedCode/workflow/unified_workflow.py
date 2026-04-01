@@ -19,6 +19,11 @@ import pyomo.environ as pyo
 from pyomo.contrib.parmest.experiment import Experiment as ParmestExperiment
 from pyomo.contrib.parmest.parmest import Estimator
 
+from .output_artifacts import (
+    build_data1_stage_a_outputs,
+    build_data1_stage_b_outputs,
+    extract_model_trajectories,
+)
 from ..unified_codebase_library import (
     ExperimentalData,
     ModelOptions,
@@ -533,6 +538,67 @@ class UQEngine:
     def generate_plot_bundle(self, experiments: Sequence[DiafiltrationExperiment]) -> Dict[str, pd.DataFrame]:
         """Collect per-experiment tidy measurement frames for downstream plotting."""
         return {experiment.dataset_label: experiment.measurement_frame() for experiment in experiments}
+
+    def simulate_trajectories(
+        self,
+        dataset: ExperimentalData,
+        model_options: ModelOptions,
+        *,
+        theta_values: Optional[Dict[str, float]] = None,
+        guess: Optional[ParameterGuess] = None,
+        solver_name: str = "ipopt",
+        solver_options: Optional[Dict[str, object]] = None,
+        tee: bool = False,
+    ) -> Dict[int, Dict[str, np.ndarray]]:
+        """Build a simulation model and return extracted per-vial trajectories."""
+        experiment = DiafiltrationExperiment(dataset=dataset, model_options=model_options, guess=guess)
+        model = experiment.build_simulation_model(
+            theta_values=theta_values,
+            solver_name=solver_name,
+            solver_options=solver_options,
+            tee=tee,
+        )
+        return extract_model_trajectories(dataset, model)
+
+    def build_data1_validation_artifacts(
+        self,
+        *,
+        out_dir: Path,
+        dataset: ExperimentalData,
+        estimation_result: Dict[str, object],
+        simulation_options: ModelOptions,
+        references: pd.DataFrame,
+        tolerances,
+        solver_name: str = "ipopt",
+        solver_options: Optional[Dict[str, object]] = None,
+        tee: bool = False,
+    ) -> Dict[str, object]:
+        """Build DATA1 Stage A/B validation artifacts through the workflow layer."""
+        theta = self._coerce_theta_dict(estimation_result.get("theta"))
+        trajectories = self.simulate_trajectories(
+            dataset,
+            simulation_options,
+            theta_values=theta,
+            solver_name=solver_name,
+            solver_options=solver_options,
+            tee=tee,
+        )
+        return {
+            "stage_a": build_data1_stage_a_outputs(
+                out_dir=out_dir,
+                exp=dataset,
+                est=estimation_result,
+                sim=trajectories,
+                tolerances=tolerances,
+                references=references,
+            ),
+            "stage_b": build_data1_stage_b_outputs(
+                out_dir=out_dir,
+                exp=dataset,
+                est=estimation_result,
+                sim=trajectories,
+            ),
+        }
 
     def recommend_next_experiment(
         self,
