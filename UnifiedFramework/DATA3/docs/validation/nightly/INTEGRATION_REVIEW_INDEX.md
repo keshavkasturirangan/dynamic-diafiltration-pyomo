@@ -36,8 +36,8 @@ These are existing branch changes and were not modified/reverted by this integra
 
 - `tests/regression/test_simulation_validation_figures.py`
 - `tests/regression/test_unified_codebase_pytest_validation.py`
-- `refactor_prompt_option_b.md`
-- `refactor_pseudocode_option_b.md`
+- `refactor_prompt.md`
+- `refactor_pseudocode.md`
 
 ## 5) Cleanup performed
 
