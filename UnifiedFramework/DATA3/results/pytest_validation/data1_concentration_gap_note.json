@@ -1,0 +1,8 @@
+{
+  "observation": "The DATA1 concentration gap is driven by unified parameter estimates that differ materially from the legacy MATLAB fit, especially sigma for dataset 501.1.",
+  "artifacts": [
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_concentration_gap_summary.csv",
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_concentration_gap_endpoints.csv",
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_concentration_gap_series.csv"
+  ]
+}

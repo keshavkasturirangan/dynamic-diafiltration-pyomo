@@ -1,0 +1,17 @@
+{
+  "dataset": "501.1",
+  "legacy_theta": {
+    "Lp": 4.370215971021172,
+    "B": 0.6711889754309195,
+    "sigma": 0.9999991659638737
+  },
+  "unified_theta": {
+    "Lp": 2.892438299800488,
+    "B": 0.2898496735671424,
+    "sigma": 0.9989991360762465
+  },
+  "artifacts": [
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_5011_objective_audit.csv",
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_5011_objective_audit_pivot.csv"
+  ]
+}

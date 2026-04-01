@@ -1,0 +1,8 @@
+{
+  "observation": "Legacy fit_stru.mat predictions are exported faithfully into the simulation_validation_data_files DATA1 Figure 2 concentration CSVs; the remaining DATA1 concentration gap is between the unified estimated output and the legacy fit output itself.",
+  "artifacts": [
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_legacy_fit_vs_unified_estimate_summary.csv",
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_legacy_fit_vs_unified_estimate_series.csv",
+    "UnifiedFramework/DATA3/results/pytest_validation/data1_legacy_fit_export_equivalence.csv"
+  ]
+}
