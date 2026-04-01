@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 17 07:12:33 2025
+"""Unified data-loading, modeling, estimation, and DoE library.
 
-@author: Keshav Kasturi Rangan, Alex Dowling
+Architectural intent:
+
+- input-file agnostic loading:
+  - `.mat` and `.xlsx` loaders normalize into one ``ExperimentalData`` schema
+- common process-model framework:
+  - DATA1, DATA2, and future DATA3 should primarily differ by process-model
+    configuration, not by separate end-to-end pipelines
+- common estimation stage:
+  - shared ParmEst-facing entrypoints with profile-specific fit setup
+- common DoE stage:
+  - shared FIM / sensitivity / DOE path via ``pyomo.contrib.doe``
+
+Paper profiles such as ``DATA1_PAPER`` and ``DATA2_PAPER`` are recreation
+overlays. They can adjust bounds, initialization, weighting, and output
+conventions, but they are not the primary scientific split between pipelines.
 """
 
 from __future__ import annotations
@@ -74,6 +87,7 @@ class VialData:
     retentate_signal: Optional[np.ndarray] = None       # e.g., retentate conductivity time series
     retentate_signal_name: Optional[str] = None         # e.g., "retentate_cond_uS_cm"
     retentate_signal_units: Optional[str] = None        # e.g., "uS/cm"
+    retentate_signal_endpoint_assay: bool = False       # True when MAT cF_exp was a scalar assay broadcast for storage only
 
     # -------------------------------------------------------------------------
     # Optional: derived concentrations (computed later from conductivity)
@@ -3252,6 +3266,47 @@ MAT_REQUIRED_VIAL_KEYS = {
 }
 
 
+def _read_legacy_data1_cf_override(mat_path: Path, filename_field: object, dataset_id: object) -> Optional[float]:
+    """Read the legacy DATA1 companion *_cF.csv initialization used by the paper scripts."""
+    if filename_field is None:
+        return None
+
+    try:
+        csv_path = (mat_path.parent / f"{filename_field}_cF.csv").resolve()
+    except Exception:
+        return None
+    if not csv_path.exists():
+        return None
+
+    try:
+        df = pd.read_csv(csv_path, header=None)
+    except Exception:
+        return None
+
+    if df.empty or df.shape[1] < 2:
+        return None
+
+    first_col = pd.to_numeric(df.iloc[:, 0], errors="coerce")
+    second_col = pd.to_numeric(df.iloc[:, 1], errors="coerce")
+    valid = pd.DataFrame({"x": first_col, "y": second_col}).dropna(subset=["y"])
+    if valid.empty:
+        return None
+
+    try:
+        dataset_val = float(dataset_id) if dataset_id is not None else None
+    except Exception:
+        dataset_val = None
+
+    # Legacy DATA1 paper scripts use the 380 s row for dataset 511.12 and the
+    # first valid concentration row for the other DATA1 paper datasets.
+    if dataset_val == 511.12:
+        row_380 = valid[valid["x"] == 380]
+        if not row_380.empty:
+            return float(row_380["y"].iloc[0])
+
+    return float(valid["y"].iloc[0])
+
+
 def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData:
     """
     Load ONE experiment from a MATLAB .mat file into ExperimentalData fields.
@@ -3342,15 +3397,20 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
     exp.M_O_g = cfg.get("M_O", None)        # [g] overflow mass
     exp.C_D_value = cfg.get("C_D", None)    # [mMol/L] in legacy files (value only here)
     if exp.C_D_value is None and str(exp.mode).upper().startswith("F"):
-        # Legacy filtration MAT files omit dialysate concentration because the
-        # physical value is zero. Fill it explicitly so the unified model can
-        # construct the DATA-mode equations without special-casing filtration.
+        # Legacy DATA1 filtration MAT files omit dialysate concentration because
+        # the physical value is zero. Fill it explicitly so the unified model
+        # can construct the DATA1 equations without special-casing filtration.
         exp.C_D_value = 0.0
         exp.used_defaults.append("C_D_value=0.0_for_filtration_mat")
     exp.C_D_units = "mMol/L" if exp.C_D_value is not None else None
 
     exp.C_F0_value = cfg.get("C_F0", None)  # [mMol/L] in legacy files (value only here)
     exp.C_F0_units = "mMol/L" if exp.C_F0_value is not None else None
+    legacy_cf0_override = _read_legacy_data1_cf_override(mat_path, exp.filename, exp.dataset_id)
+    if legacy_cf0_override is not None:
+        exp.C_F0_value = legacy_cf0_override
+        exp.C_F0_units = "mMol/L"
+        exp.used_defaults.append("C_F0_value=legacy_DATA1_companion_csv")
 
     # Component bookkeeping:
     #   - legacy files may store nc (number of components) and namec (names)
@@ -3463,6 +3523,7 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
             cF_exp_raw = rv.get("cF_exp", None)
 
             v.retentate_signal = None
+            v.retentate_signal_endpoint_assay = False
             if cF_exp_raw is not None:
                 try:
                     ret_arr = as_float_array(cF_exp_raw)  # best-effort numeric array
@@ -3474,6 +3535,7 @@ def load_from_mat(mat_path: Path, struct_key: Optional[str]) -> ExperimentalData
                     if (v.time_s is not None) and (len(v.time_s) > 0) and (len(ret_arr) in (0, 1)):
                         # Empty ret_arr is treated as missing; length-1 is broadcast
                         v.retentate_signal = None if len(ret_arr) == 0 else np.full_like(v.time_s, ret_arr[0], dtype=float)
+                        v.retentate_signal_endpoint_assay = len(ret_arr) == 1
                     else:
                         # Assume it's already a time-series
                         v.retentate_signal = ret_arr
@@ -4043,14 +4105,24 @@ class ExperimentMode(str, Enum):
     OVERFLOW = "Overflow"
 
 
-class RunMode(str, Enum):
-    """RunMode.
+class ProcessModelProfile(str, Enum):
+    """Named process-model profiles for the unified object-oriented framework."""
 
-    Container class used by the unified loader/model workflow.
+    DATA1 = "DATA1"
+    DATA2 = "DATA2"
+    DATA3 = "DATA3"
 
-    """
+
+class ParameterTreatmentMode(str, Enum):
+    """How the model should treat fitted parameters in a given model instance."""
+
     SIMULATION = "SIMULATION"
     ESTIMATION = "ESTIMATION"
+
+
+# Backward-compatible alias retained while the active code migrates away from the
+# older, broader-sounding name.
+RunMode = ParameterTreatmentMode
 
 
 class BForm(str, Enum):
@@ -4075,7 +4147,7 @@ class ModelOptions:
 
     """
     mode: ExperimentMode = ExperimentMode.DATA
-    run_mode: RunMode = RunMode.ESTIMATION
+    parameter_treatment_mode: ParameterTreatmentMode = ParameterTreatmentMode.ESTIMATION
     b_form: BFormType = BForm.SINGLE.value
     nfe: int = 300
     fd_scheme: str = "BACKWARD"
@@ -4096,6 +4168,8 @@ class ModelOptions:
     use_multistart_for_mat_legacy: bool = False
     multistart_iterations: int = 20
     multistart_strategy: str = "rand"
+    process_model_profile: Optional[ProcessModelProfile] = None
+    paper_profile: Optional[str] = None
 
 
 @dataclass
@@ -4257,8 +4331,8 @@ def _legacy_vial_gate_config(exp: ExperimentalData) -> Tuple[int, int]:
     return n_v0, n_extra
 
 
-def _legacy_data_mode_cH0_from_first_vial(exp: ExperimentalData) -> float:
-    """Legacy DATA-mode initial cH uses first-vial cV_avg * 0.8 when available."""
+def _legacy_data1_mode_cH0_from_first_vial(exp: ExperimentalData) -> float:
+    """Legacy DATA1 initial cH uses first-vial cV_avg * 0.8 when available."""
     if not exp.vials:
         return 1e-6
     v0 = exp.vials[0]
@@ -4514,7 +4588,8 @@ def model_construct_inter_v23(
         bool(options.use_advanced_xlsx_transport_thermo)
         and exp.source == SourceType.XLSX
     )
-    sim_opt = options.run_mode == RunMode.SIMULATION
+    sim_opt = options.parameter_treatment_mode == ParameterTreatmentMode.SIMULATION
+    legacy_data1_mat = options.mode == ExperimentMode.DATA and exp.source == SourceType.MAT
 
     m.cD = pyo.Var(domain=pyo.NonNegativeReals, initialize=cD)
     m.cD.fix(cD)
@@ -4528,7 +4603,10 @@ def model_construct_inter_v23(
         m.Lp = pyo.Param(initialize=float(guess.Lp), mutable=True)
         m.sigma = pyo.Param(initialize=sigma_guess, mutable=True)
     else:
-        m.Lp = pyo.Var(bounds=(0.5, 50.0), initialize=float(guess.Lp))
+        lp_bounds = (0.1, 10.0) if legacy_data1_mat else (0.5, 50.0)
+        sigma_lb = 0.0 if legacy_data1_mat else sigma_eps
+        sigma_ub = 1.0 if legacy_data1_mat else (1.0 - sigma_eps)
+        m.Lp = pyo.Var(bounds=lp_bounds, initialize=min(max(float(guess.Lp), lp_bounds[0]), lp_bounds[1]))
         if options.use_sigma_logit_transform:
             sig0 = min(max(sigma_guess, sigma_eps + 1e-8), 1.0 - sigma_eps - 1e-8)
             frac = (sig0 - sigma_eps) / (1.0 - 2.0 * sigma_eps)
@@ -4549,15 +4627,17 @@ def model_construct_inter_v23(
                 return sigma_eps + (1.0 - 2.0 * sigma_eps) / (1.0 + pyo.exp(-mm.sigma_logit))
             m.sigma = pyo.Expression(rule=_sigma_rule)
         else:
-            m.sigma = pyo.Var(bounds=(sigma_eps, 1.0 - sigma_eps), initialize=min(max(sigma_guess, sigma_eps), 1.0 - sigma_eps))
+            m.sigma = pyo.Var(bounds=(sigma_lb, sigma_ub), initialize=min(max(sigma_guess, sigma_lb), sigma_ub))
             if options.fix_sigma_in_estimation:
-                m.sigma.fix(float(min(max(sigma_guess, sigma_eps), 1.0 - sigma_eps)))
+                m.sigma.fix(float(min(max(sigma_guess, sigma_lb), sigma_ub)))
 
     if b_form == BForm.SINGLE.value:
         if sim_opt:
             m.B = pyo.Param(initialize=float(guess.B if guess.B is not None else 0.5), mutable=True)
         else:
-            m.B = pyo.Var(bounds=(1e-6, 30.0), initialize=float(guess.B if guess.B is not None else 0.5))
+            b_bounds = (1e-6, 2.0) if legacy_data1_mat else (1e-6, 30.0)
+            b_init = float(guess.B if guess.B is not None else 0.5)
+            m.B = pyo.Var(bounds=b_bounds, initialize=min(max(b_init, b_bounds[0]), b_bounds[1]))
     elif b_form == BForm.PERVIAL.value:
         if isinstance(guess.B, dict):
             default_b = list(guess.B.values())[0] if guess.B else 0.5
@@ -4946,7 +5026,7 @@ def model_construct_inter_v23(
         return mm.cH[n, Tauf] == mm.cH[n + 1, 0.0]
     m.cH_linking = pyo.Constraint(m.n_vial, rule=cH_linking_rule)
 
-    # Legacy DATA-mode continuity/reset rules for vial-wise permeate states.
+    # Legacy DATA1 continuity/reset rules for vial-wise permeate states.
     if options.mode == ExperimentMode.DATA:
         def mV_linking_rule(mm, n):
             if n == mm.n_vial.last():
@@ -4962,7 +5042,7 @@ def model_construct_inter_v23(
 
     m.con_boundary = pyo.ConstraintList()
     if options.mode == ExperimentMode.DATA and exp.source == SourceType.MAT:
-        m.con_boundary.add(m.cH[1, 0.0] == _legacy_data_mode_cH0_from_first_vial(exp))
+        m.con_boundary.add(m.cH[1, 0.0] == _legacy_data1_mode_cH0_from_first_vial(exp))
     else:
         m.con_boundary.add(m.cH[1, 0.0] == m.C_H0)
     m.con_boundary.add(m.cF[1, 0.0] == _first_non_nan(exp.vials[0].retentate_signal, default=1e-6))
@@ -4971,7 +5051,7 @@ def model_construct_inter_v23(
     if options.mode != ExperimentMode.DATA:
         m.con_boundary.add(m.mF[1, 0.0] == M_F0)
 
-    if options.mode != ExperimentMode.DATA and options.run_mode == RunMode.ESTIMATION:
+    if options.mode != ExperimentMode.DATA and options.parameter_treatment_mode == ParameterTreatmentMode.ESTIMATION:
         m.eqn_S = pyo.Constraint(expr=m.mF[m.n_vial.last(), Tauf] - M_F0 == M_O)
 
     return m
@@ -4987,6 +5067,33 @@ def apply_discretization(m: pyo.ConcreteModel, *, nfe: int = 300, scheme: str = 
 
     """
     pyo.TransformationFactory("dae.finite_difference").apply_to(m, nfe=nfe, scheme=scheme)
+
+
+def enforce_data1_boundary_initialization(m: pyo.ConcreteModel) -> None:
+    """Repair DATA1 vial boundary values after simulator-based initialization.
+
+    Pyomo's simulator initialization can leave the discretized model with start-of-vial
+    values that still reflect seed values instead of the DATA1 carryover/reset rules.
+    This helper re-applies the intended boundary values directly to the discretized state
+    variables so the initialized model is numerically consistent with the DATA1 links.
+    """
+    if not hasattr(m, "n_vial") or not hasattr(m, "tau"):
+        return
+    tau0 = m.tau.first()
+    tauf = m.tau.last()
+    for n in m.n_vial:
+        if n == m.n_vial.last():
+            continue
+        next_n = n + 1
+        cF_end = float(pyo.value(m.cF[n, tauf]))
+        cH_end = float(pyo.value(m.cH[n, tauf]))
+        cV_end = float(pyo.value(m.cV[n, tauf]))
+        m.cF[next_n, tau0].set_value(cF_end)
+        m.cH[next_n, tau0].set_value(cH_end)
+        m.mV[next_n, tau0].set_value(1e-6)
+        m.cVmV[next_n, tau0].set_value(cV_end * 1e-6)
+        if hasattr(m, "cV"):
+            m.cV[next_n, tau0].set_value(cV_end)
 
 
 def _nearest_tau_value(tau_values: Sequence[float], target: float) -> float:
@@ -5069,12 +5176,19 @@ def _build_measurement_records(
 
         if vial.retentate_signal is not None:
             cf = np.asarray(vial.retentate_signal, dtype=float).reshape(-1)
-            for tm, y in zip(t_scaled, cf):
-                if np.isnan(y) or y == 0:
-                    continue
-                pred = _interpolate_state_at_scaled_time(m.cF, n_i, float(tm), tau_vals)
-                sigma = float(max(sigma_cF_rel * abs(float(y)), 1e-8))
-                records.append((pred, float(y), sigma))
+            if getattr(vial, "retentate_signal_endpoint_assay", False):
+                y = float(cf[-1])
+                if not np.isnan(y) and y != 0:
+                    pred = _interpolate_state_at_scaled_time(m.cF, n_i, 1.0, tau_vals)
+                    sigma = float(max(sigma_cF_rel * abs(y), 1e-8))
+                    records.append((pred, y, sigma))
+            else:
+                for tm, y in zip(t_scaled, cf):
+                    if np.isnan(y) or y == 0:
+                        continue
+                    pred = _interpolate_state_at_scaled_time(m.cF, n_i, float(tm), tau_vals)
+                    sigma = float(max(sigma_cF_rel * abs(float(y)), 1e-8))
+                    records.append((pred, float(y), sigma))
 
         if n_i > n_extra:
             if isinstance(vial.cV_avg, (int, float, np.number)):
@@ -5131,12 +5245,19 @@ def _build_measurement_records_by_type(
 
         if vial.retentate_signal is not None:
             cf = np.asarray(vial.retentate_signal, dtype=float).reshape(-1)
-            for tm, y in zip(t_scaled, cf):
-                if np.isnan(y) or y == 0:
-                    continue
-                pred = _interpolate_state_at_scaled_time(m.cF, n_i, float(tm), tau_vals)
-                sigma = float(max(sigma_cF_rel * abs(float(y)), 1e-8))
-                cf_terms.append(((pred - float(y)) / sigma) ** 2)
+            if getattr(vial, "retentate_signal_endpoint_assay", False):
+                y = float(cf[-1])
+                if not np.isnan(y) and y != 0:
+                    pred = _interpolate_state_at_scaled_time(m.cF, n_i, 1.0, tau_vals)
+                    sigma = float(max(sigma_cF_rel * abs(y), 1e-8))
+                    cf_terms.append(((pred - y) / sigma) ** 2)
+            else:
+                for tm, y in zip(t_scaled, cf):
+                    if np.isnan(y) or y == 0:
+                        continue
+                    pred = _interpolate_state_at_scaled_time(m.cF, n_i, float(tm), tau_vals)
+                    sigma = float(max(sigma_cF_rel * abs(float(y)), 1e-8))
+                    cf_terms.append(((pred - float(y)) / sigma) ** 2)
 
         if n_i > n_extra:
             if isinstance(vial.cV_avg, (int, float, np.number)):
@@ -5676,13 +5797,17 @@ def model_construct_for_legacy_fit_v24(
 ) -> pyo.ConcreteModel:
     """Builder for legacy-style grouped objective parity fits."""
     m = model_construct_inter_v24(exp=exp, options=options, guess=guess)
+    legacy_data1_mat = options.mode == ExperimentMode.DATA and exp.source == SourceType.MAT
+    nfe_eff = max(300, int(options.nfe)) if legacy_data1_mat else int(options.nfe)
     try:
         sim = Simulator(m, package="casadi")
-        sim.simulate(numpoints=max(300, int(options.nfe)), integrator="idas")
-        apply_discretization(m, nfe=options.nfe, scheme=options.fd_scheme)
+        sim.simulate(numpoints=max(300, nfe_eff), integrator="idas")
+        apply_discretization(m, nfe=nfe_eff, scheme=options.fd_scheme)
         sim.initialize_model()
+        if legacy_data1_mat:
+            enforce_data1_boundary_initialization(m)
     except Exception:
-        apply_discretization(m, nfe=options.nfe, scheme=options.fd_scheme)
+        apply_discretization(m, nfe=nfe_eff, scheme=options.fd_scheme)
     attach_legacy_grouped_weighted_objective(m, exp)
     return m
 
@@ -5733,7 +5858,7 @@ def estimate_parameters_with_parmest_v24(
     tee: bool = False,
 ) -> Dict[str, object]:
     """ParmEst/Ipopt estimation path for v24 unified workflow."""
-    # DATA1 legacy parity path: use legacy grouped objective directly with ipopt.
+    # DATA1 legacy parity path: use the legacy grouped objective directly with ipopt.
     if (
         len(experiments) == 1
         and experiments[0].source == SourceType.MAT
@@ -5917,6 +6042,8 @@ class UnifiedPipelineConfigV24:
     solver: str = "ipopt"
     solver_options: Optional[Dict[str, object]] = None
     tee: bool = False
+    process_model_profile: Optional[ProcessModelProfile] = None
+    paper_profile: Optional[str] = None
     stage_name: Optional[str] = None
     report_target_ids: Optional[List[str]] = None
     artifact_root: Optional[str] = None
@@ -5928,7 +6055,7 @@ def _default_model_options_for_source_v24(source: SourceType) -> ModelOptions:
     if source == SourceType.MAT:
         return ModelOptions(
             mode=ExperimentMode.DATA,
-            run_mode=RunMode.ESTIMATION,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
             b_form="single",
             nfe=30,
             use_multistart_for_xlsx=False,
@@ -5937,7 +6064,7 @@ def _default_model_options_for_source_v24(source: SourceType) -> ModelOptions:
         )
     return ModelOptions(
         mode=ExperimentMode.DATA,
-        run_mode=RunMode.ESTIMATION,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
         b_form="single",
         nfe=30,
         use_multistart_for_xlsx=True,
@@ -5951,9 +6078,12 @@ def _resolve_model_options_v24(
     exp: ExperimentalData,
 ) -> ModelOptions:
     """Resolve explicit options or source-aware defaults for the unified pipeline."""
-    if config.model_options is not None:
-        return config.model_options
-    return _default_model_options_for_source_v24(exp.source)
+    options = config.model_options if config.model_options is not None else _default_model_options_for_source_v24(exp.source)
+    if config.process_model_profile is not None and getattr(options, "process_model_profile", None) is None:
+        options.process_model_profile = config.process_model_profile
+    if config.paper_profile is not None and getattr(options, "paper_profile", None) is None:
+        options.paper_profile = str(config.paper_profile)
+    return options
 
 
 def _build_unified_run_metadata_v24(
@@ -5966,6 +6096,16 @@ def _build_unified_run_metadata_v24(
         "source": exp.source.value,
         "file_path": str(config.file_path),
         "selector": config.selector,
+        "process_model_profile": (
+            config.process_model_profile.value
+            if config.process_model_profile is not None
+            else (
+                config.model_options.process_model_profile.value
+                if getattr(config.model_options, "process_model_profile", None) is not None
+                else None
+            )
+        ),
+        "paper_profile": config.paper_profile if config.paper_profile is not None else getattr(config.model_options, "paper_profile", None),
         "report_target_ids": list(config.report_target_ids or []),
         "artifact_root": config.artifact_root,
     }

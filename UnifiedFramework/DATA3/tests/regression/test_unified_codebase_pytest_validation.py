@@ -26,7 +26,8 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode import unified_
 from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebase_library import (  # noqa: E402
     ExperimentMode,
     ModelOptions,
-    RunMode,
+    ParameterTreatmentMode,
+    ProcessModelProfile,
     UnifiedPipelineConfigV24,
     load_experiment_easy,
     run_unified_pipeline_v24,
@@ -97,9 +98,13 @@ def test_runfile_data1_presets_build_existing_configs() -> None:
     assert config.run_parmest is True
     assert config.run_doe is False
     assert config.conductivity_model == "msa"
+    assert config.paper_profile == "DATA1_PAPER"
+    assert config.process_model_profile == ProcessModelProfile.DATA1
     assert config.model_options.mode == ExperimentMode.DATA
-    assert config.model_options.run_mode == RunMode.ESTIMATION
+    assert config.model_options.parameter_treatment_mode == ParameterTreatmentMode.ESTIMATION
     assert str(config.model_options.b_form).lower() == "single"
+    assert config.model_options.process_model_profile == ProcessModelProfile.DATA1
+    assert config.model_options.paper_profile == "DATA1_PAPER"
 
 
 @pytest.mark.regression
@@ -113,11 +118,13 @@ def test_unified_data1_mat_pipeline_runs_with_filtration_cd_default() -> None:
         plot=False,
         model_options=ModelOptions(
             mode=ExperimentMode.DATA,
-            run_mode=RunMode.ESTIMATION,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
             b_form="single",
             nfe=30,
             use_sigma_logit_transform=False,
             use_multistart_for_mat_legacy=False,
+            process_model_profile=ProcessModelProfile.DATA1,
+            paper_profile="DATA1_PAPER",
         ),
         run_parmest=True,
         run_doe=False,
@@ -126,6 +133,8 @@ def test_unified_data1_mat_pipeline_runs_with_filtration_cd_default() -> None:
         solver="ipopt",
         solver_options=None,
         tee=False,
+        process_model_profile=ProcessModelProfile.DATA1,
+        paper_profile="DATA1_PAPER",
     )
 
     result = run_unified_pipeline_v24(config)
@@ -134,6 +143,8 @@ def test_unified_data1_mat_pipeline_runs_with_filtration_cd_default() -> None:
     exp = result["exp"]
     assert exp.C_D_value == 0.0
     assert "C_D_value=0.0_for_filtration_mat" in exp.used_defaults
+    assert result["run_metadata"]["process_model_profile"] == "DATA1"
+    assert result["run_metadata"]["paper_profile"] == "DATA1_PAPER"
 
     theta = result["parmest"]["theta"]
     assert list(theta.index) == ["Lp", "B", "sigma"]
@@ -157,7 +168,7 @@ def _run_data1_pipeline(dataset_file: Path):
         plot=False,
         model_options=ModelOptions(
             mode=ExperimentMode.DATA,
-            run_mode=RunMode.ESTIMATION,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
             b_form="single",
             nfe=30,
             use_sigma_logit_transform=False,

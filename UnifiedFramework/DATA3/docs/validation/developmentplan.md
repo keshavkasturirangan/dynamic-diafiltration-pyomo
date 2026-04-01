@@ -27,6 +27,12 @@ Validate the unified framework by reproducing required DATA1 and DATA2 published
 - Dedicated figure-validation pytest:
   - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py`
 - User-facing conductivity default in `unified_codebase_runfile.py` is now `msa`; `variant_shedlovsky` must be requested explicitly with `--conductivity-model variant_shedlovsky`.
+- Explicit paper-workflow intent is now surfaced in the unified runner through `paper_profile` values:
+  - `DATA1_PAPER`
+  - `DATA2_PAPER`
+  - `DATA3_UNIFIED`
+- Current parity checklist for what is already mirrored from the legacy DATA1/DATA2 paper workflows, and what still remains open:
+  - `/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/paper_profile_parity_checklist.md`
 
 ## Validation Baseline Corpus (2026-03-05)
 

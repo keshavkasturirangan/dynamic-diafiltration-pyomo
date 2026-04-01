@@ -68,6 +68,10 @@ Figure-validation pytest module:
 
 - [`test_simulation_validation_figures.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py)
 
+Input-contract pytest module:
+
+- [`test_utility_input_contract.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_utility_input_contract.py)
+
 What the figure-validation pytest does:
 
 - checks that `simulation_validation_data_files` has the committed manifest
@@ -79,6 +83,20 @@ Command:
 ```bash
 MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py -m "nightly"
 ```
+
+Recommended refactor guardrail commands:
+
+```bash
+MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_utility_input_contract.py
+MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py
+MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py -m "nightly"
+```
+
+Current expected outcomes while refactoring:
+
+- `test_utility_input_contract.py`: `3 passed`
+- `test_unified_codebase_pytest_validation.py`: `9 passed, 1 xfailed`
+- `test_simulation_validation_figures.py -m "nightly"`: `1 passed, 1 deselected`
 
 ## Unified-code defaults relevant to this flow
 
@@ -101,3 +119,11 @@ At this point:
 - pytest can rerun the figure validation and report whether the figure mappings still hold
 
 The next layer, which is already partly in place, is to compare unified-code outputs against these same simulation validation CSV baselines instead of relying on ad hoc draft baseline files.
+
+For the implementation status of explicit DATA1/DATA2 paper workflow support in the unified codebase, see:
+
+- [`paper_profile_parity_checklist.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/paper_profile_parity_checklist.md)
+
+For the architecture and object-oriented refactor direction, see:
+
+- [`unified_refactor_plan.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/unified_code/unified_refactor_plan.md)

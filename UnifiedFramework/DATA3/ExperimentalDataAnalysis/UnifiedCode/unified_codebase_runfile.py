@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""User-facing runner with explicit DATA1, DATA2, and DATA3 branches."""
+"""User-facing runner for the unified pipeline.
+
+This module should stay thin.
+
+Responsibilities:
+- choose a file-source adapter path indirectly through the input file
+- choose a process-model-oriented preset for DATA1, DATA2, or DATA3
+- pass shared estimation and DoE settings into the common library pipeline
+
+It should not become the place where scientific model differences are
+implemented. Those belong in ``unified_codebase_library.py``.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +23,8 @@ try:
     from .unified_codebase_library import (
         ExperimentMode,
         ModelOptions,
-        RunMode,
+        ParameterTreatmentMode,
+        ProcessModelProfile,
         UnifiedPipelineConfigV24,
         run_unified_pipeline_v24,
     )
@@ -20,7 +32,8 @@ except ImportError:
     from unified_codebase_library import (
         ExperimentMode,
         ModelOptions,
-        RunMode,
+        ParameterTreatmentMode,
+        ProcessModelProfile,
         UnifiedPipelineConfigV24,
         run_unified_pipeline_v24,
     )
@@ -131,15 +144,21 @@ def _resolve_run_doe(profile: str, cli_value: Optional[bool]) -> bool:
 
 
 def _build_data1_config(file_path: Path, args: argparse.Namespace, run_doe: bool) -> UnifiedPipelineConfigV24:
-    """Build DATA1 reproduction config for one MAT file."""
+    """Build DATA1 reproduction config for one MAT file.
+
+    Internally this maps to the legacy ExperimentMode.DATA branch, which is the
+    legacy DATA1-style pathway in the unified codebase.
+    """
     model_options = ModelOptions(
         mode=ExperimentMode.DATA,
-        run_mode=RunMode.ESTIMATION,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
         b_form="single",
         nfe=int(args.nfe),
         use_sigma_logit_transform=False,
         use_multistart_for_mat_legacy=True,
         multistart_iterations=30,
+        process_model_profile=ProcessModelProfile.DATA1,
+        paper_profile="DATA1_PAPER",
     )
     return UnifiedPipelineConfigV24(
         file_path=str(file_path),
@@ -156,18 +175,26 @@ def _build_data1_config(file_path: Path, args: argparse.Namespace, run_doe: bool
         solver=args.solver,
         solver_options=None,
         tee=False,
+        process_model_profile=ProcessModelProfile.DATA1,
+        paper_profile="DATA1_PAPER",
     )
 
 
 def _build_data2_config(file_path: Path, args: argparse.Namespace, run_doe: bool) -> UnifiedPipelineConfigV24:
-    """Build canonical DATA2 reproduction config for one MAT file."""
+    """Build canonical DATA2 reproduction config for one MAT file.
+
+    Internally this maps to the legacy ExperimentMode.LAG branch, which is the
+    legacy DATA2-style staged pathway in the unified codebase.
+    """
     model_options = ModelOptions(
         mode=ExperimentMode.LAG,
-        run_mode=RunMode.ESTIMATION,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
         b_form="convection",
         nfe=int(args.nfe),
         use_sigma_logit_transform=False,
         fix_sigma_in_estimation=True,
+        process_model_profile=ProcessModelProfile.DATA2,
+        paper_profile="DATA2_PAPER",
     )
     return UnifiedPipelineConfigV24(
         file_path=str(file_path),
@@ -184,18 +211,26 @@ def _build_data2_config(file_path: Path, args: argparse.Namespace, run_doe: bool
         solver=args.solver,
         solver_options=None,
         tee=False,
+        process_model_profile=ProcessModelProfile.DATA2,
+        paper_profile="DATA2_PAPER",
     )
 
 
 def _build_data3_config(args: argparse.Namespace, run_doe: bool) -> UnifiedPipelineConfigV24:
-    """Build DATA3/new-experiment config (XLSX-centric path)."""
+    """Build DATA3/new-experiment config (XLSX-centric path).
+
+    DATA3 currently reuses the legacy ExperimentMode.DATA branch mechanics, but
+    it is documented here as its own dataset pipeline rather than grouped under
+    the older DATA/non-DATA terminology.
+    """
     file_path = Path(args.file_path).expanduser().resolve() if args.file_path else PRESET_DATA3_PATH
     selector = args.selector if args.selector is not None else PRESET_DATA3_SELECTOR
     model_options = ModelOptions(
         mode=ExperimentMode.DATA,
-        run_mode=RunMode.ESTIMATION,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
         b_form="single",
         nfe=int(args.nfe),
+        process_model_profile=ProcessModelProfile.DATA3,
     )
     return UnifiedPipelineConfigV24(
         file_path=str(file_path),
@@ -212,6 +247,8 @@ def _build_data3_config(args: argparse.Namespace, run_doe: bool) -> UnifiedPipel
         solver=args.solver,
         solver_options=None,
         tee=False,
+        process_model_profile=ProcessModelProfile.DATA3,
+        paper_profile="DATA3_UNIFIED",
     )
 
 

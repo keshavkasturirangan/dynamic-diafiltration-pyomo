@@ -27,9 +27,10 @@ The goal is to provide:
 ## Recommended read order
 
 1. `unified_codebase_runfile.md` (how users run the workflow)
-2. `workflow_algorithms.tex` (step-by-step runtime algorithms)
-3. `unified_codebase_library.md` (core system design and APIs)
-4. `conductivity_paper.md` (measurement-model internals)
+2. `unified_refactor_plan.md` (target architecture: loaders, process model, ParmEst, DoE)
+3. `workflow_algorithms.tex` (step-by-step runtime algorithms)
+4. `unified_codebase_library.md` (core system design and APIs)
+5. `conductivity_paper.md` (measurement-model internals)
 
 ## Future RTD migration notes
 
