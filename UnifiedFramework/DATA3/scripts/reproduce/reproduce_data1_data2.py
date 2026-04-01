@@ -578,6 +578,7 @@ def main() -> None:
             "options": options,
             "estimation": est,
             "spec": spec,
+            "curve_metrics": row.get("curve_metrics", {}),
         }
         with (summaries_dir / f"{spec.dataset_id}.json").open("w") as f:
             json.dump(row, f, indent=2, default=str)
@@ -592,6 +593,7 @@ def main() -> None:
     # Stage A concrete outputs: DATA1 main (Fig.2 + Table 1 + Fig.3 + Table 2).
     stage_a_artifacts: Dict[str, object] = {}
     stage_b_artifacts: Dict[str, object] = {}
+    data2_artifacts: Dict[str, object] = {}
     if not bool(args.skip_stage_artifacts):
         data1_rows = [r for r in run_rows if r.get("dataset_id") == "DATA1_511.12"]
         if data1_rows:
@@ -617,6 +619,26 @@ def main() -> None:
             stage_a_artifacts = artifacts["stage_a"]
             stage_b_artifacts = artifacts["stage_b"]
 
+        simulation_validation_root = (
+            args.repo_root.resolve()
+            / "UnifiedFramework"
+            / "DATA3"
+            / "docs"
+            / "validation"
+            / "simulation_validation_data_files"
+        )
+        for dataset_id in ("DATA2_270511.123", "DATA2_270611.123"):
+            if dataset_id not in dataset_run_cache:
+                continue
+            cache = dataset_run_cache[dataset_id]
+            data2_artifacts[dataset_id] = engine.build_data2_validation_artifacts(
+                out_dir=out_dir,
+                dataset_id=dataset_id,
+                dataset=cache["exp"],
+                curve_metrics=cache.get("curve_metrics", {}),
+                simulation_validation_root=simulation_validation_root,
+            )
+
     run_meta = {
         "run_id": run_id,
         "repo_root": str(args.repo_root.resolve()),
@@ -637,6 +659,7 @@ def main() -> None:
         ],
         "stage_a_artifacts": stage_a_artifacts,
         "stage_b_artifacts": stage_b_artifacts,
+        "data2_artifacts": data2_artifacts,
     }
     with (out_dir / "run_metadata.json").open("w") as f:
         json.dump(run_meta, f, indent=2)

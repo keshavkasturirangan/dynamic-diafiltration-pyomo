@@ -6,7 +6,6 @@ import os
 import json
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -113,3 +112,27 @@ def test_reproduction_run_dataset_routes_through_uqengine() -> None:
     assert exp.dataset_id == spec.dataset_id
     assert options.process_model_profile == spec.process_model_profile
     assert isinstance(estimation, dict)
+
+
+@pytest.mark.regression
+def test_reproduction_script_writes_data2_artifact_metadata(tmp_path: Path) -> None:
+    """A DATA2 reproduction smoke run should emit workflow-owned DATA2 artifact metadata."""
+    out_root = tmp_path / "repro"
+    cmd = (
+        f"python {REPO_ROOT / 'UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py'} "
+        f"--repo-root {REPO_ROOT} "
+        f"--out-root {out_root} "
+        "--datasets DATA2_270611.123 "
+        "--nfe 10 "
+        "--skip-curve-metrics"
+    )
+    exit_code = os.system(cmd)
+    assert exit_code == 0
+
+    run_dirs = sorted(out_root.glob("*"))
+    assert run_dirs
+    latest = run_dirs[-1]
+    meta = json.loads((latest / "run_metadata.json").read_text())
+    assert "DATA2_270611.123" in meta.get("data2_artifacts", {})
+    artifacts = meta["data2_artifacts"]["DATA2_270611.123"]
+    assert artifacts["tables"]

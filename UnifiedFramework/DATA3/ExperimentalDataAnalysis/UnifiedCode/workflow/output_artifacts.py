@@ -419,6 +419,85 @@ def build_data1_stage_b_outputs(*, out_dir: Path, exp, est: Dict[str, object], s
     return {"manifest": str(manifest_path), "counts_by_target": manifest["target_id"].value_counts().to_dict()}
 
 
+def build_data2_validation_artifacts(
+    *,
+    out_dir: Path,
+    dataset_id: str,
+    exp,
+    curve_metrics: Dict[str, float],
+    simulation_validation_root: Path,
+) -> Dict[str, object]:
+    """Generate DATA2 validation artifacts that are currently exercised in regression/nightly paths."""
+    import matplotlib.pyplot as plt
+
+    figures_dir = out_dir / "figures"
+    tables_dir = out_dir / "tables"
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    artifacts: Dict[str, object] = {"tables": [], "figures": []}
+
+    if len(exp.vials) >= 4 and exp.vials[3].mass_g is not None:
+        vial = exp.vials[3]
+        measurement_trace = pd.DataFrame(
+            {
+                "time_min": np.asarray(vial.time_s, dtype=float) / 60.0,
+                "mass_g": np.asarray(vial.mass_g, dtype=float),
+            }
+        ).sort_values("time_min")
+        trace_csv = tables_dir / f"{dataset_id.lower()}_fig3_measurement_trace.csv"
+        measurement_trace.to_csv(trace_csv, index=False)
+        artifacts["tables"].append(str(trace_csv))
+
+        fig = plt.figure(figsize=(4.5, 3.5))
+        plt.plot(measurement_trace["time_min"], measurement_trace["mass_g"], "k.-", linewidth=1.2, markersize=3)
+        plt.xlabel("Time [min]")
+        plt.ylabel("Mass [g]")
+        plt.tick_params(direction="in", top=True, right=True)
+        fig_path = figures_dir / f"{dataset_id.lower()}_fig3_measurement_trace.png"
+        fig.savefig(fig_path, bbox_inches="tight")
+        plt.close(fig)
+        artifacts["figures"].append(str(fig_path))
+
+        baseline_path = simulation_validation_root / "data2_main" / "fig3" / "data2_main_fig3_mass_tc.csv"
+        if dataset_id == "DATA2_270611.123" and baseline_path.exists():
+            baseline = pd.read_csv(baseline_path)
+            baseline_measure = baseline[baseline["series_id"] == "measurements"].copy().sort_values("time_min")
+            common = baseline_measure.merge(measurement_trace, on="time_min", suffixes=("_baseline", "_unified"))
+            err = common["mass_g_unified"].to_numpy(dtype=float) - common["mass_g_baseline"].to_numpy(dtype=float)
+            comparison = pd.DataFrame(
+                [
+                    {
+                        "target": "DATA2_Fig3_measurements",
+                        "dataset_id": dataset_id,
+                        "n_points": int(len(common)),
+                        "mae": float(np.mean(np.abs(err))) if len(err) else np.nan,
+                        "max_abs_err": float(np.max(np.abs(err))) if len(err) else np.nan,
+                        "rmse": float(np.sqrt(np.mean(err**2))) if len(err) else np.nan,
+                    }
+                ]
+            )
+            comparison_csv = tables_dir / f"{dataset_id.lower()}_fig3_measurement_comparison.csv"
+            comparison.to_csv(comparison_csv, index=False)
+            artifacts["tables"].append(str(comparison_csv))
+
+    curve_rows = []
+    for metric_name in ("nrmse.mass", "nrmse.cF", "nrmse.cV"):
+        curve_rows.append(
+            {
+                "dataset_id": dataset_id,
+                "metric": metric_name,
+                "unified_value": curve_metrics.get(metric_name, np.nan),
+                "target_id": "D2-M-F6",
+            }
+        )
+    curve_df = pd.DataFrame(curve_rows)
+    curve_csv = tables_dir / f"{dataset_id.lower()}_fig6_curve_metrics.csv"
+    curve_df.to_csv(curve_csv, index=False)
+    artifacts["tables"].append(str(curve_csv))
+    return artifacts
+
+
 def flatten_theta(theta_obj: object) -> Dict[str, float]:
     """Normalize theta output into a simple float dict."""
     if isinstance(theta_obj, pd.Series):

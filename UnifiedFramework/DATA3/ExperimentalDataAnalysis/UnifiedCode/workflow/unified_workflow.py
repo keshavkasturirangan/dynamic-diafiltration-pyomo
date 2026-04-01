@@ -22,6 +22,7 @@ from pyomo.contrib.parmest.parmest import Estimator
 from .output_artifacts import (
     build_data1_stage_a_outputs,
     build_data1_stage_b_outputs,
+    build_data2_validation_artifacts,
     extract_model_trajectories,
 )
 from ..unified_codebase_library import (
@@ -599,6 +600,24 @@ class UQEngine:
                 sim=trajectories,
             ),
         }
+
+    def build_data2_validation_artifacts(
+        self,
+        *,
+        out_dir: Path,
+        dataset_id: str,
+        dataset: ExperimentalData,
+        curve_metrics: Dict[str, float],
+        simulation_validation_root: Path,
+    ) -> Dict[str, object]:
+        """Build DATA2 validation artifacts through the workflow layer."""
+        return build_data2_validation_artifacts(
+            out_dir=out_dir,
+            dataset_id=dataset_id,
+            exp=dataset,
+            curve_metrics=curve_metrics,
+            simulation_validation_root=simulation_validation_root,
+        )
 
     def recommend_next_experiment(
         self,
