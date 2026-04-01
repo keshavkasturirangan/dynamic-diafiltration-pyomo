@@ -1,5 +1,5 @@
 old_path,new_path,phase,kind,status,notes
-DATA1_matlab/,legacy/data1_matlab/,C,directory,planned,"Large legacy bundle; move after path-audit remediation"
+DATA1_matlab/,legacy/data1_matlab/,C,directory,completed,"Large legacy bundle; move after path-audit remediation"
 DATA2_visualization.ipynb,legacy/notebooks/data2/DATA2_visualization.ipynb,B,notebook,completed,"Keep root shim notebook link or README pointer"
 DATA2_model_demo.ipynb,legacy/notebooks/data2/DATA2_model_demo.ipynb,B,notebook,completed,"Used as provenance reference"
 DATA2_model_demo_KKR.ipynb,legacy/notebooks/data2/DATA2_model_demo_KKR.ipynb,B,notebook,completed,"Legacy variant"
