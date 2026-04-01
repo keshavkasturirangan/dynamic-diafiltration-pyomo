@@ -35,17 +35,17 @@ if str(REPO_ROOT) not in sys.path:
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig")
 
 from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebase_library import (
-    DiafiltrationExperimentV24,
     ExperimentMode,
     ModelOptions,
     ParameterGuess,
+    ProcessModelProfile,
     RunMode,
-    build_guess_from_experiment_v24,
-    apply_discretization,
-    estimate_parameters_with_parmest_v24,
-    load_experiment_easy,
-    model_construct_inter_v24,
-    run_doe_with_pyomo_v24,
+)
+from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.workflow.unified_workflow import (
+    DataLoader,
+    DatasetRequest,
+    DiafiltrationExperiment,
+    UQEngine,
 )
 
 
@@ -82,6 +82,8 @@ class DatasetSpec:
     use_multistart_for_xlsx: bool = True
     use_multistart_for_mat_legacy: bool = False
     multistart_iterations: int = 20
+    process_model_profile: Optional[ProcessModelProfile] = None
+    paper_profile: Optional[str] = None
 
 
 CANONICAL_DATASETS: Tuple[DatasetSpec, ...] = (
@@ -96,6 +98,8 @@ CANONICAL_DATASETS: Tuple[DatasetSpec, ...] = (
         estimation_enabled=True,
         use_multistart_for_mat_legacy=True,
         multistart_iterations=30,
+        process_model_profile=ProcessModelProfile.DATA1,
+        paper_profile="DATA1_PAPER",
     ),
     DatasetSpec(
         dataset_id="DATA2_270511.123",
@@ -115,6 +119,8 @@ CANONICAL_DATASETS: Tuple[DatasetSpec, ...] = (
             "beta_0": 1.0649294788103598,
             "beta_1": 0.015171421224603474,
         },
+        process_model_profile=ProcessModelProfile.DATA2,
+        paper_profile="DATA2_PAPER",
     ),
     DatasetSpec(
         dataset_id="DATA2_270611.123",
@@ -140,6 +146,8 @@ CANONICAL_DATASETS: Tuple[DatasetSpec, ...] = (
             "beta_0": 1.0649294788103598,
             "beta_1": 0.015171421224603474,
         },
+        process_model_profile=ProcessModelProfile.DATA2,
+        paper_profile="DATA2_PAPER",
     ),
 )
 
@@ -204,7 +212,32 @@ def flatten_theta(theta_obj: object) -> Dict[str, float]:
     return {}
 
 
+def build_model_options(spec: DatasetSpec, *, nfe: int, parameter_mode: RunMode) -> ModelOptions:
+    """Create one canonical ModelOptions object for a dataset spec."""
+    options = ModelOptions(
+        mode=spec.mode,
+        parameter_treatment_mode=parameter_mode,
+        b_form=spec.b_form,
+        use_sigma_logit_transform=bool(spec.use_sigma_logit_transform) if parameter_mode == RunMode.ESTIMATION else False,
+        fix_sigma_in_estimation=bool(spec.fix_sigma_in_estimation),
+        nfe=int(nfe),
+        use_multistart_for_xlsx=bool(spec.use_multistart_for_xlsx),
+        use_multistart_for_mat_legacy=bool(spec.use_multistart_for_mat_legacy),
+        multistart_iterations=int(spec.multistart_iterations),
+        process_model_profile=spec.process_model_profile,
+        paper_profile=spec.paper_profile,
+    )
+    if spec.beta_0_bounds is not None:
+        options.beta_0_lb = float(spec.beta_0_bounds[0])
+        options.beta_0_ub = float(spec.beta_0_bounds[1])
+    if spec.beta_1_bounds is not None:
+        options.beta_1_lb = float(spec.beta_1_bounds[0])
+        options.beta_1_ub = float(spec.beta_1_bounds[1])
+    return options
+
+
 def run_dataset(
+    engine: UQEngine,
     repo_root: Path,
     spec: DatasetSpec,
     *,
@@ -214,35 +247,21 @@ def run_dataset(
     calc_cov: bool,
     skip_curve_metrics: bool,
     ipopt_max_cpu_time: Optional[float],
-) -> Dict[str, object]:
+) -> Tuple[Dict[str, object], object, ModelOptions, Dict[str, object]]:
     """Run one dataset through unified estimation (+optional DoE)."""
     data_path = repo_root / spec.data_file
-    exp, (ok, issues) = load_experiment_easy(
-        str(data_path),
+    loader_request = DatasetRequest(
+        file_path=str(data_path),
         selector=spec.selector,
         specs=None,
         convert_to_concentration=False,
         plot=False,
+        dataset_id=spec.dataset_id,
     )
+    exp, (ok, issues) = engine.data_loader.load(loader_request)
 
     nfe_eff = int(spec.nfe_override) if spec.nfe_override is not None else int(nfe)
-    options = ModelOptions(
-        mode=spec.mode,
-        parameter_treatment_mode=RunMode.ESTIMATION,
-        b_form=spec.b_form,
-        use_sigma_logit_transform=bool(spec.use_sigma_logit_transform),
-        fix_sigma_in_estimation=bool(spec.fix_sigma_in_estimation),
-        nfe=nfe_eff,
-        use_multistart_for_xlsx=bool(spec.use_multistart_for_xlsx),
-        use_multistart_for_mat_legacy=bool(spec.use_multistart_for_mat_legacy),
-        multistart_iterations=int(spec.multistart_iterations),
-    )
-    if spec.beta_0_bounds is not None:
-        options.beta_0_lb = float(spec.beta_0_bounds[0])
-        options.beta_0_ub = float(spec.beta_0_bounds[1])
-    if spec.beta_1_bounds is not None:
-        options.beta_1_lb = float(spec.beta_1_bounds[0])
-        options.beta_1_ub = float(spec.beta_1_bounds[1])
+    options = build_model_options(spec, nfe=nfe_eff, parameter_mode=RunMode.ESTIMATION)
 
     result: Dict[str, object] = {
         "dataset_id": spec.dataset_id,
@@ -255,25 +274,27 @@ def run_dataset(
         "theta": {},
         "covariance_method": None,
         "covariance_warning": None,
+        "workflow_class": "UQEngine",
+        "process_model_profile": spec.process_model_profile.value if spec.process_model_profile is not None else None,
+        "paper_profile": spec.paper_profile,
     }
 
+    estimation_payload: Dict[str, object] = {"theta": dict(spec.fixed_guess or {})}
     if spec.estimation_enabled:
-        if spec.initial_guess:
-            guess_obj = _build_guess_from_theta(dict(spec.initial_guess or {}), options=options)
-        else:
-            guess_obj = build_guess_from_experiment_v24(exp, options)
         solver_opts = dict(DEFAULT_IPOPT_OPTIONS)
         if ipopt_max_cpu_time is not None:
             solver_opts["max_cpu_time"] = float(ipopt_max_cpu_time)
-        est = estimate_parameters_with_parmest_v24(
-            experiments=[exp],
-            options=options,
+        guess_obj = _build_guess_from_theta(dict(spec.initial_guess or {}), options=options) if spec.initial_guess else None
+        est = engine.fit_parameters(
+            [exp],
+            model_options=options,
             guess=guess_obj,
             calc_cov=calc_cov,
             solver=solver,
             solver_options=solver_opts,
             tee=False,
         )
+        estimation_payload = est
         result["objective"] = est.get("objective")
         result["theta"] = flatten_theta(est.get("theta"))
         result["covariance_method"] = est.get("covariance_method")
@@ -290,18 +311,17 @@ def run_dataset(
             "objective_legacy": float("nan"),
         }
         if bool(skip_curve_metrics)
-        else _compute_curve_metrics(exp, options, result["theta"])
+        else _compute_curve_metrics(exp, spec, result["theta"])
     )
     result["curve_metrics"] = curve_metrics
     result["objective_legacy"] = curve_metrics.get("objective_legacy")
 
     if run_doe:
-        exp_obj = DiafiltrationExperimentV24(exp=exp, options=options)
-        doe = run_doe_with_pyomo_v24(exp_obj, solver_name="ipopt", tee=False)
+        doe = engine.analyze_doe_parameter_estimation(exp, options, solver_name="ipopt", tee=False)
         result["doe_d_opt_logdet"] = float(doe["d_opt_logdet"])
         result["doe_fim"] = np.asarray(doe["fim"], dtype=float).tolist()
 
-    return result
+    return result, exp, options, estimation_payload
 
 
 def _build_guess_from_theta(theta: Dict[str, float], options: ModelOptions) -> ParameterGuess:
@@ -318,33 +338,17 @@ def _build_guess_from_theta(theta: Dict[str, float], options: ModelOptions) -> P
     return guess
 
 
-def _compute_curve_metrics(exp, options: ModelOptions, theta: Dict[str, float]) -> Dict[str, float]:
+def _compute_curve_metrics(exp, spec: DatasetSpec, theta: Dict[str, float]) -> Dict[str, float]:
     """Compute dataset-level NRMSE metrics by simulating with provided theta."""
-    import pyomo.environ as pyo
-
-    sim_opts = ModelOptions(
-        mode=options.mode,
-        parameter_treatment_mode=RunMode.SIMULATION,
-        b_form=options.b_form,
-        nfe=options.nfe,
-        fd_scheme=options.fd_scheme,
-        use_sigma_logit_transform=False,
-        use_advanced_xlsx_transport_thermo=options.use_advanced_xlsx_transport_thermo,
-    )
+    sim_opts = build_model_options(spec, nfe=spec.nfe_override or 30, parameter_mode=RunMode.SIMULATION)
     guess = _build_guess_from_theta(theta, options=sim_opts)
-    m = model_construct_inter_v24(exp, sim_opts, guess=guess)
-    apply_discretization(m, nfe=sim_opts.nfe, scheme=sim_opts.fd_scheme)
-    m.obj = pyo.Objective(expr=0.0)
-    solver = pyo.SolverFactory("ipopt")
-    for k, v in DEFAULT_IPOPT_OPTIONS.items():
-        solver.options[str(k)] = v
     try:
-        res = solver.solve(m, tee=False)
-        term = getattr(getattr(res, "solver", None), "termination_condition", None)
-        if term is not None and str(term).lower() not in {"optimal", "locallyoptimal"}:
-            # Retry with higher iteration budget for difficult simulation NLPs.
-            solver.options["max_iter"] = 10000
-            solver.solve(m, tee=False)
+        m = DiafiltrationExperiment(exp, sim_opts, guess=guess).build_simulation_model(
+            theta_values=theta,
+            solver_name="ipopt",
+            solver_options=DEFAULT_IPOPT_OPTIONS,
+            tee=False,
+        )
     except Exception:
         return {
             "nrmse.mass": float("nan"),
@@ -493,17 +497,15 @@ def _build_data1_stage_a_outputs(
     lp = float(theta.get("Lp", np.nan))
     b = float(theta.get("B", np.nan))
     sigma = float(theta.get("sigma", np.nan))
-    options_sim = ModelOptions(
-        mode=ExperimentMode.DATA,
-        parameter_treatment_mode=RunMode.SIMULATION,
-        b_form="single",
-        nfe=30,
-    )
+    spec = next(spec for spec in CANONICAL_DATASETS if spec.dataset_id == "DATA1_511.12")
+    options_sim = build_model_options(spec, nfe=30, parameter_mode=RunMode.SIMULATION)
     guess = ParameterGuess(Lp=lp, B=b, sigma=sigma)
-    m = model_construct_inter_v24(exp, options_sim, guess=guess)
-    apply_discretization(m, nfe=options_sim.nfe, scheme=options_sim.fd_scheme)
-    m.obj = pyo.Objective(expr=0.0)
-    pyo.SolverFactory("ipopt").solve(m, tee=False)
+    m = DiafiltrationExperiment(exp, options_sim, guess=guess).build_simulation_model(
+        theta_values=theta,
+        solver_name="ipopt",
+        solver_options=DEFAULT_IPOPT_OPTIONS,
+        tee=False,
+    )
     sim = _extract_model_trajectories(exp, m)
 
     # Assemble global measured/predicted arrays for metrics.
@@ -747,17 +749,15 @@ def _build_data1_stage_b_outputs(
     lp = float(theta.get("Lp", np.nan))
     b = float(theta.get("B", np.nan))
     sigma = float(theta.get("sigma", np.nan))
-    options_sim = ModelOptions(
-        mode=ExperimentMode.DATA,
-        parameter_treatment_mode=RunMode.SIMULATION,
-        b_form="single",
-        nfe=30,
-    )
+    spec = next(spec for spec in CANONICAL_DATASETS if spec.dataset_id == "DATA1_511.12")
+    options_sim = build_model_options(spec, nfe=30, parameter_mode=RunMode.SIMULATION)
     guess = ParameterGuess(Lp=lp, B=b, sigma=sigma)
-    m = model_construct_inter_v24(exp, options_sim, guess=guess)
-    apply_discretization(m, nfe=options_sim.nfe, scheme=options_sim.fd_scheme)
-    m.obj = pyo.Objective(expr=0.0)
-    pyo.SolverFactory("ipopt").solve(m, tee=False)
+    m = DiafiltrationExperiment(exp, options_sim, guess=guess).build_simulation_model(
+        theta_values=theta,
+        solver_name="ipopt",
+        solver_options=DEFAULT_IPOPT_OPTIONS,
+        tee=False,
+    )
     sim = _extract_model_trajectories(exp, m)
 
     t_delay = float(exp.vials[0].time_s[0])
@@ -977,7 +977,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[2],
+        default=Path(__file__).resolve().parents[4],
         help="Repository root path.",
     )
     parser.add_argument(
@@ -1035,6 +1035,7 @@ def main() -> None:
     """Main entry point."""
     args = parse_args()
     configure_paper_plot_style()
+    engine = UQEngine(data_loader=DataLoader())
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = (args.repo_root / args.out_root / run_id).resolve()
@@ -1054,8 +1055,10 @@ def main() -> None:
             for d in selected
         ]
     run_rows: List[Dict[str, object]] = []
+    dataset_run_cache: Dict[str, Dict[str, object]] = {}
     for spec in selected:
-        row = run_dataset(
+        row, exp, options, est = run_dataset(
+            engine=engine,
             repo_root=args.repo_root.resolve(),
             spec=spec,
             solver=args.solver,
@@ -1066,6 +1069,12 @@ def main() -> None:
             ipopt_max_cpu_time=args.ipopt_max_cpu_time,
         )
         run_rows.append(row)
+        dataset_run_cache[spec.dataset_id] = {
+            "exp": exp,
+            "options": options,
+            "estimation": est,
+            "spec": spec,
+        }
         with (summaries_dir / f"{spec.dataset_id}.json").open("w") as f:
             json.dump(row, f, indent=2, default=str)
 
@@ -1082,26 +1091,9 @@ def main() -> None:
     if not bool(args.skip_stage_artifacts):
         data1_rows = [r for r in run_rows if r.get("dataset_id") == "DATA1_511.12"]
         if data1_rows:
-            p_data1 = args.repo_root.resolve() / "DATA1_matlab/data_library/data_stru-dataset511.12.mat"
-            exp_data1, _ = load_experiment_easy(
-                str(p_data1),
-                selector=None,
-                specs=None,
-                convert_to_concentration=False,
-                plot=False,
-            )
-            est_data1 = estimate_parameters_with_parmest_v24(
-                experiments=[exp_data1],
-                options=ModelOptions(
-                    mode=ExperimentMode.DATA,
-                    parameter_treatment_mode=RunMode.ESTIMATION,
-                    b_form="single",
-                    nfe=30,
-                ),
-                calc_cov=False,
-                solver=args.solver,
-                tee=False,
-            )
+            data1_cache = dataset_run_cache["DATA1_511.12"]
+            exp_data1 = data1_cache["exp"]
+            est_data1 = data1_cache["estimation"]
             stage_a_artifacts = _build_data1_stage_a_outputs(
                 repo_root=args.repo_root.resolve(),
                 out_dir=out_dir,
@@ -1131,6 +1123,7 @@ def main() -> None:
         "tolerances": asdict(ValidationTolerances()),
         "notes": [
             "Figure/table-specific generation functions are scaffold placeholders in this phase.",
+            "Canonical DATA1/DATA2 nightly reproduction now routes load/estimation/DoE through UQEngine.",
             "Use UnifiedFramework/DATA3/docs/validation/paper_target_matrix.md target IDs to incrementally implement plotting and table pipelines.",
         ],
         "stage_a_artifacts": stage_a_artifacts,

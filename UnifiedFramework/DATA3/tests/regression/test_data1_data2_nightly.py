@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 SCRIPT = REPO_ROOT / "UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py"
 REFERENCE_CSV = REPO_ROOT / "UnifiedFramework/DATA3/docs/validation/paper_reference_values_template.csv"
 

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -31,6 +33,7 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.workflow.unifie
     DatasetRequest,
     UQEngine,
 )
+from UnifiedFramework.DATA3.scripts.reproduce import reproduce_data1_data2 as reproduction_script  # noqa: E402
 
 
 @pytest.mark.regression
@@ -85,3 +88,28 @@ def test_uqengine_compare_models_returns_information_criteria() -> None:
     assert not comparison.empty
     assert {"candidate_name", "objective", "aic", "aicc", "bic", "delta_aic"}.issubset(comparison.columns)
     assert np.isfinite(float(comparison.loc[0, "objective"]))
+
+
+@pytest.mark.regression
+def test_reproduction_run_dataset_routes_through_uqengine() -> None:
+    """The DATA1/DATA2 reproduction path should use UQEngine as its main orchestrator."""
+    engine = UQEngine(data_loader=DataLoader())
+    spec = reproduction_script.CANONICAL_DATASETS[0]
+
+    row, exp, options, estimation = reproduction_script.run_dataset(
+        engine=engine,
+        repo_root=REPO_ROOT,
+        spec=spec,
+        solver="ipopt",
+        nfe=10,
+        run_doe=False,
+        calc_cov=False,
+        skip_curve_metrics=True,
+        ipopt_max_cpu_time=None,
+    )
+
+    assert row["workflow_class"] == "UQEngine"
+    assert row["dataset_id"] == spec.dataset_id
+    assert exp.dataset_id == spec.dataset_id
+    assert options.process_model_profile == spec.process_model_profile
+    assert isinstance(estimation, dict)
