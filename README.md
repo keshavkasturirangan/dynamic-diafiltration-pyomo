@@ -53,27 +53,33 @@ pip install casadi
    - Visualization of experimental and simulation results.
 
 4. **`DATA1_model_demo.ipynb`**  
+   Compatibility symlink to `legacy/notebooks/data1/DATA1_model_demo.ipynb`.  
    A Jupyter Notebook demonstrating:
    - Dynamic diafiltration Pyomo modeling.
    - Reproduce DATA1 analysis for NF90 membranes.
    - [WIP] Generating contours for sensitivity analysis/DoE in the DATA1 paper.
   
 5. **`DATA2_model_demo.ipynb`**  
+   Compatibility symlink to `legacy/notebooks/data2/DATA2_model_demo.ipynb`.  
    A Jupyter Notebook demonstrating:
    - Dynamic diafiltration Pyomo modeling.
    - Analysis of NF270 membranes for DATA2 paper.
 
 6. **`DATA2_visualization.ipynb`**  
+   Compatibility symlink to `legacy/notebooks/data2/DATA2_visualization.ipynb`.  
    Notebook for generating publication-ready plots and visualizations for the DATA2 paper.
 
 7. **`run_cross_verification.py`**  
-   Python script for cross-verifying empirical solute permeability coefficient (`B`) models with additional datasets, and store visualizations.
+   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_cross_verification.py`.  
+   Cross-verifies empirical solute permeability coefficient (`B`) models with additional datasets and stores visualizations.
 
 8. **`run_DATA2_model_variations.py`**  
-   Script for exploring model variations (e.g., including startup dynamics and/or time correction) and performing Fisher Information Matrix (FIM) calculations to evaluate information gain for the DATA2 paper.
+   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_DATA2_model_variations.py`.  
+   Explores model variations (e.g., startup dynamics/time correction) and performs Fisher Information Matrix (FIM) calculations for the DATA2 paper.
 
 9. **`run_pre_B_dependence.py`**  
-   Preliminarily investigates the dependence of solute permeability coefficient (`B`) on interface concentrations. Outputs visualizations and insights for modeling and optimization.
+   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_pre_B_dependence.py`.  
+   Preliminarily investigates dependence of solute permeability coefficient (`B`) on interface concentration and outputs visualizations.
    
 ---
 
