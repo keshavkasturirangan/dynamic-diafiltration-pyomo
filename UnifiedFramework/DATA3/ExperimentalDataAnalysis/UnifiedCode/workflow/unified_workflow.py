@@ -108,6 +108,31 @@ class UQResult:
 
 
 @dataclass(frozen=True)
+class RegressionPlan:
+    """Explicit plan for one regression workflow across datasets.
+
+    This makes the shared-vs-dataset-specific treatment visible before solving.
+    """
+
+    dataset_ids: Tuple[str, ...]
+    shared_parameters: Tuple[str, ...]
+    dataset_specific_parameters: Tuple[str, ...]
+    mode: str
+    joint_objective_description: str
+
+
+@dataclass(frozen=True)
+class DatasetRegressionSummary:
+    """Per-dataset summary row for a joint or single regression result."""
+
+    dataset_id: str
+    n_measurements: int
+    objective: float
+    shared_theta: Dict[str, float]
+    dataset_specific_theta: Dict[str, float]
+
+
+@dataclass(frozen=True)
 class ModelSelectionRow:
     """One candidate-model comparison row."""
 
@@ -309,6 +334,33 @@ class UQEngine:
             )
         return out
 
+    def build_regression_plan(
+        self,
+        datasets: Sequence[ExperimentalData],
+        parameter_scope: Optional[ParameterScope] = None,
+    ) -> RegressionPlan:
+        """Return an explicit regression plan before fitting."""
+        scope = parameter_scope or ParameterScope()
+        dataset_ids = tuple(str(dataset.dataset_id or dataset.filename or "dataset") for dataset in datasets)
+        if len(datasets) <= 1 and not scope.dataset_specific_parameters:
+            mode = "single_dataset"
+        elif not scope.dataset_specific_parameters:
+            mode = "joint_shared"
+        else:
+            mode = "joint_shared_then_dataset_specific_refinement"
+        joint_objective_description = (
+            "Weighted SSE summed across datasets with shared-theta joint solve"
+            if len(datasets) > 1
+            else "Weighted SSE for one dataset"
+        )
+        return RegressionPlan(
+            dataset_ids=dataset_ids,
+            shared_parameters=tuple(sorted(scope.shared_name_set())),
+            dataset_specific_parameters=tuple(sorted(scope.dataset_specific_name_set())),
+            mode=mode,
+            joint_objective_description=joint_objective_description,
+        )
+
     def fit_parameters(
         self,
         datasets: Sequence[ExperimentalData],
@@ -335,6 +387,7 @@ class UQEngine:
         scope = parameter_scope or ParameterScope()
         if not datasets:
             raise ValueError("fit_parameters requires at least one dataset.")
+        plan = self.build_regression_plan(datasets, scope)
 
         if len(datasets) == 1 and not scope.dataset_specific_parameters:
             result = estimate_parameters_with_parmest_v24(
@@ -352,7 +405,15 @@ class UQEngine:
                 "dataset_specific": sorted(scope.dataset_specific_name_set()),
                 "mode": "single_dataset",
             }
+            result["regression_plan"] = self._plan_to_dict(plan)
+            result["dataset_summaries"] = self._build_dataset_summaries(
+                datasets,
+                model_options,
+                theta_values=self._coerce_theta_dict(result.get("theta")),
+            )
             return result
+
+        joint_solver = "ef_ipopt" if solver == "ipopt" else solver
 
         if not scope.dataset_specific_parameters:
             result = estimate_parameters_with_parmest_v24(
@@ -361,7 +422,7 @@ class UQEngine:
                 guess=guess,
                 calc_cov=calc_cov,
                 cov_n=cov_n,
-                solver=solver,
+                solver=joint_solver,
                 solver_options=solver_options,
                 tee=tee,
             )
@@ -375,6 +436,12 @@ class UQEngine:
                 model_options,
                 theta_values=self._coerce_theta_dict(result.get("theta")),
             )
+            result["regression_plan"] = self._plan_to_dict(plan)
+            result["dataset_summaries"] = self._build_dataset_summaries(
+                datasets,
+                model_options,
+                theta_values=self._coerce_theta_dict(result.get("theta")),
+            )
             return result
 
         joint_options = replace(model_options)
@@ -384,7 +451,7 @@ class UQEngine:
             guess=guess,
             calc_cov=calc_cov,
             cov_n=cov_n,
-            solver=solver,
+            solver=joint_solver,
             solver_options=solver_options,
             tee=tee,
         )
@@ -404,6 +471,13 @@ class UQEngine:
             "mode": "joint_shared_then_dataset_specific_refinement",
         }
         joint_result["dataset_specific_refinement"] = stage_two
+        joint_result["regression_plan"] = self._plan_to_dict(plan)
+        joint_result["dataset_summaries"] = self._build_dataset_summaries(
+            datasets,
+            model_options,
+            theta_values=shared_theta,
+            dataset_specific_refinement=stage_two,
+        )
         return joint_result
 
     def summarize_uncertainty(self, estimation_result: Dict[str, object]) -> Dict[str, object]:
@@ -729,6 +803,7 @@ class UQEngine:
             metadata={
                 "dataset_count": len(datasets),
                 "candidate_model_count": len(candidate_options),
+                "regression_plan": self._plan_to_dict(self.build_regression_plan(datasets, parameter_scope)),
                 "parameter_scope": {
                     "shared": sorted((parameter_scope or ParameterScope()).shared_name_set()),
                     "dataset_specific": sorted((parameter_scope or ParameterScope()).dataset_specific_name_set()),
@@ -772,6 +847,41 @@ class UQEngine:
                 }
             )
         return {"rows": rows}
+
+    def _build_dataset_summaries(
+        self,
+        datasets: Sequence[ExperimentalData],
+        model_options: ModelOptions,
+        *,
+        theta_values: Dict[str, float],
+        dataset_specific_refinement: Optional[Dict[str, object]] = None,
+    ) -> List[Dict[str, object]]:
+        refinement_rows = {
+            str(row["dataset_id"]): row for row in (dataset_specific_refinement or {}).get("rows", [])
+        }
+        shared_names = {ParameterScope._base_name(name) for name in theta_values}
+        summaries: List[DatasetRegressionSummary] = []
+        objectives = self._per_dataset_objective_breakdown(
+            datasets,
+            model_options,
+            theta_values=theta_values,
+        )
+        objective_by_dataset = {str(row["dataset_id"]): float(row["objective"]) for row in objectives}
+        for dataset in datasets:
+            dataset_id = str(dataset.dataset_id or dataset.filename or "dataset")
+            refinement = refinement_rows.get(dataset_id, {})
+            shared_theta = refinement.get("shared_theta", {name: theta_values.get(name) for name in shared_names})
+            dataset_specific_theta = refinement.get("dataset_specific_theta", {})
+            summaries.append(
+                DatasetRegressionSummary(
+                    dataset_id=dataset_id,
+                    n_measurements=self._count_measurements([dataset], model_options),
+                    objective=objective_by_dataset.get(dataset_id, np.nan),
+                    shared_theta=dict(shared_theta),
+                    dataset_specific_theta=dict(dataset_specific_theta),
+                )
+            )
+        return [summary.__dict__ for summary in summaries]
 
     def _refine_dataset_specific_with_fixed_shared(
         self,
@@ -865,6 +975,16 @@ class UQEngine:
                     continue
             return out
         return {}
+
+    @staticmethod
+    def _plan_to_dict(plan: RegressionPlan) -> Dict[str, object]:
+        return {
+            "dataset_ids": list(plan.dataset_ids),
+            "shared_parameters": list(plan.shared_parameters),
+            "dataset_specific_parameters": list(plan.dataset_specific_parameters),
+            "mode": plan.mode,
+            "joint_objective_description": plan.joint_objective_description,
+        }
 
     @staticmethod
     def _count_measurements(datasets: Sequence[ExperimentalData], model_options: ModelOptions) -> int:

@@ -31,8 +31,10 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebas
 from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.workflow.unified_workflow import (  # noqa: E402
     DataLoader,
     DatasetRequest,
+    ParameterScope,
     UQEngine,
 )
+from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.workflow import unified_workflow as workflow_module  # noqa: E402
 from UnifiedFramework.DATA3.scripts.reproduce import reproduce_data1_data2 as reproduction_script  # noqa: E402
 
 
@@ -84,7 +86,7 @@ def test_object_oriented_loader_supports_mat_and_xlsx_requests() -> None:
 
 @pytest.mark.regression
 def test_uqengine_compare_models_returns_information_criteria() -> None:
-    """The OOP UQEngine should expose AIC-style model comparison results."""
+    """The OOP UQEngine should expose AIC-style comparison for one dataset + many model options."""
     loader = DataLoader()
     dataset, validation = loader.load(
         DatasetRequest(file_path=runfile.PRESET_DATA1_PATHS[0], dataset_id="DATA1_501_1")
@@ -103,12 +105,23 @@ def test_uqengine_compare_models_returns_information_criteria() -> None:
                 use_sigma_logit_transform=False,
                 process_model_profile=ProcessModelProfile.DATA1,
                 paper_profile="DATA1_PAPER",
-            )
+            ),
+            ModelOptions(
+                mode=ExperimentMode.DATA,
+                parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+                b_form="pervial",
+                nfe=10,
+                use_sigma_logit_transform=False,
+                process_model_profile=ProcessModelProfile.DATA1,
+                paper_profile="DATA1_PAPER",
+            ),
         ],
+        candidate_names=["single_b", "per_vial_b"],
     )
 
     assert not comparison.empty
     assert {"candidate_name", "objective", "aic", "aicc", "bic", "delta_aic"}.issubset(comparison.columns)
+    assert set(comparison["candidate_name"]) == {"single_b", "per_vial_b"}
     assert np.isfinite(float(comparison.loc[0, "objective"]))
 
 
@@ -182,3 +195,149 @@ def test_reproduction_script_writes_data2_artifact_files_with_expected_kinds(tmp
     assert any("fig6_curve_metrics" in path.name for path in table_paths)
     for path in table_paths:
         assert path.exists(), f"Missing DATA2 artifact file: {path}"
+
+
+@pytest.mark.regression
+def test_uqengine_builds_explicit_multi_dataset_regression_plan() -> None:
+    """The engine should expose shared vs dataset-specific regression intent explicitly."""
+    loader = DataLoader()
+    datasets, validations = loader.load_many(
+        [
+            DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[0], dataset_id="DATA2_A"),
+            DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[1], dataset_id="DATA2_B"),
+        ]
+    )
+    assert all(ok for ok, _ in validations)
+
+    engine = UQEngine(data_loader=loader)
+    plan = engine.build_regression_plan(
+        datasets,
+        ParameterScope(
+            shared_parameters=("Lp", "sigma", "beta_0"),
+            dataset_specific_parameters=("beta_1",),
+        ),
+    )
+
+    assert plan.mode == "joint_shared_then_dataset_specific_refinement"
+    assert plan.dataset_ids == ("DATA2_A", "DATA2_B")
+    assert "Lp" in plan.shared_parameters
+    assert "beta_1" in plan.dataset_specific_parameters
+
+
+@pytest.mark.regression
+def test_uqengine_multi_dataset_fit_returns_dataset_summaries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A many-datasets + one-model workflow should report both global and per-dataset outputs."""
+    loader = DataLoader()
+    datasets, validations = loader.load_many(
+        [
+            DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[0], dataset_id="DATA2_A"),
+            DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[1], dataset_id="DATA2_B"),
+        ]
+    )
+    assert all(ok for ok, _ in validations)
+
+    engine = UQEngine(data_loader=loader)
+    options = ModelOptions(
+        mode=ExperimentMode.LAG,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+        b_form="convection",
+        nfe=10,
+        use_sigma_logit_transform=False,
+        fix_sigma_in_estimation=True,
+        beta_0_lb=0.5,
+        beta_0_ub=5.0,
+        beta_1_lb=0.0,
+        beta_1_ub=0.1,
+        process_model_profile=ProcessModelProfile.DATA2,
+        paper_profile="DATA2_PAPER",
+    )
+
+    def _fake_estimate_parameters_with_parmest_v24(
+        *,
+        experiments,
+        options,
+        guess=None,
+        calc_cov=True,
+        cov_n=None,
+        solver="ipopt",
+        solver_options=None,
+        tee=False,
+    ):
+        if len(experiments) > 1:
+            return {
+                "objective": 12.34,
+                "theta": {"Lp": 1.2, "sigma": 0.9, "beta_0": 2.1, "beta_1": 0.03},
+            }
+        dataset_id = str(experiments[0].dataset_id)
+        objective = 5.0 if dataset_id == "DATA2_A" else 7.34
+        return {
+            "objective": objective,
+            "theta": {"Lp": 1.2, "sigma": 0.9, "beta_0": 2.1, "beta_1": 0.03},
+        }
+
+    monkeypatch.setattr(
+        workflow_module,
+        "estimate_parameters_with_parmest_v24",
+        _fake_estimate_parameters_with_parmest_v24,
+    )
+
+    result = engine.fit_parameters(
+        datasets,
+        options,
+        parameter_scope=ParameterScope(shared_parameters=("Lp", "sigma", "beta_0", "beta_1")),
+        calc_cov=False,
+        solver="ipopt",
+        solver_options={"max_iter": 5000, "tol": 1e-6, "acceptable_tol": 1e-5},
+        tee=False,
+    )
+
+    assert result["parameter_scope"]["mode"] == "joint_shared"
+    assert len(result["dataset_summaries"]) == 2
+    assert {row["dataset_id"] for row in result["dataset_summaries"]} == {"DATA2_A", "DATA2_B"}
+    assert all("objective" in row for row in result["dataset_summaries"])
+    assert "regression_plan" in result
+
+
+@pytest.mark.regression
+def test_uqengine_run_full_workflow_reports_many_dataset_many_model_metadata() -> None:
+    """The full workflow should describe the many-datasets + many-models case explicitly."""
+    engine = UQEngine(data_loader=DataLoader())
+    requests = [
+        DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[0], dataset_id="DATA2_A"),
+        DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[1], dataset_id="DATA2_B"),
+    ]
+    candidate_options = [
+        ModelOptions(
+            mode=ExperimentMode.LAG,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="convection",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            fix_sigma_in_estimation=True,
+            process_model_profile=ProcessModelProfile.DATA2,
+            paper_profile="DATA2_PAPER",
+        ),
+        ModelOptions(
+            mode=ExperimentMode.LAG,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="single",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            fix_sigma_in_estimation=True,
+            process_model_profile=ProcessModelProfile.DATA2,
+            paper_profile="DATA2_PAPER",
+        ),
+    ]
+
+    workflow = engine.run_full_workflow(
+        requests,
+        candidate_options,
+        parameter_scope=ParameterScope(shared_parameters=("Lp", "sigma"), dataset_specific_parameters=("beta_0",)),
+        run_estimation=False,
+        run_parameter_estimation_doe=False,
+        run_model_discrimination_doe=False,
+    )
+
+    assert workflow.metadata["dataset_count"] == 2
+    assert workflow.metadata["candidate_model_count"] == 2
+    assert workflow.metadata["regression_plan"]["mode"] == "joint_shared_then_dataset_specific_refinement"
