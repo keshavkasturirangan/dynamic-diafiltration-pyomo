@@ -64,6 +64,10 @@ Unified code entrypoint/regression module:
 
 - [`test_unified_codebase_pytest_validation.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py)
 
+Workflow-orchestration regression module:
+
+- [`test_unified_workflow_oop.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_workflow_oop.py)
+
 Figure-validation pytest module:
 
 - [`test_simulation_validation_figures.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py)
@@ -78,6 +82,15 @@ What the figure-validation pytest does:
 - reruns the paper-figure comparison report
 - fails if any mapped figure target stops matching the extracted paper figure above threshold
 
+What the workflow-orchestration pytest does:
+
+- verifies MAT and XLSX loading through `DataLoader`
+- verifies `UQEngine` model comparison and AIC-style ranking
+- verifies DATA1 and DATA2 reproduction paths route through the workflow layer
+- verifies workflow-owned DATA1 Stage A/B and DATA2 artifact files are written
+- verifies many-dataset regression planning and per-dataset summaries
+- verifies parameter-estimation DoE and model-discrimination DoE remain distinct in API and metadata
+
 Command:
 
 ```bash
@@ -89,14 +102,29 @@ Recommended refactor guardrail commands:
 ```bash
 MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_utility_input_contract.py
 MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py
+MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_unified_workflow_oop.py
 MPLCONFIGDIR=/tmp/mplconfig pytest -q UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py -m "nightly"
 ```
 
 Current expected outcomes while refactoring:
 
 - `test_utility_input_contract.py`: `3 passed`
-- `test_unified_codebase_pytest_validation.py`: `9 passed, 1 xfailed`
-- `test_simulation_validation_figures.py -m "nightly"`: `1 passed, 1 deselected`
+- `test_unified_codebase_pytest_validation.py`: `77 passed, 153 xfailed`
+- `test_unified_workflow_oop.py`: `12 passed`
+- `test_simulation_validation_figures.py -m "nightly"`: `23 passed, 57 deselected`
+
+Nightly artifact/reproduction coverage also includes:
+
+- [`test_data1_data2_nightly.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_data1_data2_nightly.py)
+
+That test exercises the canonical DATA1/DATA2 reproduction script and checks:
+
+- side-by-side paper-vs-unified tables
+- workflow-owned DATA1 Stage A/B artifact paths
+- workflow-owned DATA2 artifact paths
+
+The test remains dependent on the populated paper-reference CSV and can therefore
+be solver-heavy or skipped depending on the checkout state.
 
 ## Unified-code defaults relevant to this flow
 
@@ -127,3 +155,7 @@ For the implementation status of explicit DATA1/DATA2 paper workflow support in 
 For the architecture and object-oriented refactor direction, see:
 
 - [`unified_refactor_plan.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/unified_code/unified_refactor_plan.md)
+
+For the current workflow entrypoint summary, see:
+
+- [`workflow/README.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/README.md)

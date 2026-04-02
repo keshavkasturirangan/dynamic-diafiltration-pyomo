@@ -188,13 +188,33 @@ The refactor now has a dedicated orchestration folder:
 Current organization in that module:
 
 - `DataLoader`: file-agnostic MAT/XLSX loading requests
+- `ModelOptions`: lightweight candidate-model configuration reused by the workflow layer
 - `DiafiltrationExperiment`: one dataset + one `ModelOptions`
 - `UQEngine`: estimation, uncertainty summaries, model comparison, parameter-estimation DoE, and model-discrimination scoring
+
+Additional workflow-side helpers now in place:
+
+- `ParameterScope`: explicit shared-vs-dataset-specific regression declaration
+- `RegressionPlan`: explicit summary of one single-dataset or joint multi-dataset regression plan
+- [`output_artifacts.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/output_artifacts.py): workflow-owned DATA1/DATA2 validation artifact builders
 
 Compatibility behavior:
 
 - [`run_unified_pipeline_v24(...)`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py) now routes through `UQEngine`
 - existing tests and scripts can keep using the procedural API while the OO module becomes the maintained orchestration surface
+
+Current workflow capabilities:
+
+- MAT and XLSX loading both route through `DataLoader`
+- DATA1 and DATA2 reproduction scripts route estimation and artifact generation through `UQEngine`
+- model comparison is integrated into `UQEngine` with AIC/AICc/BIC-style outputs
+- many-dataset regression reports both global results and per-dataset summaries
+- parameter-estimation DoE and model-discrimination DoE are explicit, distinct workflows in both APIs and metadata
+- nightly and regression tests inspect workflow-owned DATA1/DATA2 artifact files directly
+
+Recommended workflow documentation entrypoint:
+
+- [`workflow/README.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/README.md)
 
 ## Refactor guardrails
 
@@ -209,8 +229,20 @@ These are the minimum guardrails:
 Current expected state during refactor:
 
 - `test_utility_input_contract.py`: fully green
-- `test_unified_codebase_pytest_validation.py`: green except for the known DATA1 concentration `xfail`
-- `test_simulation_validation_figures.py`: green
+- `test_unified_codebase_pytest_validation.py`: green except for the known `xfail` population
+- `test_simulation_validation_figures.py -m "nightly"`: green
+- `test_unified_workflow_oop.py`: green
+
+Latest validation snapshot from the refactor work:
+
+- `python -m pytest UnifiedFramework/DATA3/tests/regression/test_utility_input_contract.py -q`
+  - `3 passed`
+- `python -m pytest UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py -q`
+  - `77 passed, 153 xfailed`
+- `MPLCONFIGDIR=/tmp/mplconfig python -m pytest UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py -q -m nightly`
+  - `23 passed, 57 deselected`
+- `python -m pytest UnifiedFramework/DATA3/tests/regression/test_unified_workflow_oop.py -q`
+  - `12 passed`
 
 Interpretation:
 
