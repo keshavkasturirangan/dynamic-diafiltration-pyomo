@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -55,6 +56,25 @@ def test_data1_data2_reproduction_nightly(tmp_path: Path) -> None:
     latest = run_dirs[-1]
     side_by_side = latest / "tables" / "paper_vs_unified_side_by_side.csv"
     assert side_by_side.exists(), "Missing side-by-side comparison CSV."
+    meta_path = latest / "run_metadata.json"
+    assert meta_path.exists(), "Missing reproduction run metadata JSON."
+    meta = json.loads(meta_path.read_text())
+
+    stage_a = meta.get("stage_a_artifacts", {})
+    stage_b = meta.get("stage_b_artifacts", {})
+    data2_artifacts = meta.get("data2_artifacts", {})
+    if stage_a:
+        for artifact_path in stage_a.get("figures", []):
+            assert Path(artifact_path).exists(), f"Missing DATA1 Stage A figure: {artifact_path}"
+        for artifact_path in stage_a.get("tables", []):
+            assert Path(artifact_path).exists(), f"Missing DATA1 Stage A table: {artifact_path}"
+    if stage_b:
+        assert Path(stage_b["manifest"]).exists(), f"Missing DATA1 Stage B manifest: {stage_b['manifest']}"
+    for artifact_group in data2_artifacts.values():
+        for artifact_path in artifact_group.get("tables", []):
+            assert Path(artifact_path).exists(), f"Missing DATA2 artifact table: {artifact_path}"
+        for artifact_path in artifact_group.get("figures", []):
+            assert Path(artifact_path).exists(), f"Missing DATA2 artifact figure: {artifact_path}"
 
     df = pd.read_csv(side_by_side)
     failing = df[df["status"] == "FAIL"]
