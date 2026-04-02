@@ -1,135 +1,106 @@
-# Dynamic Diafiltration Model in Pyomo
+# Diafiltration Comprehensive Workflow
 
-> **Canonical code path (source of truth):** `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`  
-> Runner entrypoint: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`  
-> Core pipeline: `UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`  
-> Legacy root-level scripts (for example `utility.py`, `run_*.py`) are compatibility/reference paths, not primary development paths.
+This repository contains the refactored Pyomo-based diafiltration analysis
+workflow for DATA1, DATA2, and DATA3.
 
+Canonical development path:
 
-**Characterizing Transport Properties of Nanofiltration Membranes**
+- [`UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/)
 
-This repository contains a Pyomo-based dynamic diafiltration model used to analyze the transport properties of nanofiltration (NF) membranes. It supports robust parameter estimation and data analytics workflows based on dynamic experiments.
+Primary workflow module:
 
----
+- [`UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/unified_workflow.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/unified_workflow.py)
 
-## Environment Setup
+Workflow overview:
 
-This project is developed with the following dependencies:
-- **Python**: Version 3.11.6
-- **Pyomo**: Version 6.8.0
-- **MATLAB**: Implemented with R2020a and R2022a (for additional MATLAB analysis in `DATA1-matlab`)
+- `DataLoader`
+  - loads MAT and XLSX experiment files
+  - normalizes them into the shared `ExperimentalData` representation
 
-### Suggested Conda Configuration
+- `ModelOptions`
+  - stores one candidate model configuration
+  - carries process-model profile, paper-profile overlay, estimation settings, and DoE settings
 
-To set up the Python environment, recommend the following Conda configuration:
+- `DiafiltrationExperiment`
+  - binds one dataset to one `ModelOptions`
+  - constructs the labeled Pyomo model used for simulation, ParmEst, and DoE
+
+- `UQEngine`
+  - orchestrates parameter estimation, uncertainty summaries, model comparison, plotting/validation artifacts, and next-experiment workflows
+  - supports:
+    - one dataset + many model options
+    - many datasets + one model option
+    - many datasets + many model options
+  - distinguishes:
+    - parameter-estimation DoE
+    - model-discrimination DoE
+
+## Where To Start
+
+For the current workflow entrypoint summary, start here:
+
+- [`UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/README.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/workflow/README.md)
+
+For the compatibility procedural entrypoint:
+
+- [`UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_library.py)
+
+For preset runs and paper-oriented configurations:
+
+- [`UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/ExperimentalDataAnalysis/UnifiedCode/unified_codebase_runfile.py)
+
+For DATA1/DATA2 canonical reproduction:
+
+- [`UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py)
+
+## Validation
+
+High-signal validation paths:
+
+- [`UnifiedFramework/DATA3/tests/regression/test_unified_workflow_oop.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_workflow_oop.py)
+- [`UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_unified_codebase_pytest_validation.py)
+- [`UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_simulation_validation_figures.py)
+- [`UnifiedFramework/DATA3/tests/regression/test_data1_data2_nightly.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/tests/regression/test_data1_data2_nightly.py)
+
+Nightly-validation notes:
+
+- [`UnifiedFramework/DATA3/docs/validation/nightly/pytest_data_comparison_guide.md`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/pytest_data_comparison_guide.md)
+- [`UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv)
+
+## Environment
+
+Suggested baseline environment:
+
+- Python 3.11
+- Pyomo
+- NumPy
+- pandas
+- SciPy
+- matplotlib
+- CasADi
+
+Example conda setup:
+
 ```bash
 conda create -n dynamic-diafiltration -c anaconda -c conda-forge -c IDAES-PSE python=3.11 numpy matplotlib pandas scipy idaes-pse scikit-learn
-```
-Activate the environment:
-```bash
 conda activate dynamic-diafiltration
-```
-In case CasADi is not installed (needed for model initialization)
-```bash
 pip install casadi
 ```
----
 
-## Repository Organization
+## Legacy And Reference Paths
 
-### Root Directory
+Legacy root-level scripts and notebooks are still present as reference or
+compatibility paths, but they are no longer the primary development surface.
 
-1. **`data_library/`**  
-   Contains formatted experimental data (nested `.mat` files) used for the model and analysis.
+Examples:
 
-2. **`DATA1-matlab/`**
-   Original MATLAB scripts and supporting functions for analyzing diafiltration and filtration experiments, performing parameter estimation, and generating heatmaps for Model-Based Design of Experiments (MBDoE) in DATA1 and DATA-MBDoE papers. For usage details, please refer to the README file in this folder.
-   
-3. **`utility.py`**  
-   Core library of Python functions for:
-   - Loading and storing nested MATLAB `.mat` data.
-   - Performing parameter estimation and providing information for model ranking.
-   - Performing Fisher Information Matrix (FIM) analysis.
-   - Visualization of experimental and simulation results.
+- [`utility.py`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/utility.py)
+- [`DATA1_model_demo.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA1_model_demo.ipynb)
+- [`DATA2_model_demo.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_model_demo.ipynb)
+- [`DATA2_visualization.ipynb`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/DATA2_visualization.ipynb)
 
-4. **`DATA1_model_demo.ipynb`**  
-   Compatibility symlink to `legacy/notebooks/data1/DATA1_model_demo.ipynb`.  
-   A Jupyter Notebook demonstrating:
-   - Dynamic diafiltration Pyomo modeling.
-   - Reproduce DATA1 analysis for NF90 membranes.
-   - [WIP] Generating contours for sensitivity analysis/DoE in the DATA1 paper.
-  
-5. **`DATA2_model_demo.ipynb`**  
-   Compatibility symlink to `legacy/notebooks/data2/DATA2_model_demo.ipynb`.  
-   A Jupyter Notebook demonstrating:
-   - Dynamic diafiltration Pyomo modeling.
-   - Analysis of NF270 membranes for DATA2 paper.
+## Current Status
 
-6. **`DATA2_visualization.ipynb`**  
-   Compatibility symlink to `legacy/notebooks/data2/DATA2_visualization.ipynb`.  
-   Notebook for generating publication-ready plots and visualizations for the DATA2 paper.
-
-7. **`run_cross_verification.py`**  
-   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_cross_verification.py`.  
-   Cross-verifies empirical solute permeability coefficient (`B`) models with additional datasets and stores visualizations.
-
-8. **`run_DATA2_model_variations.py`**  
-   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_DATA2_model_variations.py`.  
-   Explores model variations (e.g., startup dynamics/time correction) and performs Fisher Information Matrix (FIM) calculations for the DATA2 paper.
-
-9. **`run_pre_B_dependence.py`**  
-   Compatibility entrypoint for legacy script now located at `legacy/scripts/run_pre_B_dependence.py`.  
-   Preliminarily investigates dependence of solute permeability coefficient (`B`) on interface concentration and outputs visualizations.
-   
----
-
-## Key Features
-
-- **Dynamic Diafiltration Modeling**: Captures startup dynamics, concentration-dependent transport properties, and solute flux mechanisms.
-- **Data Analytics**: Implements advanced techniques like weighted least squares (WLS) and Akaike Information Criterion (AIC) for parameter estimation and model discrimination.
-- **Support for Multiple Membranes**: Includes NF90 (near neutral) and NF270 (negative-charged) membrane analysis for comparing transport properties.
-- **Visualization Tools**: Built-in scripts for generating model diagnostics and experiment comparisons.
-- **FIM Analysis**: Calculates the Fisher Information Matrix for experimental design optimization.
-
----
-
-## Usage
-
-### Running the Model
-1. **Prepare Data**: Place experimental `.mat` files in the `data/` directory.
-2. **Configure Parameters**: Modify initial conditions and parameters in `utility.py` or the notebook as needed.
-3. **Run the Notebook**: Execute `DATA2_model_demo.ipynb` to:
-   - Load data.
-   - Run the Pyomo model.
-   - Visualize results.
-
-### Visualization
-Plots include:
-- Time evolution of mass and concentration in vials.
-- Comparison of experimental and simulated results.
-
-### FIM Analysis
-Use `calc_FIM` to optimize experimental design:
-- Configure step size and finite difference scheme.
-- Analyze parameter sensitivity printout.
-
----
-
-## References
-
-This repository accompanies the studies: 
-
-**DATA2**
-
-*"Characterizing Transport Properties of Surface-Charged Nanofiltration Membranes via Model-based Data Analytics"*, authored by [Xinhong Liu et al.](mailto:xliu27@alumni.nd.edu), [William A. Phillip](mailto:wphillip@nd.edu), and [Alexander W. Dowling](mailto:adowling@nd.edu).
-
-**DATA-MBDoE**
-
-*"Membrane Characterization with Model-Based Design of Experiments"*, authored by [Xinhong Liu et al.](mailto:xliu27@alumni.nd.edu), [William A. Phillip](mailto:wphillip@nd.edu), and [Alexander W. Dowling](mailto:adowling@nd.edu).
-
-**DATA1**
-
-*"DATA: Diafiltration Apparatus for high-Throughput Analysis"*, authored by [Jonathan A Ouimet](mailto:ouimetja@gmail.com), [Xinhong Liu et al.](mailto:xliu27@alumni.nd.edu), [William A. Phillip](mailto:wphillip@nd.edu), and [Alexander W. Dowling](mailto:adowling@nd.edu).
-
-
-For details on the methodology, refer to the manuscript or contact the corresponding authors.
+The workflow refactor is in place and validated. Remaining work is primarily
+scientific parity improvement for the still-allowlisted DATA1/DATA2 numeric
+mismatches, not further workflow reorganization.
