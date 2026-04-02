@@ -145,6 +145,17 @@ class ModelSelectionRow:
     bic: float
 
 
+@dataclass(frozen=True)
+class DesignWorkflowSummary:
+    """Compact, workflow-neutral summary for one experiment-design mode."""
+
+    workflow_type: str
+    design_goal: str
+    score_type: str
+    candidate_model_count: int
+    recommended_design: Dict[str, object]
+
+
 class DataLoader:
     """Load MAT and XLSX experiment files into a common internal representation."""
 
@@ -512,6 +523,23 @@ class UQEngine:
         exp_obj = DiafiltrationExperiment(dataset=dataset, model_options=model_options, guess=guess)
         result = run_doe_with_pyomo_v24(exp_obj, solver_name=solver_name, tee=tee)
         result["workflow_type"] = "parameter_estimation"
+        result["design_goal"] = "reduce_parameter_uncertainty"
+        result["score_type"] = "fim_d_optimality"
+        result["candidate_model_count"] = 1
+        result["candidate_model_names"] = [self._model_option_name(model_options)]
+        result["recommended_design"] = {
+            "objective_option": "determinant",
+            "d_opt_logdet": float(result.get("d_opt_logdet", np.nan)),
+        }
+        result["summary"] = self._design_summary_to_dict(
+            DesignWorkflowSummary(
+                workflow_type="parameter_estimation",
+                design_goal="reduce_parameter_uncertainty",
+                score_type="fim_d_optimality",
+                candidate_model_count=1,
+                recommended_design=dict(result["recommended_design"]),
+            )
+        )
         return result
 
     def analyze_doe_model_discrimination(
@@ -521,6 +549,7 @@ class UQEngine:
         *,
         fitted_thetas: Optional[Sequence[Optional[Dict[str, float]]]] = None,
         candidate_design_overrides: Optional[Sequence[Dict[str, object]]] = None,
+        candidate_names: Optional[Sequence[str]] = None,
     ) -> Dict[str, object]:
         """Score candidate future experiments for model discrimination.
 
@@ -533,9 +562,11 @@ class UQEngine:
             raise ValueError("analyze_doe_model_discrimination requires at least one candidate model.")
         design_overrides = list(candidate_design_overrides or [{"C_D_value": dataset.C_D_value}])
         theta_list = list(fitted_thetas or [None] * len(candidate_options))
+        model_names = list(candidate_names or [self._model_option_name(options) for options in candidate_options])
         rows: List[Dict[str, object]] = []
         for design_idx, override in enumerate(design_overrides, start=1):
             signatures: List[np.ndarray] = []
+            pairwise_rows: List[Dict[str, object]] = []
             for options, theta in zip(candidate_options, theta_list):
                 experiment = DiafiltrationExperiment(dataset=dataset, model_options=options)
                 model = experiment.build_simulation_model(
@@ -543,19 +574,40 @@ class UQEngine:
                     specs_override=override,
                 )
                 signatures.append(self._design_signature(model))
-            score = self._pairwise_signature_distance(signatures)
+            distances = self._pairwise_signature_distances(signatures, model_names=model_names)
+            score = float(np.mean([row["distance"] for row in distances])) if distances else 0.0
+            min_distance = float(min((row["distance"] for row in distances), default=0.0))
+            max_distance = float(max((row["distance"] for row in distances), default=0.0))
             rows.append(
                 {
                     "design_id": f"design_{design_idx}",
                     "design_override": dict(override),
                     "discrimination_score": float(score),
+                    "mean_pairwise_distance": float(score),
+                    "min_pairwise_distance": min_distance,
+                    "max_pairwise_distance": max_distance,
+                    "pairwise_distances": distances,
                 }
             )
         ranking = pd.DataFrame(rows).sort_values("discrimination_score", ascending=False).reset_index(drop=True)
+        recommended_design = ranking.iloc[0].to_dict() if not ranking.empty else None
         return {
             "workflow_type": "model_discrimination",
+            "design_goal": "separate_candidate_models",
+            "score_type": "mean_pairwise_signature_distance",
+            "candidate_model_count": len(candidate_options),
+            "candidate_model_names": model_names,
             "ranking": ranking,
-            "recommended_design": ranking.iloc[0].to_dict() if not ranking.empty else None,
+            "recommended_design": recommended_design,
+            "summary": self._design_summary_to_dict(
+                DesignWorkflowSummary(
+                    workflow_type="model_discrimination",
+                    design_goal="separate_candidate_models",
+                    score_type="mean_pairwise_signature_distance",
+                    candidate_model_count=len(candidate_options),
+                    recommended_design=dict(recommended_design or {}),
+                )
+            ),
         }
 
     def compare_models(
@@ -808,6 +860,10 @@ class UQEngine:
                     "shared": sorted((parameter_scope or ParameterScope()).shared_name_set()),
                     "dataset_specific": sorted((parameter_scope or ParameterScope()).dataset_specific_name_set()),
                 },
+                "design_workflows": {
+                    "parameter_estimation": self._extract_design_summary(doe_estimation),
+                    "model_discrimination": self._extract_design_summary(doe_discrimination),
+                },
             },
         )
 
@@ -987,6 +1043,36 @@ class UQEngine:
         }
 
     @staticmethod
+    def _design_summary_to_dict(summary: DesignWorkflowSummary) -> Dict[str, object]:
+        return {
+            "workflow_type": summary.workflow_type,
+            "design_goal": summary.design_goal,
+            "score_type": summary.score_type,
+            "candidate_model_count": summary.candidate_model_count,
+            "recommended_design": dict(summary.recommended_design),
+        }
+
+    @classmethod
+    def _extract_design_summary(cls, result: Optional[Dict[str, object]]) -> Optional[Dict[str, object]]:
+        if result is None:
+            return None
+        summary = result.get("summary")
+        if isinstance(summary, dict):
+            return dict(summary)
+        return {
+            "workflow_type": str(result.get("workflow_type", "")),
+            "design_goal": str(result.get("design_goal", "")),
+            "score_type": str(result.get("score_type", "")),
+            "candidate_model_count": int(result.get("candidate_model_count", 0)),
+            "recommended_design": dict(result.get("recommended_design") or {}),
+        }
+
+    @staticmethod
+    def _model_option_name(model_options: ModelOptions) -> str:
+        profile = getattr(model_options.process_model_profile, "value", None) or str(model_options.process_model_profile)
+        return f"{profile}:{model_options.b_form}"
+
+    @staticmethod
     def _count_measurements(datasets: Sequence[ExperimentalData], model_options: ModelOptions) -> int:
         count = 0
         for dataset in datasets:
@@ -1034,3 +1120,21 @@ class UQEngine:
                 total += float(np.linalg.norm(left - right))
                 comparisons += 1
         return total / max(comparisons, 1)
+
+    @staticmethod
+    def _pairwise_signature_distances(
+        signatures: Sequence[np.ndarray],
+        *,
+        model_names: Sequence[str],
+    ) -> List[Dict[str, object]]:
+        rows: List[Dict[str, object]] = []
+        for idx, left in enumerate(signatures):
+            for right_idx, right in enumerate(signatures[idx + 1 :], start=idx + 1):
+                rows.append(
+                    {
+                        "left_model": str(model_names[idx]),
+                        "right_model": str(model_names[right_idx]),
+                        "distance": float(np.linalg.norm(left - right)),
+                    }
+                )
+        return rows

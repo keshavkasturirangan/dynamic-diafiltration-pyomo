@@ -341,3 +341,188 @@ def test_uqengine_run_full_workflow_reports_many_dataset_many_model_metadata() -
     assert workflow.metadata["dataset_count"] == 2
     assert workflow.metadata["candidate_model_count"] == 2
     assert workflow.metadata["regression_plan"]["mode"] == "joint_shared_then_dataset_specific_refinement"
+
+
+@pytest.mark.regression
+def test_uqengine_parameter_estimation_doe_reports_explicit_workflow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Parameter-estimation DoE should report an explicit uncertainty-reduction workflow summary."""
+    loader = DataLoader()
+    dataset, validation = loader.load(
+        DatasetRequest(file_path=runfile.PRESET_DATA1_PATHS[0], dataset_id="DATA1_501_1")
+    )
+    assert validation[0] is True
+
+    engine = UQEngine(data_loader=loader)
+    options = ModelOptions(
+        mode=ExperimentMode.DATA,
+        parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+        b_form="single",
+        nfe=10,
+        use_sigma_logit_transform=False,
+        process_model_profile=ProcessModelProfile.DATA1,
+        paper_profile="DATA1_PAPER",
+    )
+
+    def _fake_run_doe_with_pyomo_v24(experiment, *, fd_formula="central", step=0.001, objective_option="determinant", solver_name="ipopt", tee=False):
+        return {
+            "fim": np.eye(2),
+            "d_opt_logdet": 1.23,
+            "objective_option": objective_option,
+            "fd_formula": fd_formula,
+            "step": step,
+        }
+
+    monkeypatch.setattr(workflow_module, "run_doe_with_pyomo_v24", _fake_run_doe_with_pyomo_v24)
+
+    result = engine.analyze_doe_parameter_estimation(dataset, options)
+
+    assert result["workflow_type"] == "parameter_estimation"
+    assert result["design_goal"] == "reduce_parameter_uncertainty"
+    assert result["score_type"] == "fim_d_optimality"
+    assert result["candidate_model_count"] == 1
+    assert result["recommended_design"]["objective_option"] == "determinant"
+    assert result["summary"]["workflow_type"] == "parameter_estimation"
+
+
+@pytest.mark.regression
+def test_uqengine_model_discrimination_doe_reports_explicit_workflow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Model-discrimination DoE should report explicit separation-focused outputs and ranking columns."""
+    loader = DataLoader()
+    dataset, validation = loader.load(
+        DatasetRequest(file_path=runfile.PRESET_DATA2_PATHS[0], dataset_id="DATA2_A")
+    )
+    assert validation[0] is True
+
+    engine = UQEngine(data_loader=loader)
+    candidate_options = [
+        ModelOptions(
+            mode=ExperimentMode.LAG,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="single",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            process_model_profile=ProcessModelProfile.DATA2,
+            paper_profile="DATA2_PAPER",
+        ),
+        ModelOptions(
+            mode=ExperimentMode.LAG,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="pervial",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            process_model_profile=ProcessModelProfile.DATA2,
+            paper_profile="DATA2_PAPER",
+        ),
+    ]
+
+    def _fake_build_simulation_model(self, *, theta_values=None, specs_override=None, solver_name="ipopt", solver_options=None, tee=False):
+        c_d_value = float((specs_override or {}).get("C_D_value", 0.0))
+        scale = 1.0 if self.model_options.b_form == "single" else 2.0
+        return {"signature": np.asarray([scale * c_d_value, scale], dtype=float)}
+
+    monkeypatch.setattr(
+        workflow_module.DiafiltrationExperiment,
+        "build_simulation_model",
+        _fake_build_simulation_model,
+    )
+    monkeypatch.setattr(
+        workflow_module.UQEngine,
+        "_design_signature",
+        staticmethod(lambda model: np.asarray(model["signature"], dtype=float)),
+    )
+
+    result = engine.analyze_doe_model_discrimination(
+        dataset,
+        candidate_options,
+        candidate_names=["single_b", "per_vial_b"],
+        candidate_design_overrides=[{"C_D_value": 0.5}, {"C_D_value": 2.0}],
+    )
+
+    assert result["workflow_type"] == "model_discrimination"
+    assert result["design_goal"] == "separate_candidate_models"
+    assert result["score_type"] == "mean_pairwise_signature_distance"
+    assert result["candidate_model_count"] == 2
+    assert list(result["candidate_model_names"]) == ["single_b", "per_vial_b"]
+    assert {"mean_pairwise_distance", "min_pairwise_distance", "max_pairwise_distance"}.issubset(
+        result["ranking"].columns
+    )
+    assert result["recommended_design"]["design_id"] == "design_2"
+    assert result["summary"]["workflow_type"] == "model_discrimination"
+
+
+@pytest.mark.regression
+@pytest.mark.nightly
+def test_uqengine_run_full_workflow_reports_distinct_design_workflows(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Full-workflow metadata should keep parameter-estimation and model-discrimination design modes separate."""
+    engine = UQEngine(data_loader=DataLoader())
+    requests = [DatasetRequest(file_path=runfile.PRESET_DATA1_PATHS[0], dataset_id="DATA1_501_1")]
+    candidate_options = [
+        ModelOptions(
+            mode=ExperimentMode.DATA,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="single",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            process_model_profile=ProcessModelProfile.DATA1,
+            paper_profile="DATA1_PAPER",
+        ),
+        ModelOptions(
+            mode=ExperimentMode.DATA,
+            parameter_treatment_mode=ParameterTreatmentMode.ESTIMATION,
+            b_form="pervial",
+            nfe=5,
+            use_sigma_logit_transform=False,
+            process_model_profile=ProcessModelProfile.DATA1,
+            paper_profile="DATA1_PAPER",
+        ),
+    ]
+
+    monkeypatch.setattr(
+        workflow_module.UQEngine,
+        "analyze_doe_parameter_estimation",
+        lambda self, dataset, model_options, **kwargs: {
+            "workflow_type": "parameter_estimation",
+            "design_goal": "reduce_parameter_uncertainty",
+            "score_type": "fim_d_optimality",
+            "candidate_model_count": 1,
+            "recommended_design": {"objective_option": "determinant", "d_opt_logdet": 1.0},
+            "summary": {
+                "workflow_type": "parameter_estimation",
+                "design_goal": "reduce_parameter_uncertainty",
+                "score_type": "fim_d_optimality",
+                "candidate_model_count": 1,
+                "recommended_design": {"objective_option": "determinant", "d_opt_logdet": 1.0},
+            },
+        },
+    )
+    monkeypatch.setattr(
+        workflow_module.UQEngine,
+        "analyze_doe_model_discrimination",
+        lambda self, dataset, candidate_options, **kwargs: {
+            "workflow_type": "model_discrimination",
+            "design_goal": "separate_candidate_models",
+            "score_type": "mean_pairwise_signature_distance",
+            "candidate_model_count": len(candidate_options),
+            "recommended_design": {"design_id": "design_1", "discrimination_score": 2.0},
+            "summary": {
+                "workflow_type": "model_discrimination",
+                "design_goal": "separate_candidate_models",
+                "score_type": "mean_pairwise_signature_distance",
+                "candidate_model_count": len(candidate_options),
+                "recommended_design": {"design_id": "design_1", "discrimination_score": 2.0},
+            },
+        },
+    )
+
+    workflow = engine.run_full_workflow(
+        requests,
+        candidate_options,
+        run_estimation=False,
+        run_parameter_estimation_doe=True,
+        run_model_discrimination_doe=True,
+    )
+
+    assert workflow.doe_parameter_estimation["workflow_type"] == "parameter_estimation"
+    assert workflow.doe_model_discrimination["workflow_type"] == "model_discrimination"
+    assert workflow.metadata["design_workflows"]["parameter_estimation"]["score_type"] == "fim_d_optimality"
+    assert workflow.metadata["design_workflows"]["model_discrimination"]["score_type"] == "mean_pairwise_signature_distance"
