@@ -122,9 +122,12 @@ That test exercises the canonical DATA1/DATA2 reproduction script and checks:
 - side-by-side paper-vs-unified tables
 - workflow-owned DATA1 Stage A/B artifact paths
 - workflow-owned DATA2 artifact paths
+- unexpected numeric `FAIL` rows against the nightly allowlist in [`known_nonpass.csv`](/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv)
 
-The test remains dependent on the populated paper-reference CSV and can therefore
-be solver-heavy or skipped depending on the checkout state.
+The test remains dependent on the populated paper-reference CSV and is solver-heavy,
+but it now uses the same documented nightly exception policy as the consolidated
+validation gate: known non-pass targets are tolerated, and only unexpected new
+`FAIL` rows fail the test.
 
 ## Unified-code defaults relevant to this flow
 

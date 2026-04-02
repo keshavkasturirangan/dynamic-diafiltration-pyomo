@@ -10,10 +10,13 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from UnifiedFramework.DATA3.scripts.validation.nightly.nightly_validation_gate import read_exceptions
+
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SCRIPT = REPO_ROOT / "UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py"
 REFERENCE_CSV = REPO_ROOT / "UnifiedFramework/DATA3/docs/validation/paper_reference_values_template.csv"
+KNOWN_NONPASS_CSV = REPO_ROOT / "UnifiedFramework/DATA3/docs/validation/nightly/config/known_nonpass.csv"
 
 
 def _has_reference_values(path: Path) -> bool:
@@ -24,6 +27,11 @@ def _has_reference_values(path: Path) -> bool:
     if "paper_value" not in df.columns:
         return False
     return bool(df["paper_value"].notna().any())
+
+
+def _allowed_nonpass_target_ids() -> set[str]:
+    """Return target IDs explicitly allowlisted for nightly non-pass statuses."""
+    return set(read_exceptions(KNOWN_NONPASS_CSV).keys())
 
 
 @pytest.mark.slow
@@ -78,7 +86,12 @@ def test_data1_data2_reproduction_nightly(tmp_path: Path) -> None:
 
     df = pd.read_csv(side_by_side)
     failing = df[df["status"] == "FAIL"]
-    assert failing.empty, (
-        "Tolerance failures detected in nightly reproduction run.\n"
-        f"{failing[['dataset_id', 'metric', 'relative_error', 'status']].to_string(index=False)}"
+    if failing.empty:
+        return
+
+    allowed_targets = _allowed_nonpass_target_ids()
+    unexpected = failing[~failing["target_id"].astype(str).isin(allowed_targets)]
+    assert unexpected.empty, (
+        "Unexpected tolerance failures detected in nightly reproduction run.\n"
+        f"{unexpected[['target_id', 'dataset_id', 'metric', 'relative_error', 'status']].to_string(index=False)}"
     )
