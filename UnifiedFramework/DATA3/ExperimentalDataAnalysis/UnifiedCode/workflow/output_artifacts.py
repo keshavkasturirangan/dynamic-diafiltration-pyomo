@@ -9,6 +9,24 @@ import numpy as np
 import pandas as pd
 
 
+PAPER_COLORS = {
+    # Match the legacy notebook/utility plotting conventions used to generate
+    # the original paper figures as closely as possible.
+    "data1_mass_measured": "#FF0000",
+    "data1_mass_predicted": "#0000FF",
+    "data1_retentate_measured": "#FF00FF",
+    "data1_retentate_predicted": "#008000",
+    "data1_permeate_predicted": "#FF0000",
+    "data1_vial_measured": "#00BFC4",
+    "data1_vial_predicted": "#FF0000",
+    "data1_parity": "#0000FF",
+    "data1_residual": "#5F7F9A",
+    "data1_identity": "#4D4D4D",
+    "data2_measurement": "#FF0000",
+    "data2_prediction": "#0000FF",
+}
+
+
 def extract_model_trajectories(exp, model) -> Dict[int, Dict[str, np.ndarray]]:
     """Extract per-vial trajectories in physical time from a discretized model."""
     import pyomo.environ as pyo
@@ -28,7 +46,10 @@ def extract_model_trajectories(exp, model) -> Dict[int, Dict[str, np.ndarray]]:
         cV = np.array([float(pyo.value(model.cV[n, tau])) for tau in tau_vals], dtype=float)
         Jw = np.array([float(pyo.value(model.Jw[n, tau])) for tau in tau_vals], dtype=float)
         Js = np.array([float(pyo.value(model.Js[n, tau])) for tau in tau_vals], dtype=float)
-        out[n] = {"time_s": t_model, "mV": mV, "cF": cF, "cH": cH, "cV": cV, "Jw": Jw, "Js": Js}
+        traj = {"time_s": t_model, "mV": mV, "cF": cF, "cH": cH, "cV": cV, "Jw": Jw, "Js": Js}
+        if hasattr(model, "mF"):
+            traj["mF"] = np.array([float(pyo.value(model.mF[n, tau])) for tau in tau_vals], dtype=float)
+        out[n] = traj
     return out
 
 
@@ -121,7 +142,15 @@ def build_data1_stage_a_outputs(
         t = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
         y = np.asarray(v.mass_g, dtype=float) if v.mass_g is not None else np.array([])
         if t.size and y.size:
-            plt.plot(t, y, "r.", markersize=4, label="Measured" if i == 1 else None)
+            plt.plot(
+                t,
+                y,
+                linestyle="None",
+                marker="o",
+                color=PAPER_COLORS["data1_mass_measured"],
+                markersize=4,
+                label="Measured" if i == 1 else None,
+            )
     plt.xlabel("Time [min]")
     plt.ylabel("Mass in Vial [g]")
     plt.ylim(bottom=0)
@@ -136,7 +165,15 @@ def build_data1_stage_a_outputs(
         t = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
         y = np.asarray(v.retentate_signal, dtype=float) if v.retentate_signal is not None else np.array([])
         if t.size and y.size:
-            plt.plot(t, y, "ms", markersize=4, label="Measured cF" if i == 1 else None)
+            plt.plot(
+                t,
+                y,
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_retentate_measured"],
+                markersize=4,
+                label="Measured cF" if i == 1 else None,
+            )
     plt.xlabel("Time [min]")
     plt.ylabel("Retentate concentration [mM]")
     plt.ylim(bottom=0)
@@ -151,7 +188,15 @@ def build_data1_stage_a_outputs(
         tf = (float(v.time_s[-1]) - t_delay) / 60.0
         yv = float(v.cV_avg) if isinstance(v.cV_avg, (int, float, np.number)) else np.nan
         if np.isfinite(yv):
-            plt.plot([tf], [yv], "cs", markersize=6, label="Measured cV" if i == 1 else None)
+            plt.plot(
+                [tf],
+                [yv],
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_vial_measured"],
+                markersize=6,
+                label="Measured cV" if i == 1 else None,
+            )
     plt.xlabel("Time [min]")
     plt.ylabel("Vial concentration [mM]")
     plt.ylim(bottom=0)
@@ -165,12 +210,38 @@ def build_data1_stage_a_outputs(
     for i, v in enumerate(exp.vials, start=1):
         t = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
         if v.mass_g is not None:
-            plt.plot(t, np.asarray(v.mass_g, dtype=float), "r.", markersize=3, alpha=0.6, label="Mass meas." if i == 1 else None)
+            plt.plot(
+                t,
+                np.asarray(v.mass_g, dtype=float),
+                linestyle="None",
+                marker="o",
+                color=PAPER_COLORS["data1_mass_measured"],
+                markersize=3,
+                alpha=0.7,
+                label="Mass meas." if i == 1 else None,
+            )
         if v.retentate_signal is not None:
-            plt.plot(t, np.asarray(v.retentate_signal, dtype=float), "m-", linewidth=1.2, alpha=0.6, label="cF meas." if i == 1 else None)
+            plt.plot(
+                t,
+                np.asarray(v.retentate_signal, dtype=float),
+                "-",
+                color=PAPER_COLORS["data1_retentate_measured"],
+                linewidth=1.2,
+                alpha=0.7,
+                label="cF meas." if i == 1 else None,
+            )
         yv = float(v.cV_avg) if isinstance(v.cV_avg, (int, float, np.number)) else np.nan
         if np.isfinite(yv):
-            plt.plot([(float(v.time_s[-1]) - t_delay) / 60.0], [yv], "c^", markersize=4, alpha=0.8, label="cV meas." if i == 1 else None)
+            plt.plot(
+                [(float(v.time_s[-1]) - t_delay) / 60.0],
+                [yv],
+                linestyle="None",
+                marker="^",
+                color=PAPER_COLORS["data1_vial_measured"],
+                markersize=4,
+                alpha=0.85,
+                label="cV meas." if i == 1 else None,
+            )
     plt.xlabel("Time [min]")
     plt.ylabel("Measured responses")
     plt.tick_params(direction="in")
@@ -186,14 +257,40 @@ def build_data1_stage_a_outputs(
         t_sim = sim[n]["time_s"] / 60.0
         if v.mass_g is not None:
             y_mass = np.asarray(v.mass_g, dtype=float)
-            plt.plot(t_meas, y_mass, "r.", markersize=3, alpha=0.6, label="Mass meas." if n == 1 else None)
+            plt.plot(
+                t_meas,
+                y_mass,
+                linestyle="None",
+                marker="o",
+                color=PAPER_COLORS["data1_mass_measured"],
+                markersize=3,
+                alpha=0.7,
+                label="Mass meas." if n == 1 else None,
+            )
             y_mass_pred = np.interp(t_meas * 60.0, sim[n]["time_s"], sim[n]["mV"])
             mass_true.extend(y_mass.tolist())
             mass_pred.extend(y_mass_pred.tolist())
         if v.retentate_signal is not None:
             y_cf = np.asarray(v.retentate_signal, dtype=float)
-            plt.plot(t_meas, y_cf, "ms", markersize=3, alpha=0.6, label="cF meas." if n == 1 else None)
-            plt.plot(t_sim, sim[n]["cF"], "g-", linewidth=1.4, alpha=0.8, label="cF pred." if n == 1 else None)
+            plt.plot(
+                t_meas,
+                y_cf,
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_retentate_measured"],
+                markersize=3,
+                alpha=0.7,
+                label="cF meas." if n == 1 else None,
+            )
+            plt.plot(
+                t_sim,
+                sim[n]["cF"],
+                "-",
+                color=PAPER_COLORS["data1_retentate_predicted"],
+                linewidth=1.4,
+                alpha=0.85,
+                label="cF pred." if n == 1 else None,
+            )
             y_cf_pred = np.interp(t_meas * 60.0, sim[n]["time_s"], sim[n]["cF"])
             cf_true.extend(y_cf.tolist())
             cf_pred.extend(y_cf_pred.tolist())
@@ -203,8 +300,26 @@ def build_data1_stage_a_outputs(
             y_cv_pred = float(np.interp(t_end, sim[n]["time_s"], sim[n]["cV"]))
             cv_true.append(y_cv)
             cv_pred.append(y_cv_pred)
-            plt.plot([t_end / 60.0], [yv], "cs", markersize=5, alpha=0.8, label="cV meas." if n == 1 else None)
-            plt.plot([sim[n]["time_s"][-1] / 60.0], [sim[n]["cV"][-1]], "r^", markersize=5, alpha=0.8, label="cV pred." if n == 1 else None)
+            plt.plot(
+                [t_end / 60.0],
+                [yv],
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_vial_measured"],
+                markersize=5,
+                alpha=0.85,
+                label="cV meas." if n == 1 else None,
+            )
+            plt.plot(
+                [sim[n]["time_s"][-1] / 60.0],
+                [sim[n]["cV"][-1]],
+                linestyle="None",
+                marker="^",
+                color=PAPER_COLORS["data1_vial_predicted"],
+                markersize=5,
+                alpha=0.85,
+                label="cV pred." if n == 1 else None,
+            )
     plt.xlabel("Time [min]")
     plt.ylabel("Concentration / mass responses")
     plt.tick_params(direction="in", top=True, right=True)
@@ -212,6 +327,96 @@ def build_data1_stage_a_outputs(
     fig3_path = figures_dir / "data1_fig3_model_overlay.png"
     fig3.savefig(fig3_path, bbox_inches="tight")
     plt.close(fig3)
+
+    dataset_tag = str(getattr(exp, "dataset_id", "DATA1_511.12")).replace("DATA1_", "")
+    utility_mass = plt.figure(figsize=(4, 4))
+    for n in range(1, n_vials + 1):
+        v = exp.vials[n - 1]
+        t_meas = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
+        if v.mass_g is not None:
+            plt.plot(
+                t_meas,
+                np.asarray(v.mass_g, dtype=float),
+                linestyle="None",
+                marker="o",
+                color=PAPER_COLORS["data1_mass_measured"],
+                markersize=4,
+            )
+            plt.plot(
+                sim[n]["time_s"] / 60.0,
+                sim[n]["mV"],
+                "-",
+                color=PAPER_COLORS["data1_mass_predicted"],
+                linewidth=2,
+                alpha=0.6,
+            )
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("Mass in Vial [g]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.ylim(bottom=0)
+    utility_mass_path = figures_dir / f"mass-dat{dataset_tag}.png"
+    utility_mass.savefig(utility_mass_path, dpi=300, bbox_inches="tight")
+    plt.close(utility_mass)
+
+    utility_conc = plt.figure(figsize=(4, 4))
+    for n in range(1, n_vials + 1):
+        v = exp.vials[n - 1]
+        t_meas = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
+        if v.retentate_signal is not None:
+            plt.plot(
+                t_meas,
+                np.asarray(v.retentate_signal, dtype=float),
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_retentate_measured"],
+                markersize=6,
+                clip_on=False,
+            )
+            plt.plot(
+                sim[n]["time_s"] / 60.0,
+                sim[n]["cF"],
+                "-",
+                color=PAPER_COLORS["data1_retentate_predicted"],
+                linewidth=2,
+            )
+            plt.plot(
+                sim[n]["time_s"] / 60.0,
+                sim[n]["cH"],
+                "-",
+                color=PAPER_COLORS["data1_permeate_predicted"],
+                linewidth=2,
+                alpha=0.6,
+            )
+        yv = v.cV_avg
+        if isinstance(yv, (int, float, np.number)):
+            plt.plot(
+                [(float(v.time_s[-1]) - t_delay) / 60.0],
+                [float(yv)],
+                linestyle="None",
+                marker="s",
+                color=PAPER_COLORS["data1_vial_measured"],
+                markersize=6,
+            )
+            plt.plot(
+                [sim[n]["time_s"][-1] / 60.0],
+                [sim[n]["cV"][-1]],
+                linestyle="None",
+                marker="^",
+                color=PAPER_COLORS["data1_vial_predicted"],
+                markersize=6,
+                alpha=0.6,
+            )
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in", top=True, right=True)
+    plt.ylim(bottom=0)
+    utility_conc_path = figures_dir / f"concentration-dat{dataset_tag}.png"
+    utility_conc.savefig(utility_conc_path, dpi=300, bbox_inches="tight")
+    plt.close(utility_conc)
 
     objective = float(est.get("objective")) if est.get("objective") is not None else np.nan
     cov_method = est.get("covariance_method")
@@ -277,6 +482,7 @@ def build_data1_stage_a_outputs(
 
     return {
         "figures": [str(fig2a_path), str(fig2b_path), str(fig2c_path), str(fig2d_path), str(fig3_path)],
+        "utility_reference_figures": [str(utility_mass_path), str(utility_conc_path)],
         "tables": [str(t1_path), str(t2_path), str(tables_dir / "data1_stageA_unified_metrics.csv")],
         "summary": {
             "objective": objective,
@@ -354,10 +560,18 @@ def build_data1_stage_b_outputs(*, out_dir: Path, exp, est: Dict[str, object], s
         yp = yp[mask]
         fig = plt.figure(figsize=(4, 4))
         if yt.size:
-            plt.plot(yt, yp, "o", markersize=3, alpha=0.75)
+            plt.plot(
+                yt,
+                yp,
+                linestyle="None",
+                marker="o",
+                color=PAPER_COLORS["data1_parity"],
+                markersize=3,
+                alpha=0.8,
+            )
             lo = float(min(np.min(yt), np.min(yp)))
             hi = float(max(np.max(yt), np.max(yp)))
-            plt.plot([lo, hi], [lo, hi], "k--", linewidth=1.0)
+            plt.plot([lo, hi], [lo, hi], "--", color=PAPER_COLORS["data1_identity"], linewidth=1.0)
         plt.xlabel(f"{label} measured")
         plt.ylabel(f"{label} predicted")
         plt.tick_params(direction="in", top=True, right=True)
@@ -381,8 +595,15 @@ def build_data1_stage_b_outputs(*, out_dir: Path, exp, est: Dict[str, object], s
         t_meas = np.asarray(v.time_s, dtype=float) - t_delay
         y = np.asarray(v.retentate_signal, dtype=float)
         yp = np.interp(t_meas, sim[n]["time_s"], sim[n]["cF"])
-        plt.plot(t_meas / 60.0, yp - y, "-", linewidth=1.0, alpha=0.7)
-    plt.axhline(0.0, color="k", linestyle="--", linewidth=1.0)
+        plt.plot(
+            t_meas / 60.0,
+            yp - y,
+            "-",
+            color=PAPER_COLORS["data1_residual"],
+            linewidth=1.0,
+            alpha=0.75,
+        )
+    plt.axhline(0.0, color=PAPER_COLORS["data1_identity"], linestyle="--", linewidth=1.0)
     plt.xlabel("Time [min]")
     plt.ylabel("cF residual (pred - meas)")
     plt.tick_params(direction="in", top=True, right=True)
@@ -403,8 +624,23 @@ def build_data1_stage_b_outputs(*, out_dir: Path, exp, est: Dict[str, object], s
             v = exp.vials[n - 1]
             t = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
             if v.retentate_signal is not None:
-                plt.plot(t, np.asarray(v.retentate_signal, dtype=float), ".", markersize=2, alpha=0.5)
-                plt.plot(sim[n]["time_s"] / 60.0, sim[n]["cF"], "-", linewidth=1.0, alpha=0.7)
+                plt.plot(
+                    t,
+                    np.asarray(v.retentate_signal, dtype=float),
+                    linestyle="None",
+                    marker="o",
+                    color=PAPER_COLORS["data1_retentate_measured"],
+                    markersize=2,
+                    alpha=0.55,
+                )
+                plt.plot(
+                    sim[n]["time_s"] / 60.0,
+                    sim[n]["cF"],
+                    "-",
+                    color=PAPER_COLORS["data1_retentate_predicted"],
+                    linewidth=1.0,
+                    alpha=0.75,
+                )
         plt.xlabel("Time [min]")
         plt.ylabel("Retentate concentration [mM]")
         plt.tick_params(direction="in", top=True, right=True)
@@ -450,7 +686,15 @@ def build_data2_validation_artifacts(
         artifacts["tables"].append(str(trace_csv))
 
         fig = plt.figure(figsize=(4.5, 3.5))
-        plt.plot(measurement_trace["time_min"], measurement_trace["mass_g"], "k.-", linewidth=1.2, markersize=3)
+        plt.plot(
+            measurement_trace["time_min"],
+            measurement_trace["mass_g"],
+            "-",
+            color=PAPER_COLORS["data2_measurement"],
+            linewidth=1.3,
+            marker="o",
+            markersize=3,
+        )
         plt.xlabel("Time [min]")
         plt.ylabel("Mass [g]")
         plt.tick_params(direction="in", top=True, right=True)
@@ -495,7 +739,299 @@ def build_data2_validation_artifacts(
     curve_csv = tables_dir / f"{dataset_id.lower()}_fig6_curve_metrics.csv"
     curve_df.to_csv(curve_csv, index=False)
     artifacts["tables"].append(str(curve_csv))
+
+    rendered = _render_data2_main_reference_figures(
+        figures_dir=figures_dir,
+        simulation_validation_root=simulation_validation_root,
+    )
+    artifacts["figures"].extend(rendered["figures"])
+    artifacts["notes"] = rendered["notes"]
     return artifacts
+
+
+def _render_data2_main_reference_figures(*, figures_dir: Path, simulation_validation_root: Path) -> Dict[str, object]:
+    """Render notebook-style DATA2 main-paper figures from the committed validation CSVs."""
+    import matplotlib.pyplot as plt
+
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    data2_root = simulation_validation_root / "data2_main"
+    notes: List[str] = []
+    produced: List[str] = []
+
+    def _read_csv(rel_path: str) -> pd.DataFrame:
+        path = data2_root / rel_path
+        return pd.read_csv(path)
+
+    fig3_csv = data2_root / "fig3" / "data2_main_fig3_mass_tc.csv"
+    if fig3_csv.exists():
+        df = pd.read_csv(fig3_csv)
+        fig = plt.figure(figsize=(4, 4))
+        meas = df[df["series_id"] == "measurements"].sort_values("time_min")
+        extra = df[df["series_id"] == "extrapolation"].sort_values("time_min")
+        origin = df[df["series_id"] == "origin_marker"]
+        tc = df[df["series_id"] == "tc_marker"]
+        if not meas.empty:
+            plt.plot(meas["time_min"], meas["mass_g"], "k.-", linewidth=2, markersize=4, label="Measurements")
+        if not extra.empty:
+            plt.plot(extra["time_min"], extra["mass_g"], color="#7F7F7F", linestyle="--", linewidth=1.5, label="Extrapolation")
+        if not origin.empty:
+            plt.plot(origin["time_min"], origin["mass_g"], marker="o", color="#4C72B0", linestyle="None", markersize=6)
+        if not tc.empty:
+            plt.plot(tc["time_min"], tc["mass_g"], marker="s", color="#DD8452", linestyle="None", markersize=6)
+        plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+        plt.ylabel("Mass [g]", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        out = figures_dir / "mass_tc-dat270611.123.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    fig7_dir = data2_root / "fig7"
+    js_cin = fig7_dir / "data2_main_fig7_js_vs_cin.csv"
+    if js_cin.exists():
+        df = pd.read_csv(js_cin)
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(df["cIn_mM"], df["empirical_Js_umol_cm2_s"], "k-", lw=2, label="J$_s$ (Empirical)")
+        plt.plot(df["cIn_mM"], df["predicted_Js_umol_cm2_s"], "r--", dashes=(8, 4), lw=2, label="J$_s$ (Convection-diffusion)")
+        plt.xlabel("c$\\mathbf{_{in,f}}$ [mM]", fontsize=16, fontweight="bold")
+        plt.ylabel("J$\\mathbf{_s\\ [\\mu mol \\cdot cm^{-2} \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.legend(fontsize=11, loc="best")
+        out = figures_dir / "Js_predict1.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    js_time = fig7_dir / "data2_main_fig7_js_vs_time.csv"
+    if js_time.exists():
+        df = pd.read_csv(js_time)
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(df["time_min"], df["empirical_Js_umol_cm2_s"], "k-", lw=2, label="J$_s$ (Empirical)")
+        plt.plot(df["time_min"], df["predicted_Js_umol_cm2_s"], "r--", dashes=(7, 5), lw=2, label="J$_s$ (Convection-diffusion)")
+        plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+        plt.ylabel("J$\\mathbf{_s\\ [\\mu mol \\cdot cm^{-2} \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.legend(fontsize=11, loc="best")
+        out = figures_dir / "Js_predict.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    jw_time = fig7_dir / "data2_main_fig7_jw_and_conc_vs_time.csv"
+    if jw_time.exists():
+        df = pd.read_csv(jw_time)
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(df["time_min"], df["Jw_um_per_s"], "b-", lw=2, label="J$_{w}$ (Empirical)")
+        plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+        plt.ylabel("J$\\mathbf{_w\\ [\\mu m \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.legend(fontsize=11, loc="best")
+        out = figures_dir / "Jw_predict.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(df["time_min"], df["cIn_mM"], "g-", lw=2, label="c$_{in,f}$ (Empirical)")
+        plt.plot(df["time_min"], df["cH_mM"], "r-", lw=2, label="c$_{h}$ (Empirical)")
+        plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+        plt.ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.legend(fontsize=11, loc="best")
+        out = figures_dir / "Js_predict0.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    fig8_csv = data2_root / "fig8" / "data2_main_fig8_partition_sensitivity.csv"
+    if fig8_csv.exists():
+        df = pd.read_csv(fig8_csv)
+        fig = plt.figure(figsize=(4.2, 12), constrained_layout=True)
+        ax = plt.subplot(3, 1, 1)
+        ax.plot(df["Pe"], df["mse"], "b-", linewidth=3)
+        ax.set_xscale("log")
+        ax.set_xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        ax.set_ylabel("Mean Squared Error [mM$\\mathbf{^{2}}$]", fontsize=16, fontweight="bold")
+        ax.set_title("Regression Objective", fontsize=16, fontweight="bold", loc="left")
+        ax.tick_params(direction="in", labelsize=12)
+        ax.grid(True)
+
+        ax = plt.subplot(3, 1, 2)
+        ax.plot(df["Pe"], df["k0"], "r-", linewidth=3)
+        ax.fill_between(df["Pe"], df["k0_minus_2se"], df["k0_plus_2se"], color="red", alpha=0.3)
+        ax.set_xscale("log")
+        ax.set_xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        ax.set_ylabel("h$\\mathbf{_0}$ [-]", fontsize=16, fontweight="bold")
+        ax.set_title("Partition Coefficient h$\\mathbf{_0}$", fontsize=16, fontweight="bold", loc="left")
+        ax.tick_params(direction="in", labelsize=12)
+        ax.grid(True)
+
+        ax = plt.subplot(3, 1, 3)
+        ax.plot(df["Pe"], df["k1"], "g-", linewidth=3)
+        ax.fill_between(df["Pe"], df["k1_minus_2se"], df["k1_plus_2se"], color="green", alpha=0.3)
+        ax.set_xscale("log")
+        ax.set_xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        ax.set_ylabel("h$\\mathbf{_1}$ [mM$\\mathbf{^{-1}}$]", fontsize=16, fontweight="bold")
+        ax.set_title("Partition Coefficient h$\\mathbf{_1}$", fontsize=16, fontweight="bold", loc="left")
+        ax.tick_params(direction="in", labelsize=12)
+        ax.grid(True)
+        out = figures_dir / "partition_sensitivity.png"
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    fig9_csv = data2_root / "fig9" / "data2_main_fig9_startup_improvement.csv"
+    if fig9_csv.exists():
+        df = pd.read_csv(fig9_csv)
+        colors = ["#2CA02C" if val > 0 else "#D62728" for val in df["Improvement_percent"]]
+        fig = plt.figure(figsize=(6, 3))
+        ax = plt.gca()
+        ypos = np.arange(len(df))
+        ax.barh(ypos, df["Improvement_percent"], color=colors, height=0.6)
+        for i, imp in enumerate(df["Improvement_percent"]):
+            text_color = "white" if imp > 0 else "black"
+            x = imp - 10 if imp > 0 else imp + 12
+            ha = "right" if imp > 0 else "left"
+            ax.text(x, i, f"{int(imp)}%", ha=ha, va="center", fontsize=14, fontweight="bold", color=text_color)
+        ax.set_xlim([-40, 150])
+        ax.grid(False)
+        ax.axvline(x=0, color="k")
+        ax.tick_params(axis="x", labelbottom=False)
+        ax.tick_params(axis="y", direction="in", pad=-5)
+        ax.set_yticks(ypos)
+        ax.set_yticklabels(df["Mode"], ha="left")
+        ax.set_ylabel("")
+        ax.set_xlabel("Information Improvement")
+        out = figures_dir / "startup_barplot.png"
+        fig.savefig(out, dpi=600, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    for regime in ("concentrating", "diluting"):
+        residual_csv = data2_root / "fig9" / f"data2_main_fig9_{regime}_residuals.csv"
+        residual_err = data2_root / "fig9" / f"data2_main_fig9_{regime}_residuals_ERROR.txt"
+        if residual_csv.exists():
+            df = pd.read_csv(residual_csv)
+            fig = plt.figure(figsize=(7, 5))
+            ax = plt.gca()
+            labels = ["Mass", "Permeate", "Retentate"]
+            base_positions = np.arange(len(labels), dtype=float)
+            groups = [
+                ("Diffusion Only", "#4C72B0", -0.18),
+                ("Convection-Diffusion", "#DD8452", +0.18),
+            ]
+            for transport_label, color, offset in groups:
+                data = [
+                    df[(df["solute_transport"] == transport_label) & (df["residual_type"] == label)]["weighted_residual"].to_numpy(dtype=float)
+                    for label in labels
+                ]
+                bp = ax.boxplot(
+                    data,
+                    vert=False,
+                    positions=base_positions + offset,
+                    widths=0.28,
+                    patch_artist=True,
+                    whis=1.5,
+                    showfliers=True,
+                )
+                for box in bp["boxes"]:
+                    box.set(facecolor=color, alpha=0.75, linewidth=2)
+                for median in bp["medians"]:
+                    median.set(color="black", linewidth=2)
+                for part in ("whiskers", "caps"):
+                    for artist in bp[part]:
+                        artist.set(color=color, linewidth=2)
+                for flier in bp["fliers"]:
+                    flier.set(marker="o", markerfacecolor="red", markeredgecolor="red", alpha=0.6, markersize=4)
+            ax.set_xlim([-1.5, 1.5])
+            ax.set_xlabel("Weighted Residuals", fontsize=16)
+            ax.set_ylabel("")
+            ax.tick_params(axis="y", direction="in", pad=-5)
+            ax.set_yticks(base_positions)
+            ax.set_yticklabels(labels, ha="left")
+            ax.grid(axis="x", linestyle="--", alpha=0.5)
+            ax.annotate(
+                "Diffusion Only",
+                xy=(0.9, 0.2),
+                xycoords="axes fraction",
+                weight="bold",
+                size=16,
+                ha="center",
+                va="center",
+                color="white",
+                bbox=dict(boxstyle="round", color="#4C72B0", alpha=0.75),
+            )
+            ax.annotate(
+                "Convection-Diffusion",
+                xy=(0.9, 0.5),
+                xycoords="axes fraction",
+                weight="bold",
+                size=16,
+                ha="center",
+                va="center",
+                color="white",
+                bbox=dict(boxstyle="round", color="#DD8452", alpha=0.75),
+            )
+            out = figures_dir / f"{regime}_residuals_boxplot.png"
+            fig.savefig(out, dpi=600, bbox_inches="tight")
+            plt.close(fig)
+            produced.append(str(out))
+        elif residual_err.exists():
+            notes.append(f"{regime}: {residual_err.read_text(encoding='utf-8').strip()}")
+        else:
+            notes.append(f"{regime}: no residual artifact found.")
+
+    return {"figures": produced, "notes": notes}
+
+
+def render_data1_fig3_reference(*, figures_dir: Path, simulation_validation_root: Path) -> List[str]:
+    """Render DATA1 Fig. 3 from the committed experiment-space validation CSV."""
+    import matplotlib.pyplot as plt
+
+    csv_path = simulation_validation_root / "data1_main" / "fig3" / "data1_main_fig3.csv"
+    if not csv_path.exists():
+        return []
+
+    df = pd.read_csv(csv_path)
+    fig = plt.figure(figsize=(4, 4))
+    for regime, marker in (("filtration", "^"), ("diafiltration", "s")):
+        subset = df[df["regime"] == regime]
+        if subset.empty:
+            continue
+        plt.plot(
+            subset["retentate_mM"],
+            subset["permeate_mM"],
+            linestyle="None",
+            marker=marker,
+            markersize=8,
+            alpha=0.8,
+            markerfacecolor="white",
+            markeredgecolor="black",
+            label=regime.capitalize(),
+            clip_on=False,
+        )
+    plt.xlabel("Retentate [mM]", fontsize=16, fontweight="bold")
+    plt.ylabel("Permeate [mM]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in")
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.legend(fontsize=15, loc="best")
+    out = figures_dir / "concentration_range.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return [str(out)]
 
 
 def flatten_theta(theta_obj: object) -> Dict[str, float]:

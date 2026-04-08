@@ -4139,6 +4139,26 @@ class BForm(str, Enum):
 BFormType = Union[str, float]
 
 
+def _normalized_b_form(b_form: BFormType) -> str:
+    """Return one canonical transport-form label for the unified process model."""
+    return str(b_form).lower()
+
+
+def _uses_constant_b(b_form: BFormType) -> bool:
+    """True when the shared process model should activate a single constant-B term."""
+    return _normalized_b_form(b_form) == BForm.SINGLE.value
+
+
+def _uses_per_vial_b(b_form: BFormType) -> bool:
+    """True when the shared process model should activate vial-specific B terms."""
+    return _normalized_b_form(b_form) == BForm.PERVIAL.value
+
+
+def _uses_convection_terms(b_form: BFormType) -> bool:
+    """True when the shared process model should activate convection-diffusion terms."""
+    return _normalized_b_form(b_form) == BForm.CONVECTION.value
+
+
 @dataclass
 class ModelOptions:
     """ModelOptions.
@@ -4397,7 +4417,7 @@ def build_guess_from_experiment_v24(
         except Exception:
             pass
 
-    if str(options.b_form).lower() == BForm.CONVECTION.value:
+    if _uses_convection_terms(options.b_form):
         if base.beta_0 is None:
             if base.B is not None and base.Lp is not None and exp.delP_bar is not None and float(exp.delP_bar) != 0:
                 base.beta_0 = float(base.B) * 36000.0 / float(base.Lp) / float(exp.delP_bar)
@@ -4443,17 +4463,17 @@ def theta_component_list(m: pyo.ConcreteModel, options: ModelOptions) -> List[py
             pass
         return True
 
-    b_form = str(options.b_form).lower()
+    b_form = _normalized_b_form(options.b_form)
     comps: List[pyo.ComponentData] = []
     if _is_estimated(m.Lp):
         comps.append(m.Lp)
 
-    if b_form == BForm.SINGLE.value:
+    if _uses_constant_b(b_form):
         if _is_estimated(m.B):
             comps.append(m.B)
-    elif b_form == BForm.PERVIAL.value:
+    elif _uses_per_vial_b(b_form):
         comps.extend(m.B[n] for n in m.n_vial if _is_estimated(m.B[n]))
-    elif b_form == BForm.CONVECTION.value:
+    elif _uses_convection_terms(b_form):
         if _is_estimated(m.beta_0):
             comps.append(m.beta_0)
         if _is_estimated(m.beta_1):
@@ -4583,7 +4603,7 @@ def model_construct_inter_v23(
     m.tf = pyo.Set(initialize=[TF_dict[i] for i in m.n_vial])
     m.ti = pyo.Set(initialize=[TI_dict[i] for i in m.n_vial])
 
-    b_form = str(options.b_form).lower()
+    b_form = _normalized_b_form(options.b_form)
     advanced_xlsx_transport = (
         bool(options.use_advanced_xlsx_transport_thermo)
         and exp.source == SourceType.XLSX
@@ -4631,14 +4651,14 @@ def model_construct_inter_v23(
             if options.fix_sigma_in_estimation:
                 m.sigma.fix(float(min(max(sigma_guess, sigma_lb), sigma_ub)))
 
-    if b_form == BForm.SINGLE.value:
+    if _uses_constant_b(b_form):
         if sim_opt:
             m.B = pyo.Param(initialize=float(guess.B if guess.B is not None else 0.5), mutable=True)
         else:
             b_bounds = (1e-6, 2.0) if legacy_data1_mat else (1e-6, 30.0)
             b_init = float(guess.B if guess.B is not None else 0.5)
             m.B = pyo.Var(bounds=b_bounds, initialize=min(max(b_init, b_bounds[0]), b_bounds[1]))
-    elif b_form == BForm.PERVIAL.value:
+    elif _uses_per_vial_b(b_form):
         if isinstance(guess.B, dict):
             default_b = list(guess.B.values())[0] if guess.B else 0.5
             b_init = {i: float(guess.B.get(i, default_b)) for i in range(1, N_VIAL + 1)}
@@ -4648,7 +4668,7 @@ def model_construct_inter_v23(
             m.B = pyo.Param(m.n_vial, initialize=b_init, mutable=True)
         else:
             m.B = pyo.Var(m.n_vial, bounds=(1e-6, 30.0), initialize=b_init)
-    elif b_form == BForm.CONVECTION.value:
+    elif _uses_convection_terms(b_form):
         beta0 = float(guess.beta_0 if guess.beta_0 is not None else 2.0)
         beta1 = float(guess.beta_1 if guess.beta_1 is not None else 0.5)
         if sim_opt:
@@ -4682,7 +4702,7 @@ def model_construct_inter_v23(
 
     m.Jw = pyo.Var(m.n_vial, m.tau)
     m.Js = pyo.Var(m.n_vial, m.tau)
-    if b_form == BForm.CONVECTION.value:
+    if _uses_convection_terms(b_form):
         m.Js_exp = pyo.Var(m.n_vial, m.tau, bounds=(1 + 1e-6, 1e4))
 
     if advanced_xlsx_transport:
@@ -4912,14 +4932,14 @@ def model_construct_inter_v23(
 
         """
         delta_c = (mm.cM[n, t] - mm.cP[n, t]) if advanced_xlsx_transport else (mm.cIn[n, t] - mm.cH[n, t])
-        if b_form == BForm.SINGLE.value:
+        if _uses_constant_b(b_form):
             return mm.Js[n, t] * 10000 == mm.B * delta_c
-        if b_form == BForm.PERVIAL.value:
+        if _uses_per_vial_b(b_form):
             return mm.Js[n, t] * 10000 == mm.B[n] * delta_c
         return mm.Js[n, t] == mm.Jw[n, t] * mm.H[n, t] * (mm.cIn[n, t] * mm.Js_exp[n, t] - mm.cH[n, t]) / (mm.Js_exp[n, t] - 1)
     m.eqn_Js = pyo.Constraint(m.n_vial, m.tau, rule=eqn_Js_rule)
 
-    if b_form == BForm.CONVECTION.value:
+    if _uses_convection_terms(b_form):
         def eqn_Js_exp_rule(mm, n, t):
             """Eqn Js exp rule.
 

@@ -24,6 +24,7 @@ from .output_artifacts import (
     build_data1_stage_b_outputs,
     build_data2_validation_artifacts,
     extract_model_trajectories,
+    render_data1_fig3_reference,
 )
 from ..unified_codebase_library import (
     ExperimentalData,
@@ -710,7 +711,7 @@ class UQEngine:
             solver_options=solver_options,
             tee=tee,
         )
-        return {
+        artifacts = {
             "stage_a": build_data1_stage_a_outputs(
                 out_dir=out_dir,
                 exp=dataset,
@@ -726,6 +727,19 @@ class UQEngine:
                 sim=trajectories,
             ),
         }
+        sim_validation_root = (
+            Path(__file__).resolve().parents[3]
+            / "docs"
+            / "validation"
+            / "simulation_validation_data_files"
+        )
+        fig3_refs = render_data1_fig3_reference(
+            figures_dir=out_dir / "figures",
+            simulation_validation_root=sim_validation_root,
+        )
+        if fig3_refs:
+            artifacts["stage_a"].setdefault("reference_style_figures", []).extend(fig3_refs)
+        return artifacts
 
     def build_data2_validation_artifacts(
         self,
