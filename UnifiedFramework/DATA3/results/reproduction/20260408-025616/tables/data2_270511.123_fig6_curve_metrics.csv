@@ -1,0 +1,4 @@
+dataset_id,metric,unified_value,target_id
+DATA2_270511.123,nrmse.mass,1.2610225396481372,D2-M-F6
+DATA2_270511.123,nrmse.cF,0.6338317722821726,D2-M-F6
+DATA2_270511.123,nrmse.cV,inf,D2-M-F6
