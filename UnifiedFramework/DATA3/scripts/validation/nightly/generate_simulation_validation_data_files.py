@@ -323,14 +323,19 @@ def export_data1_fig4(manifest: list[ManifestRow]) -> None:
 
 def export_data1_contours(manifest: list[ManifestRow], figure_id: str, axis_key: str, suffix: str) -> None:
     out_dir = ensure_dir(OUT_ROOT / "data1_main" / suffix)
-    dataset_specs = [("A", "501.1"), ("B", "511.12")]
+    # Main-paper contour figures use the diafiltration cases only.
+    dataset_specs = [
+        ("A", "511.12 concpolar"),
+        ("B", "511.11 concpolar"),
+        ("C", "511.12"),
+    ]
     objective_columns = [
         ("mass", "Obj_mass"),
         ("permeate", "Obj_concentration"),
         ("retentate", "Obj_retentate_concentration"),
     ]
     for panel_id, dataset in dataset_specs:
-        df = pd.read_csv(DATA1_ROOT / f"{dataset} concpolar" / f"contourdata-x_{axis_key}-y_Lp.csv")
+        df = pd.read_csv(DATA1_ROOT / dataset / f"contourdata-x_{axis_key}-y_Lp.csv")
         axis_col = "B" if axis_key == "B" else "sigma"
         min_idx = {obj_name: int(df[obj_col].idxmin()) for obj_name, obj_col in objective_columns}
         for obj_name, obj_col in objective_columns:

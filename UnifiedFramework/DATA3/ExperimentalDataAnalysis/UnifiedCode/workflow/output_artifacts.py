@@ -8,6 +8,15 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
+from ..unified_codebase_library import (
+    build_legacy_plot_sim_comparison_payload_v24,
+    build_paper_contour_grid_v24,
+    build_startup_improvement_payload_v24,
+    build_weighted_residual_boxplot_payload_v24,
+    evaluate_data1_paper_contour_objectives_v24,
+    extract_model_trajectories_v24,
+)
+
 
 PAPER_COLORS = {
     # Match the legacy notebook/utility plotting conventions used to generate
@@ -28,29 +37,8 @@ PAPER_COLORS = {
 
 
 def extract_model_trajectories(exp, model) -> Dict[int, Dict[str, np.ndarray]]:
-    """Extract per-vial trajectories in physical time from a discretized model."""
-    import pyomo.environ as pyo
-
-    tau_vals = sorted(float(t) for t in list(model.tau))
-    t_delay = float(exp.vials[0].time_s[0])
-    out: Dict[int, Dict[str, np.ndarray]] = {}
-    for n in range(1, len(exp.vials) + 1):
-        vial = exp.vials[n - 1]
-        ti = float(vial.time_s[0]) - t_delay
-        tf = float(vial.time_s[-1]) - t_delay
-        dur = tf - ti
-        t_model = np.array([ti + dur * tau for tau in tau_vals], dtype=float)
-        mV = np.array([float(pyo.value(model.mV[n, tau])) for tau in tau_vals], dtype=float)
-        cF = np.array([float(pyo.value(model.cF[n, tau])) for tau in tau_vals], dtype=float)
-        cH = np.array([float(pyo.value(model.cH[n, tau])) for tau in tau_vals], dtype=float)
-        cV = np.array([float(pyo.value(model.cV[n, tau])) for tau in tau_vals], dtype=float)
-        Jw = np.array([float(pyo.value(model.Jw[n, tau])) for tau in tau_vals], dtype=float)
-        Js = np.array([float(pyo.value(model.Js[n, tau])) for tau in tau_vals], dtype=float)
-        traj = {"time_s": t_model, "mV": mV, "cF": cF, "cH": cH, "cV": cV, "Jw": Jw, "Js": Js}
-        if hasattr(model, "mF"):
-            traj["mF"] = np.array([float(pyo.value(model.mF[n, tau])) for tau in tau_vals], dtype=float)
-        out[n] = traj
-    return out
+    """Backward-compatible workflow wrapper around the unified library helper."""
+    return extract_model_trajectories_v24(exp, model)
 
 
 def legacy_style_objective(exp, sim: Dict[int, Dict[str, np.ndarray]], *, t_delay: float) -> float:
@@ -104,6 +92,150 @@ def legacy_style_objective(exp, sim: Dict[int, Dict[str, np.ndarray]], *, t_dela
     term_cp = obj_cp / max(1, cnt_cp if cnt_cp > 0 else collect_vial)
     term_cf = (obj_cf0 + obj_cf) / max(1, cnt_cf0 + cnt_cf)
     return float(1e4 * (term_m + term_cp + term_cf))
+
+
+def legacy_style_objective_terms(exp, sim: Dict[int, Dict[str, np.ndarray]], *, t_delay: float) -> Dict[str, float]:
+    """Return the legacy-style objective terms separately for contour generation."""
+    n_vials = len(exp.vials)
+    n_extra = int(getattr(exp, "n_extra", 0) or 0)
+    n_v0 = int(getattr(exp, "n_v0", 1) or 1)
+    collect_vial = max(1, n_vials - n_extra)
+
+    obj_m = 0.0
+    obj_cp = 0.0
+    obj_cf0 = 0.0
+    obj_cf = 0.0
+    cnt_m = 0
+    cnt_cp = 0
+    cnt_cf = 0
+    cnt_cf0 = 0
+
+    for n, vial in enumerate(exp.vials, start=1):
+        t_meas_s = np.asarray(vial.time_s, dtype=float)
+
+        if vial.mass_g is not None:
+            y_m = np.asarray(vial.mass_g, dtype=float)
+            y_m_pred = np.interp(t_meas_s, sim[n]["time_s"] + t_delay, sim[n]["mV"])
+            mask = np.isfinite(y_m)
+            if mask.any() and n >= n_v0:
+                res = (y_m_pred[mask] - y_m[mask]) / 0.01
+                obj_m += float(np.sum(res**2))
+                cnt_m += int(np.sum(mask))
+
+        y_cv = float(vial.cV_avg) if isinstance(vial.cV_avg, (int, float, np.number)) else np.nan
+        if np.isfinite(y_cv) and n > n_extra and abs(y_cv) > 1e-12:
+            y_cv_pred = float(np.interp(float(vial.time_s[-1]), sim[n]["time_s"] + t_delay, sim[n]["cV"]))
+            obj_cp += float(((y_cv_pred - y_cv) / (0.03 * y_cv)) ** 2)
+            cnt_cp += 1
+
+        if vial.retentate_signal is not None:
+            y_cf = np.asarray(vial.retentate_signal, dtype=float)
+            y_cf_pred = np.interp(t_meas_s, sim[n]["time_s"] + t_delay, sim[n]["cF"])
+            mask = np.isfinite(y_cf) & (np.abs(y_cf) > 1e-12)
+            if mask.any():
+                res = (y_cf_pred[mask] - y_cf[mask]) / (0.003 * y_cf[mask])
+                if n >= n_v0:
+                    obj_cf += float(np.sum(res**2))
+                    cnt_cf += int(np.sum(mask))
+                else:
+                    obj_cf0 += float(np.sum(res**2))
+                    cnt_cf0 += int(np.sum(mask))
+
+    term_m = obj_m / max(1, cnt_m)
+    term_cp = obj_cp / max(1, cnt_cp if cnt_cp > 0 else collect_vial)
+    term_cf = (obj_cf0 + obj_cf) / max(1, cnt_cf0 + cnt_cf)
+    return {
+        "mass_term": float(term_m),
+        "permeate_term": float(term_cp),
+        "retentate_term": float(term_cf),
+        "mass_log": float(np.log(max(term_m, 1e-12))),
+        "permeate_log": float(np.log(max(term_cp, 1e-12))),
+        "retentate_log": float(np.log(max(term_cf, 1e-12))),
+    }
+
+
+def data1_paper_contour_objective_terms(exp, sim: Dict[int, Dict[str, np.ndarray]]) -> Dict[str, float]:
+    """Backward-compatible workflow wrapper around the unified library helper."""
+    return evaluate_data1_paper_contour_objectives_v24(exp, sim).as_dict()
+
+
+def data1_utility_style_model_objective_terms(exp, model) -> Dict[str, float]:
+    """Evaluate the solved unified model with utility.py-style interpolation bookkeeping."""
+    import pyomo.environ as pyo
+
+    tau_points = [float(x) for x in list(model.tau)]
+
+    def _interp(var, n_vial: int, tau_value: float) -> float:
+        for left, right in zip(tau_points[:-1], tau_points[1:]):
+            if left <= tau_value <= right:
+                y0 = float(pyo.value(var[n_vial, left]))
+                y1 = float(pyo.value(var[n_vial, right]))
+                if right == left:
+                    return y1
+                frac = (tau_value - left) / (right - left)
+                return y0 + frac * (y1 - y0)
+        return float(pyo.value(var[n_vial, tau_points[-1]]))
+
+    obj_m = obj_cp = obj_cf0 = obj_cf = 0.0
+    count_m_total = count_cp_total = count_cf_total = count_cf0_total = 0
+    n_extra = int(getattr(exp, "n_extra", 0) or 0)
+    n_v0 = int(getattr(exp, "n_v0", 1) or 1)
+    collect_vial = max(1, len(exp.vials) - n_extra)
+    t_delay = float(exp.vials[0].time_s[0])
+    tf_by_vial = {idx + 1: float(vial.time_s[-1] - t_delay) for idx, vial in enumerate(exp.vials)}
+    ti_by_vial = {idx + 1: float(vial.time_s[0] - t_delay) for idx, vial in enumerate(exp.vials)}
+
+    for n_vial, vial in enumerate(exp.vials, start=1):
+        t_meas = np.asarray(vial.time_s, dtype=float) - t_delay
+        mv_meas = np.asarray(vial.mass_g, dtype=float)
+        cp_meas = vial.cV_avg
+        cf_meas = np.asarray(vial.retentate_signal, dtype=float) if vial.retentate_signal is not None else np.array([])
+        denom = tf_by_vial[n_vial] - ti_by_vial[n_vial]
+        t_scaled = [(t - ti_by_vial[n_vial]) / denom for t in t_meas]
+
+        obj_m_i = 0.0
+        count_m_i = 0
+        for idx, tau_value in enumerate(t_scaled):
+            mv_pred = _interp(model.mV, n_vial, tau_value)
+            if not np.isnan(mv_meas[idx]):
+                res_m = mv_pred - float(mv_meas[idx])
+                count_m_i += 1
+                obj_m_i += (res_m / 0.01) ** 2
+        if n_vial >= n_v0 and count_m_i > 0:
+            count_m_total += count_m_i
+            obj_m += obj_m_i
+
+        if not isinstance(cp_meas, list) and np.isfinite(cp_meas):
+            if n_vial > n_extra:
+                res_cp = float(pyo.value(model.cV[n_vial, model.tau.last()])) - float(cp_meas)
+                obj_cp += (res_cp / (0.03 * float(cp_meas))) ** 2
+                count_cp_total = collect_vial
+
+        if cf_meas.size > 0:
+            for idx, tau_value in enumerate(t_scaled):
+                if np.isnan(cf_meas[idx]):
+                    continue
+                cf_pred = _interp(model.cF, n_vial, tau_value)
+                res_cf = cf_pred - float(cf_meas[idx])
+                val = (res_cf / (0.003 * float(cf_meas[idx]))) ** 2
+                if n_vial >= n_v0:
+                    obj_cf += val
+                    count_cf_total += 1
+                else:
+                    obj_cf0 += val
+                    count_cf0_total += 1
+
+    mass_term = obj_m / max(1, count_m_total)
+    permeate_term = obj_cp / max(1, count_cp_total)
+    retentate_term = (obj_cf0 + obj_cf) / max(1, count_cf0_total + count_cf_total)
+    return {
+        "mass_term": float(mass_term),
+        "permeate_term": float(permeate_term),
+        "retentate_term": float(retentate_term),
+        "mass_log10": float(np.log10(max(mass_term, 1e-12))),
+        "permeate_log10": float(np.log10(max(permeate_term, 1e-12))),
+        "retentate_log10": float(np.log10(max(retentate_term, 1e-12))),
+    }
 
 
 def build_data1_stage_a_outputs(
@@ -302,7 +434,7 @@ def build_data1_stage_a_outputs(
             cv_pred.append(y_cv_pred)
             plt.plot(
                 [t_end / 60.0],
-                [yv],
+                [y_cv],
                 linestyle="None",
                 marker="s",
                 color=PAPER_COLORS["data1_vial_measured"],
@@ -329,22 +461,27 @@ def build_data1_stage_a_outputs(
     plt.close(fig3)
 
     dataset_tag = str(getattr(exp, "dataset_id", "DATA1_511.12")).replace("DATA1_", "")
+    legacy_payload = build_legacy_plot_sim_comparison_payload_v24(
+        exp,
+        sim,
+        include_predictions=True,
+        include_stirred_mass=False,
+    )
     utility_mass = plt.figure(figsize=(4, 4))
-    for n in range(1, n_vials + 1):
-        v = exp.vials[n - 1]
-        t_meas = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
-        if v.mass_g is not None:
+    for series in legacy_payload["mass"]:
+        if series.series_kind == "measurement":
             plt.plot(
-                t_meas,
-                np.asarray(v.mass_g, dtype=float),
+                series.x,
+                series.y,
                 linestyle="None",
                 marker="o",
                 color=PAPER_COLORS["data1_mass_measured"],
                 markersize=4,
             )
+        elif series.series_kind == "prediction":
             plt.plot(
-                sim[n]["time_s"] / 60.0,
-                sim[n]["mV"],
+                series.x,
+                series.y,
                 "-",
                 color=PAPER_COLORS["data1_mass_predicted"],
                 linewidth=2,
@@ -361,47 +498,47 @@ def build_data1_stage_a_outputs(
     plt.close(utility_mass)
 
     utility_conc = plt.figure(figsize=(4, 4))
-    for n in range(1, n_vials + 1):
-        v = exp.vials[n - 1]
-        t_meas = (np.asarray(v.time_s, dtype=float) - t_delay) / 60.0
-        if v.retentate_signal is not None:
+    for series in legacy_payload["concentration"]:
+        if series.series_kind == "retentate_measurement":
             plt.plot(
-                t_meas,
-                np.asarray(v.retentate_signal, dtype=float),
+                series.x,
+                series.y,
                 linestyle="None",
                 marker="s",
                 color=PAPER_COLORS["data1_retentate_measured"],
                 markersize=6,
                 clip_on=False,
             )
+        elif series.series_kind == "retentate_prediction":
             plt.plot(
-                sim[n]["time_s"] / 60.0,
-                sim[n]["cF"],
+                series.x,
+                series.y,
                 "-",
                 color=PAPER_COLORS["data1_retentate_predicted"],
                 linewidth=2,
             )
+        elif series.series_kind == "permeate_prediction":
             plt.plot(
-                sim[n]["time_s"] / 60.0,
-                sim[n]["cH"],
+                series.x,
+                series.y,
                 "-",
                 color=PAPER_COLORS["data1_permeate_predicted"],
                 linewidth=2,
                 alpha=0.6,
             )
-        yv = v.cV_avg
-        if isinstance(yv, (int, float, np.number)):
+        elif series.series_kind == "vial_measurement":
             plt.plot(
-                [(float(v.time_s[-1]) - t_delay) / 60.0],
-                [float(yv)],
+                series.x,
+                series.y,
                 linestyle="None",
                 marker="s",
                 color=PAPER_COLORS["data1_vial_measured"],
                 markersize=6,
             )
+        elif series.series_kind == "vial_prediction":
             plt.plot(
-                [sim[n]["time_s"][-1] / 60.0],
-                [sim[n]["cV"][-1]],
+                series.x,
+                series.y,
                 linestyle="None",
                 marker="^",
                 color=PAPER_COLORS["data1_vial_predicted"],
@@ -893,12 +1030,13 @@ def _render_data2_main_reference_figures(*, figures_dir: Path, simulation_valida
     fig9_csv = data2_root / "fig9" / "data2_main_fig9_startup_improvement.csv"
     if fig9_csv.exists():
         df = pd.read_csv(fig9_csv)
-        colors = ["#2CA02C" if val > 0 else "#D62728" for val in df["Improvement_percent"]]
+        payload = build_startup_improvement_payload_v24(df)
         fig = plt.figure(figsize=(6, 3))
         ax = plt.gca()
-        ypos = np.arange(len(df))
-        ax.barh(ypos, df["Improvement_percent"], color=colors, height=0.6)
-        for i, imp in enumerate(df["Improvement_percent"]):
+        ypos = np.arange(len(payload))
+        ax.barh(ypos, [p.improvement_percent for p in payload], color=[p.color_hex for p in payload], height=0.6)
+        for i, item in enumerate(payload):
+            imp = item.improvement_percent
             text_color = "white" if imp > 0 else "black"
             x = imp - 10 if imp > 0 else imp + 12
             ha = "right" if imp > 0 else "left"
@@ -909,7 +1047,7 @@ def _render_data2_main_reference_figures(*, figures_dir: Path, simulation_valida
         ax.tick_params(axis="x", labelbottom=False)
         ax.tick_params(axis="y", direction="in", pad=-5)
         ax.set_yticks(ypos)
-        ax.set_yticklabels(df["Mode"], ha="left")
+        ax.set_yticklabels([p.mode for p in payload], ha="left")
         ax.set_ylabel("")
         ax.set_xlabel("Information Improvement")
         out = figures_dir / "startup_barplot.png"
@@ -922,6 +1060,7 @@ def _render_data2_main_reference_figures(*, figures_dir: Path, simulation_valida
         residual_err = data2_root / "fig9" / f"data2_main_fig9_{regime}_residuals_ERROR.txt"
         if residual_csv.exists():
             df = pd.read_csv(residual_csv)
+            payload = build_weighted_residual_boxplot_payload_v24(df)
             fig = plt.figure(figsize=(7, 5))
             ax = plt.gca()
             labels = ["Mass", "Permeate", "Retentate"]
@@ -932,7 +1071,14 @@ def _render_data2_main_reference_figures(*, figures_dir: Path, simulation_valida
             ]
             for transport_label, color, offset in groups:
                 data = [
-                    df[(df["solute_transport"] == transport_label) & (df["residual_type"] == label)]["weighted_residual"].to_numpy(dtype=float)
+                    next(
+                        (
+                            item.values
+                            for item in payload
+                            if item.solute_transport == transport_label and item.residual_type == label
+                        ),
+                        np.array([], dtype=float),
+                    )
                     for label in labels
                 ]
                 bp = ax.boxplot(
@@ -1032,6 +1178,135 @@ def render_data1_fig3_reference(*, figures_dir: Path, simulation_validation_root
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
     return [str(out)]
+
+
+def render_data1_main_reference_figures(*, figures_dir: Path, simulation_validation_root: Path) -> List[str]:
+    """Render DATA1 paper-style Fig. 4-6 composites from committed validation CSVs.
+
+    This keeps figure-construction logic inside the unified workflow layer even
+    while the underlying contour/sensitivity grids are still sourced from the
+    committed validation corpus.
+    """
+    import matplotlib.pyplot as plt
+
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    root = simulation_validation_root / "data1_main"
+    produced: List[str] = []
+
+    fig4_dir = root / "fig4"
+    fig4_rows = []
+    for panel_id in ("A", "B", "C"):
+        row = []
+        for name, value_col, ylabel in (
+            ("mass", "mass_g", "Mass [g]"),
+            ("permeate", "permeate_concentration_mM", "Permeate Conc. [mM]"),
+            ("retentate", "retentate_concentration_mM", "Retentate Conc. [mM]"),
+        ):
+            path = fig4_dir / f"data1_main_fig4_{panel_id.lower()}_{name}.csv"
+            if path.exists():
+                row.append((path, value_col, ylabel))
+        if row:
+            fig4_rows.append((panel_id, row))
+
+    if fig4_rows:
+        fig, axes = plt.subplots(len(fig4_rows), 3, figsize=(12, 4 * len(fig4_rows)), squeeze=False)
+        sigma_styles = {
+            0.1: {"color": "#FF4D4D", "linestyle": "--"},
+            0.5: {"color": "#1F4AFF", "linestyle": "-"},
+            0.9: {"color": "#5CB85C", "linestyle": ":"},
+        }
+        for r_idx, (panel_id, row_specs) in enumerate(fig4_rows):
+            for c_idx, (path, value_col, ylabel) in enumerate(row_specs):
+                ax = axes[r_idx, c_idx]
+                df = pd.read_csv(path)
+                for sigma in sorted(df["sigma"].dropna().unique()):
+                    style = sigma_styles.get(round(float(sigma), 1), {"color": "black", "linestyle": "-"})
+                    subset = df[df["sigma"] == sigma]
+                    for _, group in subset.groupby("series_id"):
+                        group = group.sort_values("time_min")
+                        ax.plot(
+                            group["time_min"],
+                            group[value_col],
+                            color=style["color"],
+                            linestyle=style["linestyle"],
+                            linewidth=2.0,
+                        )
+                if r_idx == 0:
+                    ax.set_title(["Mass", "Permeate", "Retentate"][c_idx], fontsize=17, fontweight="bold")
+                if c_idx == 0:
+                    ax.text(-0.18, 1.05, panel_id, transform=ax.transAxes, fontsize=18, fontweight="bold", va="top")
+                ax.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
+                ax.set_ylabel(ylabel, fontsize=14, fontweight="bold")
+                ax.tick_params(direction="in", top=True, right=True, labelsize=11)
+        handles = [
+            plt.Line2D([0], [0], color=sigma_styles[s]["color"], linestyle=sigma_styles[s]["linestyle"], linewidth=2.0)
+            for s in (0.1, 0.5, 0.9)
+        ]
+        axes[0, 2].legend(handles, [r"$\sigma$ = 0.1", r"$\sigma$ = 0.5", r"$\sigma$ = 0.9"], fontsize=12, loc="best")
+        out = figures_dir / "data1_fig4_paper_style.png"
+        fig.tight_layout()
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    for fig_id, fig_dir_name, out_name in (
+        ("fig5", "fig5", "data1_fig5_paper_style.png"),
+        ("fig6", "fig6", "data1_fig6_paper_style.png"),
+    ):
+        fig_dir = root / fig_dir_name
+        panel_ids = []
+        for panel_id in ("A", "B", "C"):
+            probe = fig_dir / f"data1_main_{fig_dir_name}_{panel_id.lower()}_mass.csv"
+            if probe.exists():
+                panel_ids.append(panel_id)
+        if not panel_ids:
+            continue
+
+        fig, axes = plt.subplots(len(panel_ids), 3, figsize=(12, 4 * len(panel_ids)), squeeze=False)
+        for r_idx, panel_id in enumerate(panel_ids):
+            for c_idx, (name, objective_col, title) in enumerate(
+                (
+                    ("mass", "objective_value", "Mass"),
+                    ("permeate", "objective_value", "Permeate"),
+                    ("retentate", "objective_value", "Retentate"),
+                )
+            ):
+                path = fig_dir / f"data1_main_{fig_dir_name}_{panel_id.lower()}_{name}.csv"
+                df = pd.read_csv(path)
+                df_grid = df[df["is_optimum"] == False].copy()  # noqa: E712
+                contour = build_paper_contour_grid_v24(df_grid, objective_column=objective_col)
+                ax = axes[r_idx, c_idx]
+                levels = np.linspace(float(np.nanmin(contour.z_grid)), float(np.nanmax(contour.z_grid)), 10)
+                cs = ax.contour(contour.x_grid, contour.y_grid, contour.z_grid, levels=levels, linewidths=1.6)
+                ax.clabel(cs, cs.levels[::2], inline=True, fontsize=9, colors="k", fmt="%1.1f")
+                ax.plot(
+                    contour.optimum_x,
+                    contour.optimum_y,
+                    "^",
+                    markersize=8,
+                    markeredgecolor="red",
+                    markerfacecolor=(1.0, 0.7, 0.7),
+                    clip_on=False,
+                )
+                ax.set_xlabel(contour.x_label, fontsize=12, fontweight="bold")
+                ax.set_ylabel(contour.y_label, fontsize=12, fontweight="bold")
+                ax.tick_params(direction="in", top=True, right=True, labelsize=11)
+                if fig_id == "fig5":
+                    ax.set_xlim(0.0, 1.0)
+                else:
+                    ax.set_xlim(0.0, 2.0)
+                ax.set_ylim(0.5, 7.4)
+                if r_idx == 0:
+                    ax.set_title(title, fontsize=17, fontweight="bold")
+                if c_idx == 0:
+                    ax.text(-0.18, 1.05, panel_id, transform=ax.transAxes, fontsize=18, fontweight="bold", va="top")
+        out = figures_dir / out_name
+        fig.tight_layout()
+        fig.savefig(out, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        produced.append(str(out))
+
+    return produced
 
 
 def flatten_theta(theta_obj: object) -> Dict[str, float]:

@@ -1,0 +1,8 @@
+dataset_id,metric,paper_value,paper_units,target_id,notes,unified_value,relative_error,status
+DATA1_511.12,nrmse.cF,,,,,0.017582912448720688,,MISSING_VALUE
+DATA1_511.12,nrmse.cV,,,,,0.08457618894278557,,MISSING_VALUE
+DATA1_511.12,nrmse.mass,,,,,0.03382762279251533,,MISSING_VALUE
+DATA1_511.12,nrmse.pass_threshold,,,,,0.05,,MISSING_VALUE
+DATA1_511.12,rmse.cF,,,,,,,MISSING_VALUE
+DATA1_511.12,rmse.cV,,,,,1.2120085373668699,,MISSING_VALUE
+DATA1_511.12,rmse.mass,,,,,,,MISSING_VALUE

@@ -35,7 +35,9 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebas
     UnifiedPipelineConfigV24,
     apply_discretization,
     build_guess_from_experiment_v24,
+    evaluate_data1_paper_contour_objectives_v24,
     enforce_data1_boundary_initialization,
+    extract_model_trajectories_v24,
     load_experiment_easy,
     model_construct_inter_v24,
     run_unified_pipeline_v24,
@@ -65,6 +67,7 @@ COMPARISON_REPORT_CSV = PYTEST_RESULTS_ROOT / "unified_data1_fig2_comparison.csv
 PAPER_COMPARISON_REPORT_CSV = PYTEST_RESULTS_ROOT / "unified_data1_fig2_paper_comparison.csv"
 DATA2_COMPARISON_REPORT_CSV = PYTEST_RESULTS_ROOT / "unified_data2_measurement_comparison.csv"
 DATA1_FIG4_COMPARISON_REPORT_CSV = PYTEST_RESULTS_ROOT / "unified_data1_fig4_comparison.csv"
+DATA1_FIG56_ANCHOR_REPORT_CSV = PYTEST_RESULTS_ROOT / "unified_data1_fig56_anchor_comparison.csv"
 
 DATA1_FIG2_MASS_CASES = [
     ("Fig2A", f"prediction_vial_{i}") for i in range(1, 8)
@@ -272,6 +275,19 @@ DATA1_FIG4_XFAIL_CASES = {
     ("Fig4B-retentate", "sigma_0.9_vial_7"),
     ("Fig4B-retentate", "sigma_0.9_vial_8"),
     ("Fig4B-retentate", "sigma_0.9_vial_9"),
+}
+
+DATA1_FIG56_DATASETS = {
+    "A": {
+        "dataset": "501.1",
+        "dataset_file": runfile.PRESET_DATA1_PATHS[0],
+        "fit_dir": "501.1 concpolar",
+    },
+    "B": {
+        "dataset": "511.12",
+        "dataset_file": runfile.PRESET_DATA1_PATHS[3],
+        "fit_dir": "511.12 concpolar",
+    },
 }
 
 
@@ -735,6 +751,66 @@ def data1_fig4_comparison_report() -> pd.DataFrame:
     return report
 
 
+@pytest.fixture(scope="module")
+def data1_fig56_anchor_report() -> pd.DataFrame:
+    """Compare DATA1 Fig. 5/6 contour-objective anchor points against committed CSV baselines."""
+    PYTEST_RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
+    rows: list[dict[str, object]] = []
+    objective_map = {
+        "mass": "mass_log10",
+        "permeate": "permeate_log10",
+        "retentate": "retentate_log10",
+    }
+
+    for fig_key, x_name in [("fig5", "sigma"), ("fig6", "B")]:
+        for panel_id, spec in DATA1_FIG56_DATASETS.items():
+            exp, (ok, issues) = load_experiment_easy(path=spec["dataset_file"], convert_to_concentration=False)
+            assert ok is True, issues
+            base_theta = _legacy_fit_params(spec["fit_dir"])
+            for objective_name, score_col in objective_map.items():
+                baseline = pd.read_csv(
+                    SIMULATION_VALIDATION_ROOT
+                    / "data1_main"
+                    / fig_key
+                    / f"data1_main_{fig_key}_{panel_id.lower()}_{objective_name}.csv"
+                )
+                anchors = pd.concat(
+                    [
+                        baseline.head(1),
+                        baseline.loc[baseline["is_optimum"]].head(1),
+                    ],
+                    ignore_index=True,
+                ).drop_duplicates(subset=[x_name, "Lp"])
+                for anchor_idx, (_, row) in enumerate(anchors.iterrows(), start=1):
+                    theta = dict(base_theta)
+                    theta["Lp"] = float(row["Lp"])
+                    theta[x_name] = float(row[x_name])
+                    model = _run_data1_fixed_theta_simulation(spec["dataset_file"], theta, nfe=120)
+                    unified = extract_model_trajectories_v24(exp, model)
+                    scores = evaluate_data1_paper_contour_objectives_v24(exp, unified).as_dict()
+                    baseline_value = float(row["objective_value"])
+                    unified_value = float(scores[score_col])
+                    rows.append(
+                        {
+                            "figure_id": fig_key,
+                            "panel_id": panel_id,
+                            "objective_name": objective_name,
+                            "anchor_index": anchor_idx,
+                            x_name: float(row[x_name]),
+                            "Lp": float(row["Lp"]),
+                            "baseline_objective_value": baseline_value,
+                            "unified_objective_value": unified_value,
+                            "abs_err": float(abs(unified_value - baseline_value)),
+                        }
+                    )
+
+    report = pd.DataFrame(rows).sort_values(["figure_id", "panel_id", "objective_name", "anchor_index"]).reset_index(
+        drop=True
+    )
+    report.to_csv(DATA1_FIG56_ANCHOR_REPORT_CSV, index=False)
+    return report
+
+
 @pytest.mark.regression
 def test_data1_fig2_comparison_report_written(data1_fig2_comparison_report: pd.DataFrame) -> None:
     """Write a concrete numeric comparison report that can be inspected after pytest."""
@@ -761,6 +837,21 @@ def test_data1_fig4_comparison_report_written(data1_fig4_comparison_report: pd.D
     assert {"panel_id", "series_id", "sigma", "mae", "max_abs_err", "rmse"}.issubset(
         data1_fig4_comparison_report.columns
     )
+
+
+@pytest.mark.regression
+def test_data1_fig56_anchor_report_written(data1_fig56_anchor_report: pd.DataFrame) -> None:
+    """Write a concrete DATA1 Figure 5/6 anchor-point comparison report for inspection."""
+    assert DATA1_FIG56_ANCHOR_REPORT_CSV.exists()
+    assert not data1_fig56_anchor_report.empty
+    assert {
+        "figure_id",
+        "panel_id",
+        "objective_name",
+        "baseline_objective_value",
+        "unified_objective_value",
+        "abs_err",
+    }.issubset(data1_fig56_anchor_report.columns)
 
 
 @pytest.mark.regression

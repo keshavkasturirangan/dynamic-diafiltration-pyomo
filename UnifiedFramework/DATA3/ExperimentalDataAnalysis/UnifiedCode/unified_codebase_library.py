@@ -4210,6 +4210,49 @@ class ParameterGuess:
     S: Optional[float] = None
 
 
+@dataclass(frozen=True)
+class PaperFigureSeriesV24:
+    """One rendered line/marker series for a paper-style figure."""
+
+    panel: str
+    series_kind: str
+    x: np.ndarray
+    y: np.ndarray
+    vial_number: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class PaperContourGridV24:
+    """Contour-ready objective grid plus optimum location metadata."""
+
+    x_name: str
+    x_label: str
+    y_label: str
+    x_grid: np.ndarray
+    y_grid: np.ndarray
+    z_grid: np.ndarray
+    optimum_x: float
+    optimum_y: float
+
+
+@dataclass(frozen=True)
+class StartupImprovementBarV24:
+    """One startup-improvement bar entry for DATA2 Fig. 9A."""
+
+    mode: str
+    improvement_percent: float
+    color_hex: str
+
+
+@dataclass(frozen=True)
+class ResidualBoxGroupV24:
+    """Grouped weighted residuals for a horizontal boxplot."""
+
+    solute_transport: str
+    residual_type: str
+    values: np.ndarray
+
+
 R_BAR_CM3_PER_UMOL_K = 8.314e-5
 NU_CM2_S = 8.927e-3
 CELL_DIAMETER_CM = 2.2860
@@ -4224,6 +4267,345 @@ DIFFUSIVITY_CM2_S = {
     "Co": 0.72e-5,
     "La": 0.62e-5,
 }
+
+
+def _legacy_vial_measured_points_v24(vial: VialData, *, t_delay: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Return legacy-compatible cV measurement coordinates."""
+    if vial.cV_avg is None:
+        return np.array([], dtype=float), np.array([], dtype=float)
+    if isinstance(vial.cV_avg, (int, float, np.number)):
+        return (
+            np.array([(float(vial.time_s[-1]) - t_delay) / 60.0], dtype=float),
+            np.array([float(vial.cV_avg)], dtype=float),
+        )
+    values = np.asarray(vial.cV_avg, dtype=float)
+    if vial.time_s is None or values.size == 0:
+        return np.array([], dtype=float), np.array([], dtype=float)
+    values = np.asarray(values, dtype=float)
+    mask = np.isfinite(values)
+    if not mask.any():
+        return np.array([], dtype=float), np.array([], dtype=float)
+    time_vals = (np.asarray(vial.time_s, dtype=float)[mask] - t_delay) / 60.0
+    return np.asarray(time_vals, dtype=float), np.asarray(values[mask], dtype=float)
+
+
+def build_legacy_plot_sim_comparison_payload_v24(
+    exp: ExperimentalData,
+    sim: Dict[int, Dict[str, np.ndarray]],
+    *,
+    include_predictions: bool = True,
+    include_stirred_mass: bool = False,
+) -> Dict[str, List[PaperFigureSeriesV24]]:
+    """Build the paper-style series used by the original plot_sim_comparison helpers.
+
+    This ports the plotting semantics from the legacy `utility.py` / DATA notebooks
+    into the unified codebase without depending on those files at runtime.
+    """
+    if not exp.vials:
+        return {"mass": [], "concentration": [], "stirred_mass": []}
+
+    t_delay = float(exp.vials[0].time_s[0])
+    payload: Dict[str, List[PaperFigureSeriesV24]] = {
+        "mass": [],
+        "concentration": [],
+        "stirred_mass": [],
+    }
+
+    for n, vial in enumerate(exp.vials, start=1):
+        if vial.time_s is None:
+            continue
+        t_meas_min = (np.asarray(vial.time_s, dtype=float) - t_delay) / 60.0
+        traj = sim.get(n, {})
+        t_pred_min = np.asarray(traj.get("time_s", np.array([], dtype=float)), dtype=float) / 60.0
+
+        if vial.mass_g is not None:
+            payload["mass"].append(
+                PaperFigureSeriesV24(
+                    panel="mass",
+                    series_kind="measurement",
+                    x=t_meas_min,
+                    y=np.asarray(vial.mass_g, dtype=float),
+                    vial_number=n,
+                )
+            )
+        if include_predictions and t_pred_min.size and "mV" in traj:
+            payload["mass"].append(
+                PaperFigureSeriesV24(
+                    panel="mass",
+                    series_kind="prediction",
+                    x=t_pred_min,
+                    y=np.asarray(traj["mV"], dtype=float),
+                    vial_number=n,
+                )
+            )
+
+        cv_x, cv_y = _legacy_vial_measured_points_v24(vial, t_delay=t_delay)
+        if cv_x.size:
+            payload["concentration"].append(
+                PaperFigureSeriesV24(
+                    panel="concentration",
+                    series_kind="vial_measurement",
+                    x=cv_x,
+                    y=cv_y,
+                    vial_number=n,
+                )
+            )
+        if vial.retentate_signal is not None:
+            cf_meas = np.asarray(vial.retentate_signal, dtype=float)
+            cf_x = t_meas_min
+            if vial.retentate_signal_endpoint_assay and cf_meas.size:
+                cf_meas = np.asarray([float(cf_meas[-1])], dtype=float)
+                cf_x = np.asarray([float(t_meas_min[-1])], dtype=float)
+            payload["concentration"].append(
+                PaperFigureSeriesV24(
+                    panel="concentration",
+                    series_kind="retentate_measurement",
+                    x=np.asarray(cf_x, dtype=float),
+                    y=np.asarray(cf_meas, dtype=float),
+                    vial_number=n,
+                )
+            )
+        if include_predictions and t_pred_min.size:
+            if "cF" in traj:
+                payload["concentration"].append(
+                    PaperFigureSeriesV24(
+                        panel="concentration",
+                        series_kind="retentate_prediction",
+                        x=t_pred_min,
+                        y=np.asarray(traj["cF"], dtype=float),
+                        vial_number=n,
+                    )
+                )
+            if "cH" in traj:
+                payload["concentration"].append(
+                    PaperFigureSeriesV24(
+                        panel="concentration",
+                        series_kind="permeate_prediction",
+                        x=t_pred_min,
+                        y=np.asarray(traj["cH"], dtype=float),
+                        vial_number=n,
+                    )
+                )
+            if "cV" in traj and np.asarray(traj["cV"]).size:
+                if isinstance(vial.cV_avg, (int, float, np.number)):
+                    payload["concentration"].append(
+                        PaperFigureSeriesV24(
+                            panel="concentration",
+                            series_kind="vial_prediction",
+                            x=np.asarray([float(t_pred_min[-1])], dtype=float),
+                            y=np.asarray([float(np.asarray(traj["cV"], dtype=float)[-1])], dtype=float),
+                            vial_number=n,
+                        )
+                    )
+                elif cv_x.size:
+                    pred_interp = np.interp(cv_x * 60.0, np.asarray(traj["time_s"], dtype=float), np.asarray(traj["cV"], dtype=float))
+                    payload["concentration"].append(
+                        PaperFigureSeriesV24(
+                            panel="concentration",
+                            series_kind="vial_prediction",
+                            x=np.asarray(cv_x, dtype=float),
+                            y=np.asarray(pred_interp, dtype=float),
+                            vial_number=n,
+                        )
+                    )
+
+        if include_stirred_mass and include_predictions and t_pred_min.size and "mF" in traj:
+            payload["stirred_mass"].append(
+                PaperFigureSeriesV24(
+                    panel="stirred_mass",
+                    series_kind="prediction",
+                    x=t_pred_min,
+                    y=np.asarray(traj["mF"], dtype=float),
+                    vial_number=n,
+                )
+            )
+
+    return payload
+
+
+def build_paper_contour_grid_v24(
+    df: pd.DataFrame,
+    *,
+    objective_column: str,
+) -> PaperContourGridV24:
+    """Convert legacy contour CSV layout into a unified contour-grid helper object."""
+    if "B" in df.columns:
+        x_name = "B"
+        x_label = r"B [$\mu$m $\cdot$ s$^{-1}$]"
+    elif "sigma" in df.columns:
+        x_name = "sigma"
+        x_label = r"$\sigma$ [dimensionless]"
+    else:
+        raise ValueError("Contour dataframe must include either 'B' or 'sigma'.")
+
+    x_vals = np.asarray(df[x_name], dtype=float)
+    y_vals = np.asarray(df["Lp"], dtype=float)
+    z_vals = np.asarray(df[objective_column], dtype=float)
+    grid_shape = (50, 50)
+    x_grid = np.reshape(x_vals, grid_shape)
+    y_grid = np.reshape(y_vals, grid_shape)
+    z_grid = np.reshape(z_vals, grid_shape)
+    optimum_index = int(np.nanargmin(z_vals))
+
+    return PaperContourGridV24(
+        x_name=x_name,
+        x_label=x_label,
+        y_label=r"L$_p$ [L $\cdot$ m$^{-2}$ $\cdot$ h$^{-1}$ $\cdot$ bar$^{-1}$]",
+        x_grid=x_grid,
+        y_grid=y_grid,
+        z_grid=z_grid,
+        optimum_x=float(x_vals[optimum_index]),
+        optimum_y=float(y_vals[optimum_index]),
+    )
+
+
+@dataclass(frozen=True)
+class Data1ContourObjectiveTermsV24:
+    """Container for the DATA1 paper contour objective decomposition."""
+
+    mass_term: float
+    permeate_term: float
+    retentate_term: float
+    mass_log10: float
+    permeate_log10: float
+    retentate_log10: float
+
+    def as_dict(self) -> Dict[str, float]:
+        return {
+            "mass_term": float(self.mass_term),
+            "permeate_term": float(self.permeate_term),
+            "retentate_term": float(self.retentate_term),
+            "mass_log10": float(self.mass_log10),
+            "permeate_log10": float(self.permeate_log10),
+            "retentate_log10": float(self.retentate_log10),
+        }
+
+
+def extract_model_trajectories_v24(exp: ExperimentalData, model: pyo.ConcreteModel) -> Dict[int, Dict[str, np.ndarray]]:
+    """Extract per-vial trajectories in physical time from a discretized unified model."""
+    tau_vals = sorted(float(t) for t in list(model.tau))
+    t_delay = float(exp.vials[0].time_s[0])
+    out: Dict[int, Dict[str, np.ndarray]] = {}
+    for n in range(1, len(exp.vials) + 1):
+        vial = exp.vials[n - 1]
+        ti = float(vial.time_s[0]) - t_delay
+        tf = float(vial.time_s[-1]) - t_delay
+        dur = tf - ti
+        t_model = np.array([ti + dur * tau for tau in tau_vals], dtype=float)
+        traj = {
+            "time_s": t_model,
+            "mV": np.array([float(pyo.value(model.mV[n, tau])) for tau in tau_vals], dtype=float),
+            "cF": np.array([float(pyo.value(model.cF[n, tau])) for tau in tau_vals], dtype=float),
+            "cH": np.array([float(pyo.value(model.cH[n, tau])) for tau in tau_vals], dtype=float),
+            "cV": np.array([float(pyo.value(model.cV[n, tau])) for tau in tau_vals], dtype=float),
+            "Jw": np.array([float(pyo.value(model.Jw[n, tau])) for tau in tau_vals], dtype=float),
+            "Js": np.array([float(pyo.value(model.Js[n, tau])) for tau in tau_vals], dtype=float),
+        }
+        if hasattr(model, "mF"):
+            traj["mF"] = np.array([float(pyo.value(model.mF[n, tau])) for tau in tau_vals], dtype=float)
+        out[n] = traj
+    return out
+
+
+def evaluate_data1_paper_contour_objectives_v24(
+    exp: ExperimentalData,
+    sim: Dict[int, Dict[str, np.ndarray]],
+) -> Data1ContourObjectiveTermsV24:
+    """Evaluate DATA1 Fig. 5/6 objectives using MATLAB-style default weights.
+
+    This mirrors the DATA1 MATLAB contour path conceptually:
+    ``calc_residuals.m`` builds per-vial residual vectors and ``weight_assemble.m``
+    applies default equal-by-vial/per-measurement weights before
+    ``calc_ind_objectives.m`` sums squared weighted residuals and stores ``log10``.
+
+    Important behavior:
+    - mass uses all finite measurements in each vial
+    - permeate uses one endpoint assay per vial
+    - retentate uses either one endpoint assay or continuous time-aligned data,
+      depending on how the loader represented the vial
+    """
+    n_vials = max(1, len(exp.vials))
+    n_cr_meas = sum(
+        1
+        for vial in exp.vials
+        if getattr(vial, "retentate_signal", None) is not None and np.asarray(vial.retentate_signal).size > 0
+    )
+    n_cr_meas = max(1, n_cr_meas)
+
+    obj_m = 0.0
+    obj_cp = 0.0
+    obj_cr = 0.0
+
+    for n, vial in enumerate(exp.vials, start=1):
+        sim_vial = sim[n]
+        t_meas_s = np.asarray(vial.time_s, dtype=float)
+
+        if vial.mass_g is not None:
+            y_m = np.asarray(vial.mass_g, dtype=float).reshape(-1)
+            mask = np.isfinite(y_m)
+            if mask.any():
+                pred_m = np.interp(t_meas_s[mask], sim_vial["time_s"], sim_vial["mV"])
+                weight_m = float(np.sqrt(1.0 / max(1, int(np.sum(mask))) / n_vials))
+                obj_m += float(np.sum((weight_m * (y_m[mask] - pred_m)) ** 2))
+
+        if isinstance(vial.cV_avg, (int, float, np.number)):
+            y_cp = float(vial.cV_avg)
+            if np.isfinite(y_cp):
+                weight_cp = float(np.sqrt(1.0 / n_vials))
+                obj_cp += float((weight_cp * (y_cp - float(sim_vial["cV"][-1]))) ** 2)
+
+        if vial.retentate_signal is not None:
+            y_cr = np.asarray(vial.retentate_signal, dtype=float).reshape(-1)
+            if y_cr.size > 0:
+                if getattr(vial, "retentate_signal_endpoint_assay", False):
+                    y_scalar = float(y_cr[-1])
+                    if np.isfinite(y_scalar):
+                        weight_cr = float(np.sqrt(1.0 / n_cr_meas))
+                        obj_cr += float((weight_cr * (y_scalar - float(sim_vial["cF"][-1]))) ** 2)
+                else:
+                    mask = np.isfinite(y_cr)
+                    if mask.any():
+                        pred_cr = np.interp(t_meas_s[mask], sim_vial["time_s"], sim_vial["cF"])
+                        weight_cr = float(np.sqrt(1.0 / max(1, int(np.sum(mask))) / n_cr_meas))
+                        obj_cr += float(np.sum((weight_cr * (y_cr[mask] - pred_cr)) ** 2))
+
+    return Data1ContourObjectiveTermsV24(
+        mass_term=float(obj_m),
+        permeate_term=float(obj_cp),
+        retentate_term=float(obj_cr),
+        mass_log10=float(np.log10(max(obj_m, 1e-12))),
+        permeate_log10=float(np.log10(max(obj_cp, 1e-12))),
+        retentate_log10=float(np.log10(max(obj_cr, 1e-12))),
+    )
+
+
+def build_startup_improvement_payload_v24(df: pd.DataFrame) -> List[StartupImprovementBarV24]:
+    """Normalize startup-improvement rows into a plotting payload."""
+    payload: List[StartupImprovementBarV24] = []
+    for _, row in df.iterrows():
+        val = float(row["Improvement_percent"])
+        payload.append(
+            StartupImprovementBarV24(
+                mode=str(row["Mode"]),
+                improvement_percent=val,
+                color_hex="#2CA02C" if val > 0 else "#D62728",
+            )
+        )
+    return payload
+
+
+def build_weighted_residual_boxplot_payload_v24(df: pd.DataFrame) -> List[ResidualBoxGroupV24]:
+    """Group weighted residual CSV rows into plotting payload blocks."""
+    payload: List[ResidualBoxGroupV24] = []
+    for (transport, residual_type), group in df.groupby(["solute_transport", "residual_type"]):
+        payload.append(
+            ResidualBoxGroupV24(
+                solute_transport=str(transport),
+                residual_type=str(residual_type),
+                values=group["weighted_residual"].to_numpy(dtype=float),
+            )
+        )
+    return payload
 
 
 def _first_non_nan(x: Optional[np.ndarray], default: float = 1e-6) -> float:

@@ -1,0 +1,8 @@
+dataset_id,metric,unified_value
+DATA1_511.12,objective,959040.479812693
+DATA1_511.12,theta.Lp,3.290046704346101
+DATA1_511.12,theta.B,0.2842423669200608
+DATA1_511.12,theta.sigma,0.9813639862187937
+DATA1_511.12,nrmse.mass,
+DATA1_511.12,nrmse.cF,
+DATA1_511.12,nrmse.cV,

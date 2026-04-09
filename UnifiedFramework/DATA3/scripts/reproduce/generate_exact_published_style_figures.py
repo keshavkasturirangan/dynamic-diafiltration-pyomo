@@ -176,9 +176,11 @@ def _plot_contour_grid(ax, df: pd.DataFrame, x_col: str, value_col: str, x_label
 def _render_data1_contour_exact(out_name: str, x_kind: str) -> Path:
     fig, axes = plt.subplots(3, 3, figsize=(13, 13))
     datasets = [
-        ("A", "501.1 concpolar"),
-        ("B", "511.12 concpolar"),
-        ("C", "511.11 concpolar"),
+        # These paper panels come from the diafiltration family, not the filtration
+        # 501.x cases. Using the diafiltration rows restores the published regions.
+        ("A", "511.12 concpolar"),
+        ("B", "511.11 concpolar"),
+        ("C", "511.12"),
     ]
     cols = [
         ("Obj_mass", "Mass"),
@@ -189,12 +191,16 @@ def _render_data1_contour_exact(out_name: str, x_kind: str) -> Path:
     x_col = "sigma" if x_kind == "sigma" else "B"
     x_label = r"$\sigma$ [dimensionless]" if x_kind == "sigma" else r"B [$\mu$m $\cdot$ s$^{-1}$]"
     y_label = r"L$_p$ [L $\cdot$ m$^{-2}$ $\cdot$ h$^{-1}$ $\cdot$ bar$^{-1}$]"
+    x_limits = (0.0, 1.0) if x_kind == "sigma" else (0.0, 2.0)
+    y_limits = (0.5, 7.4)
 
     for row_idx, (panel_label, dataset_dir) in enumerate(datasets):
         df = pd.read_csv(DATA1_DATA / dataset_dir / f"contourdata-{suffix}")
         for col_idx, (value_col, title) in enumerate(cols):
             ax = axes[row_idx, col_idx]
             _plot_contour_grid(ax, df, x_col, value_col, x_label, y_label)
+            ax.set_xlim(*x_limits)
+            ax.set_ylim(*y_limits)
             if row_idx == 0:
                 ax.set_title(title, fontsize=17, fontweight="bold")
             if col_idx == 0:

@@ -1,0 +1,86 @@
+{
+  "run_id": "20260408-215552",
+  "repo_root": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo",
+  "solver": "ipopt",
+  "nfe": 30,
+  "run_doe": false,
+  "calc_cov": false,
+  "skip_stage_artifacts": false,
+  "skip_curve_metrics": true,
+  "ipopt_max_cpu_time": null,
+  "mat_legacy_restarts_override": null,
+  "datasets": [
+    "DATA1_511.12"
+  ],
+  "tolerances": {
+    "param_rel_primary": 0.05,
+    "param_rel_with_explanation": 0.07,
+    "objective_rel": 0.05,
+    "curve_nrmse_range": 0.05,
+    "table_sig_digits": 3
+  },
+  "notes": [
+    "Figure/table-specific generation functions are scaffold placeholders in this phase.",
+    "Canonical DATA1/DATA2 nightly reproduction now routes load/estimation/DoE through UQEngine.",
+    "Use UnifiedFramework/DATA3/docs/validation/paper_target_matrix.md target IDs to incrementally implement plotting and table pipelines."
+  ],
+  "stage_a_artifacts": {
+    "figures": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig2_a_mass_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig2_b_retentate_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig2_c_vial_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig2_d_combined_measured.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig3_model_overlay.png"
+    ],
+    "utility_reference_figures": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/mass-dat511.12.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/concentration-dat511.12.png"
+    ],
+    "tables": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/tables/data1_table1_side_by_side.csv",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/tables/data1_table2_side_by_side.csv",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/tables/data1_stageA_unified_metrics.csv"
+    ],
+    "summary": {
+      "objective": 959040.479812693,
+      "theta": {
+        "Lp": 3.290046704346101,
+        "B": 0.2842423669200608,
+        "sigma": 0.9813639862187937
+      },
+      "rmse": {
+        "mass": NaN,
+        "cF": NaN,
+        "cV": 1.2120085373668699
+      },
+      "nrmse": {
+        "mass": 0.03382762279251533,
+        "cF": 0.017582912448720688,
+        "cV": 0.08457618894278557
+      }
+    },
+    "reference_style_figures": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/concentration_range.png"
+    ]
+  },
+  "stage_b_artifacts": {
+    "manifest": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/tables/data1_stageB_artifact_manifest.csv",
+    "counts_by_target": {
+      "D1-M-F5": 3,
+      "D1-M-F4": 2,
+      "D1-M-F6": 1,
+      "D1-S-FS2": 1,
+      "D1-S-FS3": 1,
+      "D1-S-FS4": 1,
+      "D1-S-FS5": 1,
+      "D1-S-FS6": 1,
+      "D1-S-FS7": 1
+    },
+    "reference_style_figures": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig4_paper_style.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig5_paper_style.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/reproduction/20260408-215552/figures/data1_fig6_paper_style.png"
+    ]
+  },
+  "data2_artifacts": {}
+}

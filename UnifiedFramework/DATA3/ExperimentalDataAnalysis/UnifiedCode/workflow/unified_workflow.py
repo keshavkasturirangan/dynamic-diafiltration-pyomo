@@ -23,8 +23,9 @@ from .output_artifacts import (
     build_data1_stage_a_outputs,
     build_data1_stage_b_outputs,
     build_data2_validation_artifacts,
-    extract_model_trajectories,
+    legacy_style_objective_terms,
     render_data1_fig3_reference,
+    render_data1_main_reference_figures,
 )
 from ..unified_codebase_library import (
     ExperimentalData,
@@ -36,6 +37,8 @@ from ..unified_codebase_library import (
     _temporary_ipopt_opt,
     apply_discretization,
     build_guess_from_experiment_v24,
+    evaluate_data1_paper_contour_objectives_v24,
+    extract_model_trajectories_v24,
     estimate_parameters_with_parmest_v24,
     label_parmest_and_doe_suffixes,
     load_experiment_easy,
@@ -686,7 +689,7 @@ class UQEngine:
             solver_options=solver_options,
             tee=tee,
         )
-        return extract_model_trajectories(dataset, model)
+        return extract_model_trajectories_v24(dataset, model)
 
     def build_data1_validation_artifacts(
         self,
@@ -739,6 +742,278 @@ class UQEngine:
         )
         if fig3_refs:
             artifacts["stage_a"].setdefault("reference_style_figures", []).extend(fig3_refs)
+        main_refs = render_data1_main_reference_figures(
+            figures_dir=out_dir / "figures",
+            simulation_validation_root=sim_validation_root,
+        )
+        if main_refs:
+            artifacts["stage_b"].setdefault("reference_style_figures", []).extend(main_refs)
+
+        # Direct unified sweeps for the fitted DATA1 dataset. These do not yet
+        # replace every multi-dataset paper panel, but they ensure the current
+        # run owns its own sigma-sensitivity and contour source data.
+        tables_dir = out_dir / "tables"
+        figures_dir = out_dir / "figures"
+        tables_dir.mkdir(parents=True, exist_ok=True)
+        figures_dir.mkdir(parents=True, exist_ok=True)
+
+        direct_figures: list[str] = []
+        direct_tables: list[str] = []
+        t_delay = float(dataset.vials[0].time_s[0])
+
+        # Figure 4-style sigma sensitivity trajectories from the unified model.
+        sigma_values = [0.1, 0.5, 0.9]
+        sigma_rows: list[dict[str, object]] = []
+        for sigma in sigma_values:
+            theta_sigma = dict(theta)
+            theta_sigma["sigma"] = float(sigma)
+            sigma_sim = self.simulate_trajectories(
+                dataset,
+                simulation_options,
+                theta_values=theta_sigma,
+                solver_name=solver_name,
+                solver_options=solver_options,
+                tee=tee,
+            )
+            for n, vial in enumerate(dataset.vials, start=1):
+                for time_s, m_val, cH_val, cF_val in zip(
+                    sigma_sim[n]["time_s"],
+                    sigma_sim[n]["mV"],
+                    sigma_sim[n]["cH"],
+                    sigma_sim[n]["cF"],
+                ):
+                    sigma_rows.append(
+                        {
+                            "sigma": float(sigma),
+                            "vial_number": n,
+                            "time_min": float(time_s) / 60.0,
+                            "mass_g": float(m_val),
+                            "permeate_concentration_mM": float(cH_val),
+                            "retentate_concentration_mM": float(cF_val),
+                        }
+                    )
+        sigma_df = pd.DataFrame(sigma_rows)
+        sigma_csv = tables_dir / "data1_direct_fig4_sigma_sensitivity.csv"
+        sigma_df.to_csv(sigma_csv, index=False)
+        direct_tables.append(str(sigma_csv))
+
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(figsize=(12, 4))
+        sigma_styles = {
+            0.1: {"color": "#FF4D4D", "linestyle": "--"},
+            0.5: {"color": "#1F4AFF", "linestyle": "-"},
+            0.9: {"color": "#5CB85C", "linestyle": ":"},
+        }
+        for idx, (value_col, title, ylabel) in enumerate(
+            (
+                ("mass_g", "Mass", "Mass [g]"),
+                ("permeate_concentration_mM", "Permeate", "Permeate Conc. [mM]"),
+                ("retentate_concentration_mM", "Retentate", "Retentate Conc. [mM]"),
+            ),
+            start=1,
+        ):
+            ax = fig.add_subplot(1, 3, idx)
+            for sigma in sigma_values:
+                style = sigma_styles[sigma]
+                subset = sigma_df[sigma_df["sigma"] == sigma]
+                for _, group in subset.groupby("vial_number"):
+                    group = group.sort_values("time_min")
+                    ax.plot(group["time_min"], group[value_col], color=style["color"], linestyle=style["linestyle"], linewidth=2.0)
+            ax.set_title(title, fontsize=16, fontweight="bold")
+            ax.set_xlabel("Time [min]", fontsize=13, fontweight="bold")
+            ax.set_ylabel(ylabel, fontsize=13, fontweight="bold")
+            ax.tick_params(direction="in", top=True, right=True, labelsize=10)
+        handles = [plt.Line2D([0], [0], color=sigma_styles[s]["color"], linestyle=sigma_styles[s]["linestyle"], linewidth=2.0) for s in sigma_values]
+        fig.axes[-1].legend(handles, [r"$\sigma$ = 0.1", r"$\sigma$ = 0.5", r"$\sigma$ = 0.9"], fontsize=11, loc="best")
+        fig.tight_layout()
+        fig4_direct = figures_dir / "data1_fig4_direct_sigma_sensitivity.png"
+        fig.savefig(fig4_direct, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+        direct_figures.append(str(fig4_direct))
+
+        # Figure 5/6-style direct contour sweeps from the unified model.
+        def _normalize_dataset_label(value: object) -> str:
+            text = str(value)
+            if "_" in text:
+                text = text.split("_")[-1]
+            return text.strip()
+
+        def _baseline_grid(fig_key: str, x_name: str) -> tuple[np.ndarray, np.ndarray, str | None]:
+            baseline_dir = simulation_validation_root / "data1_main" / fig_key
+            dataset_label = _normalize_dataset_label(getattr(dataset, "dataset_id", dataset_id))
+            for candidate in sorted(baseline_dir.glob(f"data1_main_{fig_key}_*_mass.csv")):
+                baseline = pd.read_csv(candidate)
+                baseline_label = _normalize_dataset_label(baseline["dataset"].iloc[0])
+                if baseline_label != dataset_label:
+                    continue
+                x_values = np.sort(baseline[x_name].astype(float).unique())
+                lp_values = np.sort(baseline["Lp"].astype(float).unique())
+                panel_id = str(baseline["panel_id"].iloc[0]).upper()
+                return x_values, lp_values, panel_id
+
+            if x_name == "sigma":
+                return np.linspace(0.0, 1.0, 9), np.linspace(0.5, 7.4, 9), None
+            return np.linspace(1e-6, 2.0, 9), np.linspace(0.5, 7.4, 9), None
+
+        def _direct_grid(x_name: str, x_values: np.ndarray, lp_values: np.ndarray) -> pd.DataFrame:
+            rows: list[dict[str, object]] = []
+            for x_val in x_values:
+                for lp_val in lp_values:
+                    theta_grid = dict(theta)
+                    theta_grid["Lp"] = float(lp_val)
+                    theta_grid[x_name] = float(x_val)
+                    sim_grid = self.simulate_trajectories(
+                        dataset,
+                        simulation_options,
+                        theta_values=theta_grid,
+                        solver_name=solver_name,
+                        solver_options=solver_options,
+                        tee=False,
+                    )
+                    scores = evaluate_data1_paper_contour_objectives_v24(dataset, sim_grid).as_dict()
+                    rows.append(
+                        {
+                            x_name: float(x_val),
+                            "Lp": float(lp_val),
+                            "Obj_mass": scores["mass_log10"],
+                            "Obj_concentration": scores["permeate_log10"],
+                            "Obj_retentate_concentration": scores["retentate_log10"],
+                        }
+                    )
+            return pd.DataFrame(rows)
+
+        def _write_direct_grid_report(
+            *,
+            direct_df: pd.DataFrame,
+            fig_key: str,
+            panel_id: str | None,
+            x_name: str,
+            report_name: str,
+        ) -> str | None:
+            if not panel_id:
+                return None
+            objective_map = {
+                "mass": "Obj_mass",
+                "permeate": "Obj_concentration",
+                "retentate": "Obj_retentate_concentration",
+            }
+            rows: list[dict[str, object]] = []
+            for objective_name, direct_col in objective_map.items():
+                baseline_path = (
+                    simulation_validation_root
+                    / "data1_main"
+                    / fig_key
+                    / f"data1_main_{fig_key}_{panel_id.lower()}_{objective_name}.csv"
+                )
+                if not baseline_path.exists():
+                    continue
+                baseline = pd.read_csv(baseline_path)
+                merged = baseline.merge(
+                    direct_df[[x_name, "Lp", direct_col]],
+                    on=[x_name, "Lp"],
+                    how="inner",
+                )
+                if merged.empty:
+                    rows.append(
+                        {
+                            "figure_id": fig_key,
+                            "panel_id": panel_id,
+                            "objective_name": objective_name,
+                            "n_points": 0,
+                            "mae": np.nan,
+                            "max_abs_err": np.nan,
+                            "rmse": np.nan,
+                        }
+                    )
+                    continue
+                err = merged[direct_col].to_numpy(dtype=float) - merged["objective_value"].to_numpy(dtype=float)
+                rows.append(
+                    {
+                        "figure_id": fig_key,
+                        "panel_id": panel_id,
+                        "objective_name": objective_name,
+                        "n_points": int(len(merged)),
+                        "mae": float(np.mean(np.abs(err))),
+                        "max_abs_err": float(np.max(np.abs(err))),
+                        "rmse": float(np.sqrt(np.mean(err**2))),
+                    }
+                )
+            if not rows:
+                return None
+            report_path = tables_dir / report_name
+            pd.DataFrame(rows).to_csv(report_path, index=False)
+            return str(report_path)
+
+        sigma_values_grid, lp_values, sigma_panel_id = _baseline_grid("fig5", "sigma")
+        sigma_grid_df = _direct_grid("sigma", sigma_values_grid, lp_values)
+        sigma_grid_csv = tables_dir / "data1_direct_fig5_sigma_lp_grid.csv"
+        sigma_grid_df.to_csv(sigma_grid_csv, index=False)
+        direct_tables.append(str(sigma_grid_csv))
+        sigma_report = _write_direct_grid_report(
+            direct_df=sigma_grid_df,
+            fig_key="fig5",
+            panel_id=sigma_panel_id,
+            x_name="sigma",
+            report_name="data1_direct_fig5_sigma_lp_comparison.csv",
+        )
+        if sigma_report:
+            direct_tables.append(sigma_report)
+
+        b_values_grid, b_lp_values, b_panel_id = _baseline_grid("fig6", "B")
+        b_grid_df = _direct_grid("B", b_values_grid, b_lp_values)
+        b_grid_csv = tables_dir / "data1_direct_fig6_b_lp_grid.csv"
+        b_grid_df.to_csv(b_grid_csv, index=False)
+        direct_tables.append(str(b_grid_csv))
+        b_report = _write_direct_grid_report(
+            direct_df=b_grid_df,
+            fig_key="fig6",
+            panel_id=b_panel_id,
+            x_name="B",
+            report_name="data1_direct_fig6_b_lp_comparison.csv",
+        )
+        if b_report:
+            direct_tables.append(b_report)
+
+        def _render_direct_contour(df: pd.DataFrame, x_name: str, out_name: str) -> str:
+            fig = plt.figure(figsize=(12, 4))
+            for idx, (col, title) in enumerate(
+                (
+                    ("Obj_mass", "Mass"),
+                    ("Obj_concentration", "Permeate"),
+                    ("Obj_retentate_concentration", "Retentate"),
+                ),
+                start=1,
+            ):
+                ax = fig.add_subplot(1, 3, idx)
+                grid = df[[x_name, "Lp", col]].copy().rename(columns={col: "objective_value"})
+                from .output_artifacts import build_paper_contour_grid_v24  # local import to avoid circularity
+
+                contour = build_paper_contour_grid_v24(grid, objective_column="objective_value")
+                levels = np.linspace(float(np.nanmin(contour.z_grid)), float(np.nanmax(contour.z_grid)), 10)
+                cs = ax.contour(contour.x_grid, contour.y_grid, contour.z_grid, levels=levels, linewidths=1.6)
+                ax.clabel(cs, cs.levels[::2], inline=True, fontsize=9, colors="k", fmt="%1.1f")
+                ax.plot(contour.optimum_x, contour.optimum_y, "^", markersize=8, markeredgecolor="red", markerfacecolor=(1.0, 0.7, 0.7), clip_on=False)
+                ax.set_title(title, fontsize=16, fontweight="bold")
+                ax.set_xlabel(contour.x_label, fontsize=12, fontweight="bold")
+                ax.set_ylabel(contour.y_label, fontsize=12, fontweight="bold")
+                ax.tick_params(direction="in", top=True, right=True, labelsize=10)
+                ax.set_ylim(0.5, 7.4)
+                if x_name == "sigma":
+                    ax.set_xlim(0.0, 1.0)
+                else:
+                    ax.set_xlim(0.0, 2.0)
+            fig.tight_layout()
+            out_path = figures_dir / out_name
+            fig.savefig(out_path, dpi=300, bbox_inches="tight")
+            plt.close(fig)
+            return str(out_path)
+
+        direct_figures.append(_render_direct_contour(sigma_grid_df, "sigma", "data1_fig5_direct_sigma_lp_contours.png"))
+        direct_figures.append(_render_direct_contour(b_grid_df, "B", "data1_fig6_direct_b_lp_contours.png"))
+
+        artifacts["stage_b"]["direct_unified_tables"] = direct_tables
+        artifacts["stage_b"]["direct_unified_figures"] = direct_figures
         return artifacts
 
     def build_data2_validation_artifacts(
