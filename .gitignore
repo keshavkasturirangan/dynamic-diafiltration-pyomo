@@ -4,6 +4,19 @@ __pycache__/
 # macOS
 .DS_Store
 **/.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100/
+.Trashes/
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python / tooling noise
+*.log
+*.tmp
+*.swp
+*.swo
 
 # Local data link/helper path
 data_library
