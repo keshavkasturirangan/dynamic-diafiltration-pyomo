@@ -1,0 +1,3 @@
+[digitized-compare] wrote: /Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/docs/validation/digitized_baselines/comparison_latest.csv
+[digitized-compare] rows: 13
+[digitized-compare] status_counts: {'FAIL': 11, 'PASS': 2}

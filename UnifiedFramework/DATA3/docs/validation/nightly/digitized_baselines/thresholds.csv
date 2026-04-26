@@ -1,0 +1,3 @@
+target_id,nrmse_max,mae_max,max_abs_err_max,min_points,notes
+D2-M-F7,0.08,0.08,0.15,20,Template threshold row; tune per target panel
+DEFAULT,0.10,0.10,0.20,10,Fallback thresholds when target-specific row is absent

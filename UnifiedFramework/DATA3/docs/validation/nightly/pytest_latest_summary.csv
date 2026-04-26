@@ -1,0 +1,2 @@
+timestamp_utc,exit_code,tests,passed,failures,errors,skipped,failed_cases
+2026-04-17T05:40:49.573849+00:00,1,49,48,1,0,0,UnifiedFramework.DATA3.tests.regression.test_data1_data2_nightly::test_data1_data2_reproduction_nightly
