@@ -843,7 +843,7 @@ class UQEngine:
             return text.strip()
 
         def _baseline_grid(fig_key: str, x_name: str) -> tuple[np.ndarray, np.ndarray, str | None]:
-            baseline_dir = simulation_validation_root / "data1_main" / fig_key
+            baseline_dir = sim_validation_root / "data1_main" / fig_key
             dataset_label = _normalize_dataset_label(getattr(dataset, "dataset_id", dataset_id))
             for candidate in sorted(baseline_dir.glob(f"data1_main_{fig_key}_*_mass.csv")):
                 baseline = pd.read_csv(candidate)

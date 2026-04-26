@@ -30,6 +30,10 @@ from pyomo.environ import *
 from pyomo.dae import *
 import idaes.core.util.scaling as iscale
 
+# Pyomo's wildcard import can overwrite typing names like Dict and List.
+# Re-import them here so the annotations below keep working in Spyder.
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+
 
 class SourceType(str, Enum):
     """What kind of file the loader is reading."""
