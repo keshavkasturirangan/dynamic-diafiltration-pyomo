@@ -1,8 +1,0 @@
-target_id,expected_status,severity,reason,owner,review_after,active
-D1-M-T1,FAIL,warning,Known DATA1 numeric mismatch pending model/data harmonization,team,2026-04-15,true
-D2-M-T2,FAIL,warning,Known DATA2 numeric mismatch pending tolerance/model calibration review,team,2026-04-15,true
-D2-M-F6,FAIL,warning,Known DATA2 curve-quality failure from current baseline run,team,2026-04-15,true
-D2-M-T3,MISSING_VALUE,warning,Main-paper table baseline exists but unified values are pending runtime blocker fix,team,2026-04-15,true
-D2-M-T4,MISSING_VALUE,warning,Main-paper table baseline exists but unified values are pending runtime blocker fix,team,2026-04-15,true
-D2-M-T5,MISSING_VALUE,warning,Main-paper table baseline exists but unified values are pending runtime blocker fix,team,2026-04-15,true
-D2-M-T6,MISSING_VALUE,warning,Main-paper table baseline exists but unified values are pending runtime blocker fix,team,2026-04-15,true
