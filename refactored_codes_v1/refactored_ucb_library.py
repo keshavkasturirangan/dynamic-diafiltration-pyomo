@@ -15,11 +15,154 @@ import time
 import copy
 import os
 import json
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from sklearn.metrics import r2_score
 
 from pyomo.environ import *
 from pyomo.dae import *
 import idaes.core.util.scaling as iscale
+
+
+class SourceType(str, Enum):
+    """Supported experiment source types for the refactored loader layer."""
+
+    MAT = "mat"
+    XLSX = "xlsx"
+
+
+@dataclass(frozen=True)
+class ExperimentalSource:
+    """One input file participating in a multi-file workflow."""
+
+    path: Path
+    selector: Optional[Union[str, int]] = None
+    label: Optional[str] = None
+
+
+@dataclass
+class ExperimentalBundle:
+    """A collection of loaded experiments and their provenance."""
+
+    sources: List[ExperimentalSource] = field(default_factory=list)
+    experiments: List[Dict[str, Any]] = field(default_factory=list)
+    validation: List[Tuple[bool, List[Tuple[str, str]]]] = field(default_factory=list)
+    source_types: List[Optional[SourceType]] = field(default_factory=list)
+    profile: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __len__(self) -> int:
+        return len(self.experiments)
+
+
+def detect_source_type(file_path: Union[str, Path]) -> Optional[SourceType]:
+    """Detect the source type from the file extension."""
+    suffix = Path(file_path).suffix.lower()
+    if suffix == ".mat":
+        return SourceType.MAT
+    if suffix in {".xlsx", ".xls"}:
+        return SourceType.XLSX
+    return None
+
+
+def _load_xlsx_minimal(xlsx_path: Path, selector: Optional[Union[str, int]] = None) -> Dict[str, Any]:
+    """Minimal XLSX loader for refactored multi-file support.
+
+    The full unified loader has a richer sheet parser. This lightweight adapter
+    keeps the refactored library able to accept XLSX inputs while the refactor
+    work continues.
+    """
+    xls = pd.ExcelFile(xlsx_path)
+    sheet_name = xls.sheet_names[0] if selector is None else selector
+    sheet = xls.parse(sheet_name)
+    return {
+        "source": SourceType.XLSX.value,
+        "filename": xlsx_path.name,
+        "path": str(xlsx_path),
+        "sheet_name": sheet_name,
+        "dataframe": sheet,
+        "sheet_names": list(xls.sheet_names),
+    }
+
+
+def load_experiment_file(
+    file_path: Union[str, Path],
+    selector: Optional[Union[str, int]] = None,
+) -> Tuple[Dict[str, Any], Tuple[bool, List[Tuple[str, str]]], Optional[SourceType]]:
+    """Load a single experimental file into a normalized dictionary.
+
+    MAT files use the existing `loadmat` helper.
+    XLSX files use a minimal adapter that keeps the workbook and selected sheet
+    available for downstream processing.
+    """
+    path = Path(file_path).expanduser().resolve()
+    source_type = detect_source_type(path)
+    if source_type is None:
+        raise ValueError(f"Unsupported file type: {path.suffix}")
+
+    issues: List[Tuple[str, str]] = []
+    ok_fatal = True
+
+    if source_type == SourceType.MAT:
+        data = loadmat(str(path))
+        if selector is not None and selector != "data_stru":
+            data = data.get(selector, data)
+        if not isinstance(data, dict):
+            ok_fatal = False
+            issues.append(("FATAL", f"MAT file {path.name} did not load into a dictionary."))
+            data = {"raw": data}
+        data.setdefault("source", SourceType.MAT.value)
+        data.setdefault("path", str(path))
+        data.setdefault("filename", path.name)
+    else:
+        data = _load_xlsx_minimal(path, selector=selector)
+        issues.append(("INFO", f"Loaded XLSX workbook {path.name} with sheet selector {selector!r}."))
+
+    return data, (ok_fatal, issues), source_type
+
+
+def load_experiment_bundle(
+    file_paths: Sequence[Union[str, Path]],
+    selectors: Optional[Sequence[Optional[Union[str, int]]]] = None,
+    *,
+    profile: Optional[str] = None,
+) -> ExperimentalBundle:
+    """Load multiple experimental files and preserve provenance.
+
+    This is the new multi-file entrypoint for the refactored library.
+    """
+    bundle = ExperimentalBundle(profile=profile)
+    selectors = list(selectors) if selectors is not None else [None] * len(file_paths)
+    if len(selectors) != len(file_paths):
+        raise ValueError("selectors must match file_paths length")
+
+    for file_path, selector in zip(file_paths, selectors):
+        path = Path(file_path).expanduser().resolve()
+        source = ExperimentalSource(path=path, selector=selector, label=path.stem)
+        data, validation, source_type = load_experiment_file(path, selector=selector)
+        bundle.sources.append(source)
+        bundle.experiments.append(data)
+        bundle.validation.append(validation)
+        bundle.source_types.append(source_type)
+
+    bundle.metadata["source_count"] = len(bundle.sources)
+    bundle.metadata["profile"] = profile
+    bundle.metadata["has_xlsx"] = any(st == SourceType.XLSX for st in bundle.source_types)
+    bundle.metadata["has_mat"] = any(st == SourceType.MAT for st in bundle.source_types)
+    return bundle
+
+
+def load_experiment_files(
+    file_paths: Sequence[Union[str, Path]],
+    selectors: Optional[Sequence[Optional[Union[str, int]]]] = None,
+    *,
+    profile: Optional[str] = None,
+) -> Tuple[List[Dict[str, Any]], List[Tuple[bool, List[Tuple[str, str]]]]]:
+    """Convenience wrapper returning just experiments and validation results."""
+    bundle = load_experiment_bundle(file_paths, selectors, profile=profile)
+    return bundle.experiments, bundle.validation
 
 
 def loadmat(filename):
