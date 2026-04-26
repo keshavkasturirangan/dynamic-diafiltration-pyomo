@@ -37,8 +37,10 @@ from ..unified_codebase_library import (
     _temporary_ipopt_opt,
     apply_discretization,
     build_guess_from_experiment_v24,
+    build_initialized_simulation_model_v24,
     evaluate_data1_paper_contour_objectives_v24,
     extract_model_trajectories_v24,
+    simulate_data1_vialwise_trajectories_v24,
     estimate_parameters_with_parmest_v24,
     label_parmest_and_doe_suffixes,
     load_experiment_easy,
@@ -243,14 +245,15 @@ class DiafiltrationExperiment(ParmestExperiment):
         guess = build_guess_from_experiment_v24(dataset, sim_options, override=self.guess)
         if theta_values:
             guess = self._guess_with_theta_overrides(guess, theta_values)
-        model = model_construct_inter_v24(dataset, options=sim_options, guess=guess)
-        apply_discretization(model, nfe=sim_options.nfe, scheme=sim_options.fd_scheme)
+        model = build_initialized_simulation_model_v24(
+            dataset,
+            sim_options,
+            guess=guess,
+            solver_name=solver_name,
+            solver_options=solver_options,
+            tee=tee,
+        )
         label_parmest_and_doe_suffixes(model, dataset, sim_options)
-        solver = pyo.SolverFactory(solver_name)
-        if solver_options:
-            for key, value in solver_options.items():
-                solver.options[key] = value
-        solver.solve(model, tee=tee)
         return model
 
     def plot_quicklook(self, *, kind: str = "retentate_signal") -> None:
@@ -863,14 +866,17 @@ class UQEngine:
                     theta_grid = dict(theta)
                     theta_grid["Lp"] = float(lp_val)
                     theta_grid[x_name] = float(x_val)
-                    sim_grid = self.simulate_trajectories(
-                        dataset,
-                        simulation_options,
-                        theta_values=theta_grid,
-                        solver_name=solver_name,
-                        solver_options=solver_options,
-                        tee=False,
-                    )
+                    if dataset.source == SourceType.MAT and simulation_options.process_model_profile == ProcessModelProfile.DATA1:
+                        sim_grid = simulate_data1_vialwise_trajectories_v24(dataset, theta_grid)
+                    else:
+                        sim_grid = self.simulate_trajectories(
+                            dataset,
+                            simulation_options,
+                            theta_values=theta_grid,
+                            solver_name=solver_name,
+                            solver_options=solver_options,
+                            tee=False,
+                        )
                     scores = evaluate_data1_paper_contour_objectives_v24(dataset, sim_grid).as_dict()
                     rows.append(
                         {

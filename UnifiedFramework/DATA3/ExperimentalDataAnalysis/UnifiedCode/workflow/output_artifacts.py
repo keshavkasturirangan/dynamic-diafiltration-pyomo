@@ -1291,11 +1291,8 @@ def render_data1_main_reference_figures(*, figures_dir: Path, simulation_validat
                 ax.set_xlabel(contour.x_label, fontsize=12, fontweight="bold")
                 ax.set_ylabel(contour.y_label, fontsize=12, fontweight="bold")
                 ax.tick_params(direction="in", top=True, right=True, labelsize=11)
-                if fig_id == "fig5":
-                    ax.set_xlim(0.0, 1.0)
-                else:
-                    ax.set_xlim(0.0, 2.0)
-                ax.set_ylim(0.5, 7.4)
+                ax.set_xlim(float(np.nanmin(contour.x_grid)), float(np.nanmax(contour.x_grid)))
+                ax.set_ylim(float(np.nanmin(contour.y_grid)), float(np.nanmax(contour.y_grid)))
                 if r_idx == 0:
                     ax.set_title(title, fontsize=17, fontweight="bold")
                 if c_idx == 0:

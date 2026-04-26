@@ -1,0 +1,6 @@
+[prune] dry_run=True
+[prune] mode=archive
+[prune] keep_full=3
+[prune] protected_runs=0
+[prune] reclaimable_figures_mb=0.0
+[prune] actions:

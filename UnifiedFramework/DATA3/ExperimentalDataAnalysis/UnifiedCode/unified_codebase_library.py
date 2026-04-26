@@ -28,6 +28,7 @@ from pathlib import Path
 from contextlib import contextmanager
 import pandas as pd
 from scipy.io import loadmat  # MATLAB .mat reader (used for initial-guess inference)
+from scipy.integrate import solve_ivp
 
 import numpy as np
 import re
@@ -4438,14 +4439,22 @@ def build_paper_contour_grid_v24(
     else:
         raise ValueError("Contour dataframe must include either 'B' or 'sigma'.")
 
-    x_vals = np.asarray(df[x_name], dtype=float)
-    y_vals = np.asarray(df["Lp"], dtype=float)
-    z_vals = np.asarray(df[objective_column], dtype=float)
-    grid_shape = (50, 50)
-    x_grid = np.reshape(x_vals, grid_shape)
-    y_grid = np.reshape(y_vals, grid_shape)
-    z_grid = np.reshape(z_vals, grid_shape)
-    optimum_index = int(np.nanargmin(z_vals))
+    grid_df = (
+        df[[x_name, "Lp", objective_column]]
+        .copy()
+        .astype({x_name: float, "Lp": float, objective_column: float})
+        .dropna(subset=[x_name, "Lp", objective_column])
+    )
+    x_unique = np.sort(grid_df[x_name].unique())
+    y_unique = np.sort(grid_df["Lp"].unique())
+    z_pivot = (
+        grid_df.pivot_table(index="Lp", columns=x_name, values=objective_column, aggfunc="mean")
+        .reindex(index=y_unique, columns=x_unique)
+    )
+    x_grid, y_grid = np.meshgrid(x_unique, y_unique)
+    z_grid = z_pivot.to_numpy(dtype=float)
+    optimum_flat = int(np.nanargmin(z_grid))
+    optimum_row, optimum_col = np.unravel_index(optimum_flat, z_grid.shape)
 
     return PaperContourGridV24(
         x_name=x_name,
@@ -4454,8 +4463,8 @@ def build_paper_contour_grid_v24(
         x_grid=x_grid,
         y_grid=y_grid,
         z_grid=z_grid,
-        optimum_x=float(x_vals[optimum_index]),
-        optimum_y=float(y_vals[optimum_index]),
+        optimum_x=float(x_unique[optimum_col]),
+        optimum_y=float(y_unique[optimum_row]),
     )
 
 
@@ -4507,6 +4516,152 @@ def extract_model_trajectories_v24(exp: ExperimentalData, model: pyo.ConcreteMod
     return out
 
 
+def simulate_data1_vialwise_trajectories_v24(
+    exp: ExperimentalData,
+    theta_values: Dict[str, float],
+) -> Dict[int, Dict[str, np.ndarray]]:
+    """Direct DATA1 simulator on the measurement-time grid.
+
+    This mirrors the legacy ``sim_model.m`` pattern more closely than the
+    discretized-Pyomo extraction path:
+    - integrate one vial at a time on that vial's measurement-time grid
+    - carry end-of-vial retentate/holdup forward
+    - reset vial mass and initialize vial concentration from previous holdup
+
+    It is intentionally scoped to the DATA1 MAT paper path.
+    """
+    if not exp.vials:
+        return {}
+
+    delP = float(exp.delP_bar)
+    T = float(exp.Temp_K)
+    Am = float(exp.Am_cm2)
+    rho = float(exp.rho_g_cm3)
+    ni = int(exp.ni_species if exp.ni_species is not None else (exp.num_components if exp.num_components is not None else 1))
+    k = float(compute_mass_transfer_coeff(exp))
+    M_F0 = float(exp.M_F0_g)
+    cD = float(exp.C_D_value if exp.C_D_value is not None else 0.0)
+    mode = str(exp.mode or "D").strip().upper()
+    if mode == "D":
+        M_F0 = float(exp.M_F0_g) + float(exp.M_O_g if exp.M_O_g is not None else 0.0)
+    lp_cm_bar_s = float(theta_values["Lp"]) / 36000.0
+    b_cm_s = float(theta_values["B"]) / 10000.0
+    sigma = float(theta_values["sigma"])
+    osmotic_coeff = ni * sigma * R_BAR_CM3_PER_UMOL_K * T
+
+    t_delay = float(exp.vials[0].time_s[0])
+    cF0 = float(exp.C_F0_value if exp.C_F0_value is not None else _first_non_nan(exp.vials[0].retentate_signal, 1e-6))
+    cH0 = float(_legacy_data1_mode_cH0_from_first_vial(exp))
+    mV_seed = 0.05
+    mV0 = mV_seed
+    cV0 = 0.0
+    cVmV0 = cV0 * mV0
+
+    def _solve_interface(cF: float, cH: float) -> Tuple[float, float, float]:
+        cIn = float(max(cF, cH, 1e-12))
+        for _ in range(50):
+            jw = lp_cm_bar_s * (delP - (cIn - cH) * osmotic_coeff)
+            next_cIn = (cF - cH) * np.exp(jw / max(k, 1e-12)) + cH
+            if abs(next_cIn - cIn) <= 1e-10 * max(1.0, abs(cIn), abs(next_cIn)):
+                cIn = float(next_cIn)
+                break
+            cIn = float(next_cIn)
+        jw = lp_cm_bar_s * (delP - (cIn - cH) * osmotic_coeff)
+        js = b_cm_s * (cIn - cH)
+        return cIn, jw, js
+
+    def _rhs(_t: float, y: np.ndarray) -> np.ndarray:
+        if mode == "F":
+            mF, cF, cH, mV, cVmV = [float(val) for val in y]
+            mF_eff = max(mF, 1e-12)
+        else:
+            cF, cH, mV, cVmV = [float(val) for val in y]
+            mF = M_F0
+            mF_eff = M_F0
+        mV_eff = max(mV, 1e-12)
+        _ = cVmV / mV_eff
+        _, jw, js = _solve_interface(cF, cH)
+        if mode == "F":
+            dmF = -jw * Am * rho
+            dcF = Am * rho / mF_eff * (cF * jw - js)
+        else:
+            dmF = None
+            dcF = Am * rho / M_F0 * (cD * jw - js)
+        dcH = Am * rho / MH_ML * (js - cH * jw)
+        dmV = jw * Am * rho
+        dcVmV = jw * cH * Am * rho
+        if mode == "F":
+            return np.array([dmF, dcF, dcH, dmV, dcVmV], dtype=float)
+        return np.array([dcF, dcH, dmV, dcVmV], dtype=float)
+
+    out: Dict[int, Dict[str, np.ndarray]] = {}
+    for n, vial in enumerate(exp.vials, start=1):
+        t_eval = np.asarray(vial.time_s, dtype=float) - t_delay
+        if t_eval.size == 0:
+            continue
+        t_span = (float(t_eval[0]), float(t_eval[-1]))
+        if mode == "F":
+            y0 = np.array([M_F0, cF0, cH0, mV0, cVmV0], dtype=float)
+        else:
+            y0 = np.array([cF0, cH0, mV0, cVmV0], dtype=float)
+        sol = solve_ivp(
+            _rhs,
+            t_span=t_span,
+            y0=y0,
+            t_eval=t_eval,
+            method="BDF",
+            rtol=1e-8,
+            atol=1e-10,
+        )
+        if not sol.success:
+            raise RuntimeError(f"Direct DATA1 vial simulation failed for vial {n}: {sol.message}")
+
+        if mode == "F":
+            mF = np.asarray(sol.y[0], dtype=float)
+            cF = np.asarray(sol.y[1], dtype=float)
+            cH = np.asarray(sol.y[2], dtype=float)
+            mV_state = np.asarray(sol.y[3], dtype=float)
+            cVmV = np.asarray(sol.y[4], dtype=float)
+        else:
+            cF = np.asarray(sol.y[0], dtype=float)
+            cH = np.asarray(sol.y[1], dtype=float)
+            mV_state = np.asarray(sol.y[2], dtype=float)
+            cVmV = np.asarray(sol.y[3], dtype=float)
+            mF = np.full_like(cF, M_F0)
+        mV_safe = np.maximum(mV_state, 1e-12)
+        cV = cVmV / mV_safe
+        mV = mV_state - mV_seed
+        cIn = np.zeros_like(cF)
+        jw = np.zeros_like(cF)
+        js = np.zeros_like(cF)
+        for idx in range(len(cF)):
+            cIn[idx], jw[idx], js[idx] = _solve_interface(float(cF[idx]), float(cH[idx]))
+
+        out[n] = {
+            "time_s": t_eval,
+            "mV": mV,
+            "cF": cF,
+            "cH": cH,
+            "cV": cV,
+            "cIn": cIn,
+            "Jw": jw,
+            "Js": js,
+            "mF": mF,
+        }
+
+        cF0 = float(cF[-1])
+        cH0 = float(cH[-1])
+        mV0 = mV_seed
+        # Legacy DATA1 contour path seeds the next vial permeate state from
+        # the previous vial holdup concentration when holdup is active.
+        cV0 = float(cH[-1])
+        cVmV0 = cV0 * mV0
+        if mode == "F":
+            M_F0 = float(mF[-1])
+
+    return out
+
+
 def evaluate_data1_paper_contour_objectives_v24(
     exp: ExperimentalData,
     sim: Dict[int, Dict[str, np.ndarray]],
@@ -4531,6 +4686,7 @@ def evaluate_data1_paper_contour_objectives_v24(
         if getattr(vial, "retentate_signal", None) is not None and np.asarray(vial.retentate_signal).size > 0
     )
     n_cr_meas = max(1, n_cr_meas)
+    t_delay = float(exp.vials[0].time_s[0]) if exp.vials else 0.0
 
     obj_m = 0.0
     obj_cp = 0.0
@@ -4538,7 +4694,7 @@ def evaluate_data1_paper_contour_objectives_v24(
 
     for n, vial in enumerate(exp.vials, start=1):
         sim_vial = sim[n]
-        t_meas_s = np.asarray(vial.time_s, dtype=float)
+        t_meas_s = np.asarray(vial.time_s, dtype=float) - t_delay
 
         if vial.mass_g is not None:
             y_m = np.asarray(vial.mass_g, dtype=float).reshape(-1)
@@ -6211,6 +6367,53 @@ def model_construct_for_legacy_fit_v24(
     except Exception:
         apply_discretization(m, nfe=nfe_eff, scheme=options.fd_scheme)
     attach_legacy_grouped_weighted_objective(m, exp)
+    return m
+
+
+def build_initialized_simulation_model_v24(
+    exp: ExperimentalData,
+    options: ModelOptions,
+    guess: Optional[ParameterGuess] = None,
+    *,
+    solver_name: str = "ipopt",
+    solver_options: Optional[Dict[str, object]] = None,
+    tee: bool = False,
+) -> pyo.ConcreteModel:
+    """Build a simulation model with legacy-faithful initialization when needed.
+
+    For DATA1 MAT simulation runs, the legacy contour workflow depends on the
+    simulator-based initialization plus the explicit DATA1 boundary reset logic.
+    Using the same initialization path here keeps contour sweeps aligned with
+    the pytest fixed-theta validation route.
+    """
+    m = model_construct_inter_v24(exp=exp, options=options, guess=guess)
+    legacy_data1_mat = options.mode == ExperimentMode.DATA and exp.source == SourceType.MAT
+    nfe_eff = max(300, int(options.nfe)) if legacy_data1_mat else int(options.nfe)
+
+    initialized_with_simulator = False
+    try:
+        sim = Simulator(m, package="casadi")
+        sim.simulate(numpoints=max(300, nfe_eff), integrator="idas")
+        apply_discretization(m, nfe=nfe_eff, scheme=options.fd_scheme)
+        sim.initialize_model()
+        if legacy_data1_mat:
+            enforce_data1_boundary_initialization(m)
+        initialized_with_simulator = True
+    except Exception:
+        apply_discretization(m, nfe=nfe_eff, scheme=options.fd_scheme)
+
+    solver = pyo.SolverFactory(solver_name)
+    if solver_options:
+        for key, value in solver_options.items():
+            solver.options[key] = value
+    if legacy_data1_mat and not solver_options:
+        solver.options["linear_solver"] = "ma97"
+        solver.options["max_iter"] = 3000
+    result = solver.solve(m, tee=tee)
+    if initialized_with_simulator and legacy_data1_mat:
+        term = result.solver.termination_condition
+        if term != pyo.TerminationCondition.optimal:
+            raise RuntimeError(f"DATA1 simulation solve failed with termination condition {term}.")
     return m
 
 

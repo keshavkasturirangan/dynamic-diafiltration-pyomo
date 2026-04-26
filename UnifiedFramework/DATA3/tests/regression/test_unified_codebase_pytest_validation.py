@@ -9,7 +9,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pyomo.dae import Simulator
 import pyomo.environ as pyo
 import pytest
 from scipy.io import loadmat
@@ -33,13 +32,12 @@ from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebas
     ParameterGuess,
     ProcessModelProfile,
     UnifiedPipelineConfigV24,
-    apply_discretization,
+    build_initialized_simulation_model_v24,
     build_guess_from_experiment_v24,
     evaluate_data1_paper_contour_objectives_v24,
-    enforce_data1_boundary_initialization,
     extract_model_trajectories_v24,
     load_experiment_easy,
-    model_construct_inter_v24,
+    simulate_data1_vialwise_trajectories_v24,
     run_unified_pipeline_v24,
 )
 
@@ -510,18 +508,14 @@ def _run_data1_fixed_theta_simulation(dataset_file: Path, theta: dict[str, float
         options,
         override=ParameterGuess(Lp=theta["Lp"], B=theta["B"], sigma=theta["sigma"]),
     )
-    model = model_construct_inter_v24(exp=exp, options=options, guess=guess)
-    sim = Simulator(model, package="casadi")
-    sim.simulate(numpoints=max(300, nfe), integrator="idas")
-    apply_discretization(model, nfe=nfe, scheme=options.fd_scheme)
-    sim.initialize_model()
-    enforce_data1_boundary_initialization(model)
-    solver = pyo.SolverFactory("ipopt")
-    solver.options["linear_solver"] = "ma97"
-    solver.options["max_iter"] = 3000
-    result = solver.solve(model, tee=False)
-    term = result.solver.termination_condition
-    assert term == pyo.TerminationCondition.optimal, f"Fixed-theta DATA1 solve failed with {term}"
+    model = build_initialized_simulation_model_v24(
+        exp=exp,
+        options=options,
+        guess=guess,
+        solver_name="ipopt",
+        solver_options=None,
+        tee=False,
+    )
     return model
 
 
@@ -785,8 +779,7 @@ def data1_fig56_anchor_report() -> pd.DataFrame:
                     theta = dict(base_theta)
                     theta["Lp"] = float(row["Lp"])
                     theta[x_name] = float(row[x_name])
-                    model = _run_data1_fixed_theta_simulation(spec["dataset_file"], theta, nfe=120)
-                    unified = extract_model_trajectories_v24(exp, model)
+                    unified = simulate_data1_vialwise_trajectories_v24(exp, theta)
                     scores = evaluate_data1_paper_contour_objectives_v24(exp, unified).as_dict()
                     baseline_value = float(row["objective_value"])
                     unified_value = float(scores[score_col])
