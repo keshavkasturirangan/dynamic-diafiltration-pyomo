@@ -1,4 +1,4 @@
-# importing packages
+# Import the scientific packages used by the paper conductivity models.
 import pyomo.environ as pyo
 import numpy as np
 from matplotlib import pyplot as plt
@@ -8,7 +8,7 @@ from scipy.optimize import fsolve, bisect
 import pandas as pd
 
 
-# Shedlovsky model for predicting the equivalent conductivity of salt (or ionic) solutions
+# Shedlovsky model for predicting the equivalent conductivity of salt (or ionic) solutions.
 def _shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0_cation, lambda_0_anion):
     """
     Calculates equivalent conductivity of ionic solutions
@@ -41,27 +41,27 @@ def _shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0_cation
     equiv_cond: list
         A list containing the equivalent conductivity of the solution at various salt concentrations in cm^2.S/equiv
     """
-    # calculate the B and q constants
+    # Compute the constants used by the Shedlovsky expression.
     B = 50.29 * (10 ** 8) * (epsilon * temp) ** (-0.5)
     q = np.abs(z_1 * z_2) * (lambda_0_cation + lambda_0_anion) / (
                 (np.abs(z_1) + np.abs(z_2)) * (np.abs(z_2) * lambda_0_cation + np.abs(z_1) * lambda_0_anion))
 
-    # calculate the relaxation correction, B1, and the hydrodynamic correction, B2
+    # Compute the relaxation and hydrodynamic correction terms.
     B_1 = 2.801 * 10 ** 6 * np.abs(z_1 * z_2) * q / ((epsilon * temp) ** (3 / 2) * (1 + math.sqrt(q)))
     B_2 = 41.25 * (np.abs(z_1) + np.abs(z_2)) / (eta * (epsilon * temp) ** (1 / 2))
 
-    # ion concentration
+    # Split the salt concentration into cation and anion parts.
     cation_conc = conc
     Cl_conc = [np.abs(z_1) * conc[i] for i in range(len(conc))]
 
-    # calculate the ionic strength
+    # Compute ionic strength for each concentration point.
     I = np.zeros(len(conc))
     for i in range(len(conc)):
         conc_all = [cation_conc[i], Cl_conc[i]]
         z = [z_1, z_2]
         I[i] = 1 / 2 * (sum(conc_all[j] * z[j] ** 2 for j in range(len(conc_all))))
 
-    # calculate the salt equivalent conductivity
+    # Evaluate the equivalent conductivity curve.
     equiv_cond = []
     for i in range(len(conc)):
         equiv_cond.append(lambda_0 - ((B_1 * lambda_0 + B_2) * math.sqrt(I[i]) / (1 + a * B * math.sqrt(I[i]))))
@@ -69,7 +69,7 @@ def _shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0_cation
     return equiv_cond
 
 
-# variant Shedlovsky model for predicting the specific conductivity of salt (or ionic) solutions
+# Variant Shedlovsky model for predicting the specific conductivity of salt (or ionic) solutions.
 def variant_shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0_cation, lambda_0_anion):
     """
     Calculates specific conductivity from equivalent conductivity
@@ -103,27 +103,27 @@ def variant_shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0
         A list containing the specific conductivity of the solution at various salt concentrations in milli.S/cm
     """
 
-    # calculate the salt equivalent conductivity
+    # First compute the equivalent conductivity from the base model.
     equiv_cond = _shedlovsky(conc, temp, epsilon, eta, lambda_0, a, z_1, z_2, lambda_0_cation, lambda_0_anion)
 
-    # cation concentration
+    # Keep the cation concentration in the same shape as the input.
     cation_conc = conc
 
-    # convert the cation concentrations from M to equivalent per litre
+    # Convert molar concentration to equivalent concentration.
     equiv_conc = [cation_conc[i] * np.abs(z_1) for i in range(len(conc))]
 
-    # calculate the salt specific conductivity in Siemen per cm
+    # Convert to specific conductivity in Siemen per cm.
     specific_cond = []
     for i in range(len(conc)):
         specific_cond.append((equiv_conc[i] / 1000) * equiv_cond[i])
 
-    # specific conductivity in milli.S/cm
+    # Return the conductivity in milli.S/cm because that is the usual paper unit.
     specific_cond_calc = [specific_cond[i] * 10 ** 3 for i in range(len(conc))]
 
     return specific_cond_calc
 
 
-# Mean spherical approximation (MSA) model for multi-salt specific conductivity predictions
+# Mean spherical approximation (MSA) model for multi-salt specific conductivity predictions.
 def msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon, lambda_0,
                   salt_1_conc, salt_2_conc=None, salt_3_conc=None):
     """Calculates the specific conductivity of single, binary, and ternary salt solutions
@@ -156,27 +156,27 @@ def msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon, lambda_0,
     cond_calc_con: list
         A list containing the specific conductivity of the solution at various salt concentrations in milli.S/cm"""
 
-    # constants
+    # Physical constants used by the MSA equations.
     Avogadros_num = 6.022 * 10 ** 23  # Avogadro's constant
     k_B = 1.381 * 10 ** (-23)  # Boltzmann constant in J/K
     charge = 1.602 * 10 ** (-19)  # elementary charge in C
     epsilon_0 = 8.854 * 10 ** (-12)  # permittivity of free space in F/m
     Faraday = 96500  # Faraday's constant in C/mol
 
-    # number of data points
+    # Number of conductivity samples in the series.
     ndata = len(salt_1_conc)
 
-    # number of species
+    # Number of ionic species in the salt mixture.
     n_species = len(valency)
 
-    # species charge
+    # Convert valency to charge.
     ion_charge = [valency[i] * charge for i in range(len(valency))]
 
-    # converting molar concentrations to number density
+    # Convert molar concentrations to number densities.
     if salt_2_conc is None and salt_3_conc is None:
         number_density_salt_1 = [salt_1_conc[i] * Avogadros_num for i in range(ndata)]
 
-        # valency of cation
+        # Single-salt case: one cation and one anion species.
         valency_cation = valency[0]
 
         # evaluating the number density of individual species
@@ -186,7 +186,7 @@ def msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon, lambda_0,
         number_density_salt_1 = [salt_1_conc[i] * Avogadros_num for i in range(ndata)]
         number_density_salt_2 = [salt_2_conc[i] * Avogadros_num for i in range(ndata)]
 
-        # valency of cations
+        # Binary-salt case: two cations share one anion background.
         valency_cation_1 = valency[0]
         valency_cation_2 = valency[1]
 
@@ -200,7 +200,7 @@ def msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon, lambda_0,
         number_density_salt_2 = [salt_2_conc[i] * Avogadros_num for i in range(ndata)]
         number_density_salt_3 = [salt_3_conc[i] * Avogadros_num for i in range(ndata)]
 
-        # valency of cations
+        # Ternary-salt case: three cations share one anion background.
         valency_cation_1 = valency[0]
         valency_cation_2 = valency[1]
         valency_cation_3 = valency[2]
@@ -212,7 +212,7 @@ def msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon, lambda_0,
         number_density_an = [valency_cation_1 * number_density_salt_1[i] + valency_cation_2 * number_density_salt_2[i]
                              + valency_cation_3 * number_density_salt_3[i] for i in range(ndata)]
 
-    # calculate the bulk conductivity of the salt solution
+    # Evaluate the bulk conductivity across the concentration grid.
     all_cond_calc = np.zeros(ndata)
     for n in range(ndata):  # loop through the salts concentration
         if salt_2_conc is None and salt_3_conc is None:
