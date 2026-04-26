@@ -1,28 +1,26 @@
 #!/usr/bin/env python3
-"""Simple user-facing runner for the refactored diafiltration workflow.
+"""Easy-to-follow runner for the refactored diafiltration workflow.
 
-The goal of this file is to give non-coders a small set of easy choices:
+The idea is simple:
+1. Recreate DATA1 or DATA2 paper figures.
+2. Or run one custom file.
 
-1. Choose DATA1 or DATA2
-2. Choose one or more input files
-3. Choose an output folder
-4. Run the fit and plotting workflow
-
-All scientific logic stays in `refactored_ucb_library.py`.
+The science stays in `refactored_ucb_library.py` and the unified DATA3
+reproduction script.
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 import pandas as pd
 
 try:
-    from .refactored_ucb_library import DataLoader, ModelOptions, UQEngine, WorkflowFamily
+    from .refactored_ucb_library import DataLoader, ModelOptions, UQEngine, WorkflowFamily, run_paper_reproduction
 except ImportError:  # pragma: no cover - allows running as a plain script
-    from refactored_ucb_library import DataLoader, ModelOptions, UQEngine, WorkflowFamily
+    from refactored_ucb_library import DataLoader, ModelOptions, UQEngine, WorkflowFamily, run_paper_reproduction
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -108,6 +106,85 @@ def _make_options(family: WorkflowFamily, mode: str, output_dir: Path) -> ModelO
     )
 
 
+def _paper_workflow_mode() -> str:
+    print("\nQuick start:")
+    print("  1. Recreate DATA1 paper plots")
+    print("  2. Recreate DATA2 paper plots")
+    print("  3. Custom one-file run")
+    choice = _prompt_text("Quick start", "1").strip().lower()
+    if choice in {"1", "data1"}:
+        return "DATA1"
+    if choice in {"2", "data2"}:
+        return "DATA2"
+    return "CUSTOM"
+
+
+def _choose_workflow_profile() -> WorkflowFamily:
+    print("\nChoose the workflow family:")
+    print("  1. DATA1")
+    print("  2. DATA2")
+    choice = _prompt_text("Workflow family", "1").strip()
+    return WorkflowFamily.DATA1 if choice in {"1", "DATA1", "data1"} else WorkflowFamily.DATA2
+
+
+def _run_paper_shortcut(paper_family: str, output_dir: Optional[Path] = None) -> None:
+    """Hand off to the existing unified reproduction script."""
+    print("\nRunning the paper reproduction workflow:")
+    print(f"  paper: {paper_family}")
+    result = run_paper_reproduction(paper_family, repo_root=REPO_ROOT, output_root=output_dir)
+    print(f"  script: {result['script']}")
+    print(f"  output root: {result['output_root']}")
+
+
+def _choose_input_files(loader: DataLoader, family: WorkflowFamily) -> List[Path]:
+    if family == WorkflowFamily.DATA1:
+        print("\nDATA1 preset files are available, but you can still type your own paths.")
+        return _select_files_from_list(_default_data1_files(loader))
+    raw = input("\nPaste one or more DATA2 file paths separated by commas: ").strip()
+    if not raw:
+        raise ValueError("No input files were provided.")
+    return _parse_file_args([token.strip() for token in raw.split(",") if token.strip()])
+
+
+def _choose_run_depth() -> str:
+    print("\nWhat do you want to do?")
+    print("  1. Estimate parameters only")
+    print("  2. Estimate parameters + uncertainty quantification")
+    print("  3. Estimate parameters + suggest new experiments")
+    print("  4. Full workflow (fit + UQ + suggestions + plots)")
+    choice = _prompt_text("Run type", "1").strip()
+    if choice in {"1", "fit", "fit_only"}:
+        return "fit_only"
+    if choice in {"2", "uq", "uncertainty", "uncertainty_quantification"}:
+        return "uq"
+    if choice in {"3", "suggest", "suggestions", "design"}:
+        return "suggest"
+    return "full"
+
+
+def _maybe_convert_conductivity(loader: DataLoader, input_path: Path, output_dir: Path) -> Optional[Path]:
+    is_table = input_path.suffix.lower() in {".csv", ".xlsx", ".xls"}
+    if not is_table:
+        return None
+
+    if not _prompt_yes_no("Does this file contain conductivity that should be converted to concentration?", default=False):
+        return None
+
+    column = _prompt_text("Conductivity column name", "Conductivity")
+    salt_name = _prompt_text("Salt name for paper model autofill", "NaCl")
+    model = _prompt_choice("Conductivity model", ("variant_shedlovsky", "msa"), "variant_shedlovsky")
+    output_units = _prompt_choice("Output units", ("mM", "M"), "mM")
+    return _convert_conductivity_file(
+        loader,
+        input_path,
+        output_dir=output_dir,
+        column=column,
+        model=model,
+        salt_name=salt_name,
+        output_units=output_units,
+    )
+
+
 def _convert_conductivity_file(
     loader: DataLoader,
     file_path: Path,
@@ -137,27 +214,94 @@ def _convert_conductivity_file(
     return out_path
 
 
-def _run_one(engine: UQEngine, file_path: Path, options: ModelOptions) -> None:
+def _run_one(
+    engine: UQEngine,
+    file_path: Path,
+    options: ModelOptions,
+    *,
+    run_fim: bool = False,
+    run_suggest: bool = False,
+    run_plot: bool = True,
+) -> None:
     experiment = engine.build_experiment(file_path, options=options, label=file_path.stem)
     experiment.load()
+
+    # Fit the first-principles Pyomo model to the chosen file.
     experiment.fit()
-    plot_result = experiment.plot()
+
     summary = experiment.summarize()
+
     print("\nFinished:")
     print(f"  file: {file_path}")
     print(f"  dataset: {summary['dataset']}")
     if experiment.fit_stru and 'parameters' in experiment.fit_stru:
         print(f"  parameters: {experiment.fit_stru['parameters']}")
-    print(f"  output: {plot_result}")
+    if run_fim:
+        # Compute sensitivity / Fisher information after the fit is available.
+        fim_result = experiment.calc_fim()
+        print(f"  FIM trace: {fim_result.get('trace')}")
+        print(f"  FIM determinant: {fim_result.get('det')}")
+        if fim_result.get("std") is not None:
+            print(f"  parameter std: {fim_result.get('std')}")
+        if run_suggest:
+            suggestion_result = _suggest_new_experiments(experiment, fim_result, options.output_dir)
+            print(f"  suggestion file: {suggestion_result.get('path')}")
+    if run_plot:
+        # Plot the matched model vs. data.
+        plot_result = experiment.plot()
+        print(f"  output: {plot_result}")
+
+
+def _suggest_new_experiments(
+    experiment,
+    fim_result: dict,
+    output_dir: Path,
+) -> dict:
+    """Write a short, human-readable next-step summary from the UQ results."""
+    lines = [
+        "Suggested next experiments",
+        "--------------------------",
+        f"Dataset: {experiment.dataset}",
+        f"Label: {experiment.label}",
+        f"Model family: {experiment.options.model_family.value}",
+        "",
+    ]
+
+    std = fim_result.get("std") or []
+    eig_dir = fim_result.get("eig_dir") or []
+    if std:
+        ranked = sorted(enumerate(std), key=lambda item: item[1], reverse=True)
+        lines.append("Parameters with the largest estimated uncertainty:")
+        for idx, value in ranked[:3]:
+            name = eig_dir[idx] if idx < len(eig_dir) else f"parameter_{idx + 1}"
+            lines.append(f"  - {name}: std = {value}")
+        lines.append("")
+    else:
+        lines.append("No parameter standard deviations were returned by the FIM step.")
+        lines.append("")
+
+    lines.extend(
+        [
+            "Simple next-step ideas:",
+            "  - Add data in the region that makes the uncertain parameters move the most.",
+            "  - Repeat the fit after adding new conductivity, concentration, or flow measurements.",
+            "  - Use the largest-uncertainty directions to pick the next test condition.",
+        ]
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_path = output_dir / f"{experiment.label}-suggestions.txt"
+    out_path.write_text("\n".join(lines) + "\n")
+    return {"path": str(out_path), "lines": lines}
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the simple diafiltration workflow.")
     parser.add_argument(
-        "--family",
+        "--paper",
         choices=("DATA1", "DATA2"),
         default=None,
-        help="Workflow family to run. If omitted, you will be prompted.",
+        help="Shortcut to recreate the DATA1 or DATA2 paper figures.",
     )
     parser.add_argument(
         "--file",
@@ -177,41 +321,9 @@ def _parse_args() -> argparse.Namespace:
         help="Folder where plots and outputs will be saved.",
     )
     parser.add_argument(
-        "--fim",
+        "--run-fim",
         action="store_true",
         help="Also compute the FIM after fitting.",
-    )
-    parser.add_argument(
-        "--convert-conductivity",
-        action="store_true",
-        help="Convert a conductivity CSV/XLSX to concentration and save a new CSV.",
-    )
-    parser.add_argument(
-        "--conductivity-file",
-        default=None,
-        help="CSV/XLSX file to convert when --convert-conductivity is used.",
-    )
-    parser.add_argument(
-        "--conductivity-column",
-        default="Conductivity",
-        help="Column name that stores conductivity values in the tabular file.",
-    )
-    parser.add_argument(
-        "--conductivity-model",
-        choices=("variant_shedlovsky", "msa"),
-        default="variant_shedlovsky",
-        help="Paper model used for conductivity conversion.",
-    )
-    parser.add_argument(
-        "--salt-name",
-        default="NaCl",
-        help="Salt name used for paper-model parameter autofill.",
-    )
-    parser.add_argument(
-        "--output-units",
-        choices=("mM", "M"),
-        default="mM",
-        help="Units for the converted concentration column.",
     )
     return parser.parse_args()
 
@@ -219,43 +331,19 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     loader = DataLoader(repo_root=REPO_ROOT, data_root=REPO_ROOT)
-    engine = UQEngine(loader)
-
-    if args.convert_conductivity:
-        conduct_file = args.conductivity_file
-        if not conduct_file:
-            # If the user does not type a path, offer a sensible default.
-            conduct_file = _prompt_text("Conductivity file to convert", str(REPO_ROOT / "UnifiedFramework" / "ExperimentalDataFiles" / "NF270_MC2.xlsx"))
-        conduct_path = Path(conduct_file).expanduser().resolve()
-        output_dir_text = args.output_dir or _prompt_text("Output folder", str(REPO_ROOT / "figures"))
-        output_dir = Path(output_dir_text).expanduser().resolve()
-        # In conversion mode we stop after writing the new concentration CSV.
-        _convert_conductivity_file(
-            loader,
-            conduct_path,
-            output_dir=output_dir,
-            column=args.conductivity_column,
-            model=args.conductivity_model,
-            salt_name=args.salt_name,
-            output_units=args.output_units,
-        )
+    paper_family = args.paper or _paper_workflow_mode()
+    if paper_family in {"DATA1", "DATA2"}:
+        output_dir_text = args.output_dir or str(REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "reproduction")
+        _run_paper_shortcut(paper_family, Path(output_dir_text).expanduser().resolve())
         return
 
-    family_name = args.family or _prompt_choice("Choose workflow family", ("DATA1", "DATA2"), "DATA1")
-    family = WorkflowFamily(family_name)
+    engine = UQEngine(loader)
+    family = _choose_workflow_profile()
 
     if args.files:
         file_paths = _parse_file_args(args.files)
-    elif family == WorkflowFamily.DATA1:
-        # DATA1 users can pick from a short list of known MAT files.
-        print("\nDATA1 preset files are available, but you can still type your own paths.")
-        file_paths = _select_files_from_list(_default_data1_files(loader))
     else:
-        # DATA2 users usually paste the exact file path they want to analyze.
-        raw = input("\nPaste one or more DATA2 file paths separated by commas: ").strip()
-        if not raw:
-            raise ValueError("No input files were provided.")
-        file_paths = _parse_file_args([token.strip() for token in raw.split(",") if token.strip()])
+        file_paths = _choose_input_files(loader, family)
 
     if not file_paths:
         raise ValueError("No input files were selected.")
@@ -265,28 +353,37 @@ def main() -> None:
     output_dir_text = args.output_dir or _prompt_text("Output folder", str(REPO_ROOT / "figures"))
     output_dir = Path(output_dir_text).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    run_fim = args.fim or _prompt_yes_no("Compute FIM too?", default=False)
+    run_depth = _choose_run_depth()
+    do_fim = args.run_fim or run_depth in {"uq", "suggest", "full"}
+    do_suggest = run_depth in {"suggest", "full"}
+    do_plot = run_depth == "full"
 
     print("\nSummary of your choices:")
     print(f"  family: {family.value}")
     print(f"  mode: {mode}")
     print(f"  output folder: {output_dir}")
-    print(f"  compute FIM: {run_fim}")
+    print(f"  run depth: {run_depth}")
+    print(f"  compute FIM: {do_fim}")
+    print(f"  suggest new experiments: {do_suggest}")
+    print(f"  plot results: {do_plot}")
     print("  files:")
     for file_path in file_paths:
         print(f"    - {file_path}")
 
+    # Build one shared options object, then run each chosen file the same way.
     options = _make_options(family, mode, output_dir)
     for file_path in file_paths:
-        _run_one(engine, file_path, options)
-
-        if run_fim:
-            experiment = engine.build_experiment(file_path, options=options, label=file_path.stem)
-            experiment.load()
-            experiment.fit()
-            fim_result = experiment.calc_fim()
-            print(f"  FIM trace: {fim_result.get('trace')}")
-            print(f"  FIM determinant: {fim_result.get('det')}")
+        converted = _maybe_convert_conductivity(loader, file_path, output_dir)
+        if converted is not None:
+            continue
+        _run_one(
+            engine,
+            file_path,
+            options,
+            run_fim=do_fim,
+            run_suggest=do_suggest,
+            run_plot=do_plot,
+        )
 
 
 if __name__ == "__main__":

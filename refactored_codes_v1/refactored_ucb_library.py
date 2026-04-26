@@ -18,6 +18,8 @@ import time
 import copy
 import os
 import json
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -30,14 +32,14 @@ import idaes.core.util.scaling as iscale
 
 
 class SourceType(str, Enum):
-    """Supported experiment source types for the refactored loader layer."""
+    """What kind of file the loader is reading."""
 
     MAT = "mat"
     XLSX = "xlsx"
 
 
 class WorkflowFamily(str, Enum):
-    """High-level model families supported by the unified switch."""
+    """Which model family to use."""
 
     DATA1 = "DATA1"
     DATA2 = "DATA2"
@@ -46,7 +48,7 @@ class WorkflowFamily(str, Enum):
 
 @dataclass(frozen=True)
 class ExperimentalSource:
-    """One input file participating in a multi-file workflow."""
+    """One input file and its small bit of metadata."""
 
     path: Path
     selector: Optional[Union[str, int]] = None
@@ -55,7 +57,7 @@ class ExperimentalSource:
 
 @dataclass
 class ExperimentalBundle:
-    """A collection of loaded experiments and their provenance."""
+    """A group of loaded experiments and where they came from."""
 
     sources: List[ExperimentalSource] = field(default_factory=list)
     experiments: List[Dict[str, Any]] = field(default_factory=list)
@@ -70,7 +72,7 @@ class ExperimentalBundle:
 
 @dataclass(frozen=True)
 class ModelOptions:
-    """Execution options for a diafiltration run."""
+    """Simple settings that control one run."""
 
     model_family: WorkflowFamily = WorkflowFamily.DATA1
     backend_name: str = "auto"
@@ -94,7 +96,7 @@ class ModelOptions:
 
 @dataclass
 class DataLoader:
-    """Load DATA1/DATA2 experimental inputs through a canonical interface."""
+    """Load files and do small input conversions."""
 
     repo_root: Path = field(default_factory=lambda: Path.cwd())
     data_root: Optional[Union[str, Path]] = None
@@ -128,7 +130,7 @@ class DataLoader:
         output_units: str = "mM",
         salt_name: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Convert a conductivity column to concentration using the paper model."""
+        """Convert conductivity to concentration using the paper model."""
         converted = frame.copy()
         if conductivity_column not in converted.columns:
             raise KeyError(f"Missing conductivity column: {conductivity_column!r}")
@@ -216,7 +218,7 @@ class DataLoader:
 
 
 class DiafiltrationExperiment:
-    """A single diafiltration study with its data, options, and results."""
+    """One experiment, its settings, and its results."""
 
     def __init__(
         self,
@@ -304,7 +306,7 @@ class DiafiltrationExperiment:
 
 
 class UQEngine:
-    """High-level uncertainty quantification orchestration."""
+    """Small helper that runs experiments for the user."""
 
     def __init__(self, loader: DataLoader):
         self.loader = loader
@@ -339,6 +341,61 @@ class UQEngine:
             exp.fit()
             results.append({'experiment': exp.summarize(), 'plot': exp.plot()})
         return results
+
+
+PAPER_REPRODUCTION_TARGETS: Dict[str, Dict[str, Any]] = {
+    "DATA1": {
+        "script": "UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py",
+        # This is the canonical DATA1 paper reproduction target used by the
+        # unified validation script.
+        "datasets": ["DATA1_511.12"],
+    },
+    "DATA2": {
+        "script": "UnifiedFramework/DATA3/scripts/reproduce/reproduce_data1_data2.py",
+        # These are the canonical DATA2 paper reproduction targets used by the
+        # unified validation script.
+        "datasets": ["DATA2_270511.123", "DATA2_270611.123"],
+    },
+}
+
+
+def run_paper_reproduction(
+    paper_family: Union[str, WorkflowFamily],
+    *,
+    repo_root: Optional[Union[str, Path]] = None,
+    output_root: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
+    """Run the exact paper reproduction shortcut for DATA1 or DATA2.
+
+    The helper keeps the runtime simple: the user only chooses the paper
+    family, and this function knows which datasets the validation script uses.
+    """
+    family_name = paper_family.value if isinstance(paper_family, WorkflowFamily) else str(paper_family)
+    if family_name not in PAPER_REPRODUCTION_TARGETS:
+        raise ValueError(f"Unknown paper family: {family_name!r}")
+
+    root = Path(repo_root).expanduser().resolve() if repo_root is not None else Path.cwd().resolve()
+    target = PAPER_REPRODUCTION_TARGETS[family_name]
+    script = root / target["script"]
+    out_root = Path(output_root).expanduser().resolve() if output_root is not None else (root / "UnifiedFramework" / "DATA3" / "results" / "reproduction")
+
+    cmd = [
+        sys.executable,
+        str(script),
+        "--repo-root",
+        str(root),
+        "--out-root",
+        str(out_root),
+        "--datasets",
+        *target["datasets"],
+    ]
+    subprocess.run(cmd, check=True, cwd=root)
+    return {
+        "paper_family": family_name,
+        "script": str(script),
+        "output_root": str(out_root),
+        "datasets": list(target["datasets"]),
+    }
 
 
 _MODEL_BUILDER_REGISTRY: Dict[Tuple[WorkflowFamily, str], Any] = {}
