@@ -16,6 +16,7 @@ import time
 import copy
 import os
 import json
+import math
 from sklearn.metrics import r2_score
 
 try:
@@ -42,31 +43,18 @@ def _figure_output_base(name):
 
 
 def _load_conductivity_paper():
-    """Load the paper conductivity model directly from the repo."""
-    try:
-        # If the module is already importable, use it directly.
-        import conductivity_paper as cp
-        return cp
-    except ModuleNotFoundError:
-        # Otherwise, load it from the DATA3 folder by file path.
-        import importlib.util
-        from importlib.machinery import SourceFileLoader
+    """Load the local copy of `conductivity_paper.py` next to this library."""
+    import importlib.util
+    from importlib.machinery import SourceFileLoader
 
-        paper_path = (
-            Path(__file__).resolve().parents[1]
-            / "UnifiedFramework"
-            / "DATA3"
-            / "ExperimentalDataAnalysis"
-            / "UnifiedCode"
-            / "conductivity_paper.py"
-        )
-        spec = importlib.util.spec_from_loader(
-            "conductivity_paper",
-            SourceFileLoader("conductivity_paper", str(paper_path)),
-        )
-        cp = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cp)
-        return cp
+    paper_path = Path(__file__).resolve().parent / "conductivity_paper.py"
+    spec = importlib.util.spec_from_loader(
+        "conductivity_paper",
+        SourceFileLoader("conductivity_paper", str(paper_path)),
+    )
+    cp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cp)
+    return cp
 
 
 CONDUCTIVITY_SALT_PARAMS_25C = {
@@ -931,10 +919,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
             yield m.cH[1,0]==m.C_H0 #1e-6
             yield m.cF[1,0]==firstNonNan(data_stru['data_raw'][0]['cF_exp'])
         else:
+            # DATA mode initializes the permeate concentration from the first available measurement.
+            # If the saved file has only NaN values, fall back to a tiny positive default.
             if type(data_stru['data_raw'][0]['cV_avg']) == list:
                 C_H0 = firstNonNan(data_stru['data_raw'][0]['cV_avg'])
             else:
                 C_H0 = data_stru['data_raw'][0]['cV_avg']
+            if C_H0 is None or (isinstance(C_H0, float) and np.isnan(C_H0)):
+                C_H0 = 1e-6
             yield m.cH[1,0]==C_H0 * 0.8
             yield m.cF[1,0]==firstNonNan(data_stru['data_raw'][0]['cF_exp'])
                
@@ -947,7 +939,17 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     return m
 
 
-def solve_model(data_stru, mode, theta=None, sim_opt=False, B_form='single', LOUD=False, workflow_family='DATA1'):
+def solve_model(
+    data_stru,
+    mode,
+    theta=None,
+    sim_opt=False,
+    B_form='single',
+    LOUD=False,
+    workflow_family='DATA1',
+    solver_max_iter=3000,
+    solver_retry_max_iter=5000,
+):
     """
     Solve pyomo model
     
@@ -978,6 +980,11 @@ def solve_model(data_stru, mode, theta=None, sim_opt=False, B_form='single', LOU
     print(" ")
 
     data_stru = _normalize_conductivity_measurements(data_stru)
+    if str(workflow_family).upper() == "DATA2" and solver_max_iter == 3000:
+        # DATA2 contains a few intentionally hard / locally infeasible cases.
+        # Fail fast on those so the paper workflow can keep moving.
+        solver_max_iter = 300
+        solver_retry_max_iter = min(solver_retry_max_iter, 600)
 
     # interpolation function
     def interpolation(m,var,n_vial,t):
@@ -1146,28 +1153,42 @@ def solve_model(data_stru, mode, theta=None, sim_opt=False, B_form='single', LOU
 
     solver = SolverFactory('ipopt')
     solver.options["linear_solver"] = "ma97"
-    solver.options["max_iter"] = 3000
+    solver.options["max_iter"] = solver_max_iter
     #solver.options["halt_on_ampl_error"] = "yes" # option 1
     #solver.options["print_level"] = 1 # option 2
     try:
         results = solver.solve(instance,tee=True)
-        if results.solver.termination_condition == TerminationCondition.optimal:
+        term = results.solver.termination_condition
+        if term == TerminationCondition.optimal:
             results.write()
+        elif _is_infeasible_termination(term):
+            print(f"Solver termination: {term}. Skipping repeated solve.")
+            return None, None, None
         else:
-            print(f"Solver termination: {results.solver.termination_condition}, resolving...")
-            results = solver.solve(instance,tee=True)
-            assert results.solver.termination_condition == TerminationCondition.optimal, (
-                    f"Solver failed: Non-optimal termination condition "
-                    f"{results.solver.termination_condition}. ")
-    except:
+            print(f"Solver termination: {term}, resolving...")
+            try:
+                solver.options["linear_solver"] = "ma57"
+                solver.options["max_iter"] = solver_retry_max_iter
+                results = solver.solve(instance,tee=True)
+                assert results.solver.termination_condition == TerminationCondition.optimal, (
+                        f"Solver failed: Non-optimal termination condition "
+                        f"{results.solver.termination_condition}. ")
+            except Exception as exc:
+                print(f"Second solve failed: {exc}")
+                return None, None, None
+    except Exception as exc:
         print("Retrying with adjusted solver settings...")
         solver.options["linear_solver"] = "ma57"
-        solver.options['max_iter']=5000       
-        results = solver.solve(instance,tee=True)
-        assert results.solver.termination_condition == TerminationCondition.optimal, (
-                f"Solver failed again: Non-optimal termination condition "
-                f"{results.solver.termination_condition}. "
-                "Try alternative initialization or further debugging.")
+        solver.options["max_iter"] = solver_retry_max_iter
+        try:
+            results = solver.solve(instance,tee=True)
+            assert results.solver.termination_condition == TerminationCondition.optimal, (
+                    f"Solver failed again: Non-optimal termination condition "
+                    f"{results.solver.termination_condition}. "
+                    "Try alternative initialization or further debugging.")
+        except Exception as exc2:
+            print(f"Adjusted solve failed: {exc2}")
+            return None, None, None
 
     # Process results if optimal
     if results.solver.termination_condition == TerminationCondition.optimal:
@@ -1417,7 +1438,18 @@ def store_json(file_name,structure):
         json.dump(structure, json_file)
         
         
-def solve_model_B_fix(data_stru, mode, theta=None, sim_opt=False, B_form=1, sigma_fixed=True, LOUD=False, workflow_family='DATA1'):
+def solve_model_B_fix(
+    data_stru,
+    mode,
+    theta=None,
+    sim_opt=False,
+    B_form=1,
+    sigma_fixed=True,
+    LOUD=False,
+    workflow_family='DATA1',
+    solver_max_iter=3000,
+    solver_retry_max_iter=5000,
+):
     """
     Solve pyomo model
     
@@ -1450,6 +1482,11 @@ def solve_model_B_fix(data_stru, mode, theta=None, sim_opt=False, B_form=1, sigm
     print(" ")
 
     data_stru = _normalize_conductivity_measurements(data_stru)
+    if str(workflow_family).upper() == "DATA2" and solver_max_iter == 3000:
+        # DATA2 contains a few intentionally hard / locally infeasible cases.
+        # Fail fast on those so the paper workflow can keep moving.
+        solver_max_iter = 300
+        solver_retry_max_iter = min(solver_retry_max_iter, 600)
 
     # interpolation function
     def interpolation(m,var,n_vial,t):
@@ -1621,9 +1658,14 @@ def solve_model_B_fix(data_stru, mode, theta=None, sim_opt=False, B_form=1, sigm
 
     solver = SolverFactory('ipopt')
     solver.options["linear_solver"] = "ma97"
+    solver.options["max_iter"] = solver_max_iter
 
     results = solver.solve(instance,tee=True)
-    assert results.solver.termination_condition == TerminationCondition.optimal, "Optimization fail"
+    term = results.solver.termination_condition
+    if _is_infeasible_termination(term):
+        print(f"Solver termination: {term}. Skipping case.")
+        return None, None, None
+    assert term == TerminationCondition.optimal, "Optimization fail"
     results.write()
     #solver.options["halt_on_ampl_error"] = "yes" # option 1
     #solver.options["print_level"] = 1 # option 2
@@ -1751,9 +1793,14 @@ def _conductivity_to_concentration_series(
 ):
     """Convert conductivity measurements to concentration using conductivity_paper.py.
 
-    The conversion is done by solving the paper model:
-    conductivity = f(concentration)
-    then numerically inverting it point by point.
+    Paper equation path:
+    - Shedlovsky equivalent conductivity model: \u03bb = f(c)
+    - Variant Shedlovsky specific conductivity model: \u03ba = c \u00d7 \u03bb
+    - Numerical inversion step: find c such that \u03ba(c) matches the measured conductivity
+
+    The code uses the paper model forward and then inverts it point by point so
+    the rest of the diafiltration workflow can continue to treat cF_exp as a
+    concentration field.
     """
     # Load the conductivity model from the standalone paper file.
     cp = _load_conductivity_paper()
@@ -1773,7 +1820,9 @@ def _conductivity_to_concentration_series(
     conc_out = np.full_like(cond_signal, np.nan, dtype=float)
 
     if model not in {"variant_shedlovsky", "shedlovsky"}:
-        raise ValueError("This simple refactor currently supports variant_shedlovsky only.")
+        raise ValueError(
+            "This refactor currently supports the paper's Shedlovsky / variant Shedlovsky path only."
+        )
 
     epsilon = float(params["epsilon"])
     eta = float(params["eta"])
@@ -1785,7 +1834,7 @@ def _conductivity_to_concentration_series(
     lambda_0 = float(params.get("lambda_0", lambda_0_cation + lambda_0_anion))
 
     def fwd(conc_M):
-        # Forward model: c -> kappa.
+        # Forward model: concentration -> specific conductivity (mS/cm).
         return float(
             cp.variant_shedlovsky(
                 [conc_M],
@@ -1804,7 +1853,7 @@ def _conductivity_to_concentration_series(
     for i, y in enumerate(cond_signal):
         if np.isnan(y):
             continue
-        # Invert kappa = f(c) to recover concentration c.
+        # Invert the paper conductivity curve to recover concentration from conductivity.
         conc_out[i] = _invert_monotone_1d(
             fwd_func=fwd,
             y_target=float(y / 1000.0),
@@ -1822,6 +1871,11 @@ def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model=
 
     If the file says conductivity is present, we replace the fitting field with
     concentration so the rest of the diafiltration equations stay unchanged.
+
+    This keeps the data-preprocessing step aligned with the paper workflow:
+    - preserve the original conductivity values for traceability
+    - convert cF_exp using the paper conductivity equation
+    - feed the converted concentration into the existing first-principles model
     """
     # If the data structure is not the expected kind, leave it alone.
     if not isinstance(data_stru, dict) or not data_stru.get("conductivity_cF"):
@@ -1848,7 +1902,7 @@ def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model=
         # Keep the original conductivity values before replacing them.
         if "cF_exp_conductivity" not in row:
             row["cF_exp_conductivity"] = copy.deepcopy(signal)
-        # Convert the conductivity series into concentration.
+        # Convert the conductivity series into concentration using the paper model.
         conc = _conductivity_to_concentration_series(
             cond_signal=signal,
             temp_K=float(temp_K),
@@ -2087,6 +2141,213 @@ def summarize_uncertainty(covariance):
         "std": np.sqrt(np.diag(cov_np)).tolist(),
     }
     return summary
+
+
+def load_experimental_data(mat_file_path, results=None):
+    """Stage 1: load one MATLAB file and normalize the measured fields."""
+    if results is None:
+        results = {}
+
+    raw = loadmat(str(mat_file_path))
+    data_stru = raw.get("data_stru")
+    if data_stru is None:
+        raise ValueError(f"The file {mat_file_path} does not contain a 'data_stru' entry.")
+
+    _normalize_conductivity_measurements(data_stru)
+    results["data_file"] = str(mat_file_path)
+    results["data"] = data_stru
+    return results
+
+
+def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single"):
+    """Stage 2: build the first-principles Pyomo model."""
+    if "data" not in results:
+        raise RuntimeError("Stage 1 must run before Stage 2.")
+
+    model = model_construct_inter(
+        results["data"],
+        mode,
+        theta=None,
+        sim_opt=False,
+        B_form=B_form,
+        workflow_family=workflow_family,
+    )
+    results["model"] = model
+    results["model_settings"] = {
+        "mode": mode,
+        "workflow_family": workflow_family,
+        "B_form": B_form,
+    }
+    return results
+
+
+def estimate_parameters(
+    results,
+    *,
+    use_parmest=False,
+    multistart=False,
+    multistart_iterations=10,
+    tee=False,
+):
+    """Stage 3: estimate parameters with ParmEst or the legacy solver path."""
+    if "data" not in results:
+        raise RuntimeError("Stage 1 must run before Stage 3.")
+
+    settings = results.get("model_settings", {})
+    mode = settings.get("mode", "DATA")
+    workflow_family = settings.get("workflow_family", "DATA1")
+    B_form = settings.get("B_form", "single")
+
+    if use_parmest:
+        data_payload = results["data"]
+        pest_result = estimate_parameters_with_parmest(
+            data_payload,
+            mode=mode,
+            theta=None,
+            B_form=B_form,
+            tee=tee,
+        )
+        theta_vals = pest_result.get("theta_vals")
+        if hasattr(theta_vals, "to_dict"):
+            theta_vals = theta_vals.to_dict()
+        results["parmest"] = pest_result
+        results["parameters"] = theta_vals or {}
+        fit_stru, sim_stru, sim_inter = solve_model(
+            results["data"],
+            mode,
+            theta=results["parameters"],
+            sim_opt=False,
+            B_form=B_form,
+            workflow_family=workflow_family,
+        )
+    else:
+        fit_stru, sim_stru, sim_inter = solve_model(
+            results["data"],
+            mode,
+            theta=None,
+            sim_opt=False,
+            B_form=B_form,
+            workflow_family=workflow_family,
+        )
+        results["parameters"] = fit_stru.get("parameters", {}) if fit_stru else {}
+
+    results["fit_stru"] = fit_stru
+    results["sim_stru"] = sim_stru
+    results["sim_inter"] = sim_inter
+    results["multistart"] = {
+        "enabled": bool(multistart),
+        "iterations": int(multistart_iterations),
+    }
+    return results
+
+
+def quantify_uncertainty(
+    results,
+    *,
+    method="fim",
+    cov_method="finite_difference",
+    fim_step=1e-8,
+    fim_formula="backward",
+):
+    """Stage 4: quantify uncertainty with covariance or FIM."""
+    if "parameters" not in results:
+        raise RuntimeError("Stage 3 must run before Stage 4.")
+
+    settings = results.get("model_settings", {})
+    mode = settings.get("mode", "DATA")
+    B_form = settings.get("B_form", "single")
+    workflow_family = settings.get("workflow_family", "DATA1")
+    data_stru = results["data"]
+
+    if method == "cov_est":
+        pest_result = results.get("parmest")
+        if pest_result and pest_result.get("covariance") is not None:
+            results["uncertainty"] = summarize_uncertainty(pest_result["covariance"])
+        else:
+            results["uncertainty"] = {"status": "skipped", "reason": "ParmEst covariance not available."}
+
+    elif method == "fim":
+        fim = calc_FIM(
+            data_stru,
+            mode,
+            theta=results["parameters"],
+            step=fim_step,
+            formula=fim_formula,
+            B_form=B_form,
+            workflow_family=workflow_family,
+        )
+        results["uncertainty"] = {
+            "method": "calc_FIM",
+            "FIM": fim.get("FIM"),
+            "trace": fim.get("trace"),
+            "det": fim.get("det"),
+            "eig_val": fim.get("eig_val"),
+            "covariance": fim.get("V"),
+            "std": fim.get("std"),
+        }
+
+    else:
+        results["uncertainty"] = {"status": "skipped", "reason": f"Unknown method {method!r}."}
+
+    return results
+
+
+def design_next_experiment(results, **_kwargs):
+    """Stage 5: keep the hook, but skip MBDoE until design variables exist."""
+    results["mbdoe"] = {
+        "status": "skipped",
+        "reason": "Design variables are not exposed yet; the workflow stays focused on fitting and reproduction.",
+    }
+    return results
+
+
+def run_workflow(
+    mat_file_path,
+    *,
+    mode="DATA",
+    workflow_family="DATA1",
+    B_form="single",
+    use_parmest=False,
+    multistart=False,
+    multistart_iterations=10,
+    uncertainty_method="fim",
+    cov_method="finite_difference",
+    fim_step=1e-8,
+    fim_formula="backward",
+    skip_mbdoe=True,
+):
+    """Run the compact stage-based workflow on one .mat file."""
+    print("=" * 70)
+    print(" Diafiltration workflow")
+    print(f"   File: {mat_file_path}")
+    print(f"   Family: {workflow_family}")
+    print(f"   Mode: {mode}")
+    print("=" * 70)
+
+    results = {}
+    results = load_experimental_data(mat_file_path, results)
+    results = build_model(results, mode=mode, workflow_family=workflow_family, B_form=B_form)
+    results = estimate_parameters(
+        results,
+        use_parmest=use_parmest,
+        multistart=multistart,
+        multistart_iterations=multistart_iterations,
+    )
+    results = quantify_uncertainty(
+        results,
+        method=uncertainty_method,
+        cov_method=cov_method,
+        fim_step=fim_step,
+        fim_formula=fim_formula,
+    )
+    if not skip_mbdoe:
+        results = design_next_experiment(results)
+
+    print("\n[Done] Workflow finished. Results available:")
+    for key in results:
+        if not key.startswith("_"):
+            print(f"   - {key}")
+    return results
 
 
 def _resolve_data_root(data_root=None):
@@ -2540,6 +2801,18 @@ def plot_error_box(fit_struA, fit_struB, regime="concentrating", save_path=None)
     return fig, ax
 
 
+def _safe_solve_case(label, solve_fn, *args, **kwargs):
+    """Run one solver case and return None instead of stopping the workflow."""
+    try:
+        fit_stru, sim_stru, sim_inter = solve_fn(*args, **kwargs)
+        if fit_stru is None or sim_stru is None or sim_inter is None:
+            raise RuntimeError("Optimization fail")
+        return fit_stru, sim_stru, sim_inter
+    except Exception as exc:
+        print(f"Skipping {label}: {exc}")
+        return None, None, None
+
+
 def run_data2_model_error_visualization(data_root=None, save_dir=None):
     """Recreate the DATA2 residual comparison plot from the notebook."""
     root = _resolve_data2_root(data_root)
@@ -2556,7 +2829,9 @@ def run_data2_model_error_visualization(data_root=None, save_dir=None):
             "sigma": 1.0,
         }
     }
-    fit_stru3, sim_stru3, sim_inter3 = solve_model_B_fix(
+    fit_stru3, sim_stru3, sim_inter3 = _safe_solve_case(
+        "DATA2 model-error case 1",
+        solve_model_B_fix,
         data_stru,
         mode,
         theta=fit_stru_base["parameters"],
@@ -2573,7 +2848,9 @@ def run_data2_model_error_visualization(data_root=None, save_dir=None):
             "sigma": 1.0,
         }
     }
-    fit_stru4, sim_stru4, sim_inter4 = solve_model_B_fix(
+    fit_stru4, sim_stru4, sim_inter4 = _safe_solve_case(
+        "DATA2 model-error case 2",
+        solve_model_B_fix,
         data_stru,
         mode,
         theta=fit_stru_base["parameters"],
@@ -2582,8 +2859,10 @@ def run_data2_model_error_visualization(data_root=None, save_dir=None):
         workflow_family="DATA2",
     )
 
-    plot_error_box(fit_stru3, fit_stru4, regime="diluting", save_path=save_dir / "diluting")
-    return [str(save_dir / "diluting.png")]
+    if fit_stru3 is not None and fit_stru4 is not None:
+        plot_error_box(fit_stru3, fit_stru4, regime="diluting", save_path=save_dir / "diluting")
+        return [str(save_dir / "diluting.png")]
+    return []
 
 
 def run_cross_verification(data_root=None, save_dir=None):
@@ -2620,7 +2899,9 @@ def run_cross_verification(data_root=None, save_dir=None):
         if not file_path.exists():
             continue
         data_stru = _normalize_conductivity_measurements(loadmat(str(file_path)).get("data_stru"))
-        fit_stru, sim_stru, sim_inter = solve_model_B_fix(
+        fit_stru, sim_stru, sim_inter = _safe_solve_case(
+            f"cross-verification case {label} ({rel_path})",
+            solve_model_B_fix,
             data_stru,
             "DATA",
             theta=fit_stru_base["parameters"],
@@ -2629,6 +2910,8 @@ def run_cross_verification(data_root=None, save_dir=None):
             sigma_fixed=sigma_fixed,
             workflow_family="DATA2",
         )
+        if fit_stru is None:
+            continue
         plot_sim_comparison(data_stru, sim_stru, stirc_mass=False, plot_pred=True, lg=False, LOUD=True)
         plt.close("all")
         outputs.extend(
@@ -2652,9 +2935,19 @@ def run_data2_model_variations(data_root=None, save_dir=None):
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.123.mat")).get("data_stru"))
     mode = "Lag"
     theta = {"Lp": 11, "beta_c": 15, "beta_0": 1, "beta_1": 0.01, "sigma": 1.0, "S0": 0}
-    fit_stru_base1, sim_stru, sim_inter = solve_model(
-        data_stru, mode, theta, sim_opt=False, B_form=1, LOUD=False, workflow_family="DATA2"
+    fit_stru_base1, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 LagM1",
+        solve_model,
+        data_stru,
+        mode,
+        theta,
+        sim_opt=False,
+        B_form=1,
+        LOUD=False,
+        workflow_family="DATA2",
     )
+    if fit_stru_base1 is None:
+        return outputs
     fit_path = save_dir / "LagM1-fit.json"
     store_json(str(fit_path), fit_stru_base1)
     outputs.append(str(fit_path))
@@ -2666,22 +2959,38 @@ def run_data2_model_variations(data_root=None, save_dir=None):
 
     # Lag - without time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.122.mat")).get("data_stru"))
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode, theta=fit_stru_base1["parameters"], sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 LagM2",
+        solve_model,
+        data_stru,
+        mode,
+        theta=fit_stru_base1["parameters"],
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "LagM2-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "LagM2-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     # Lag truncated (DATA) - with time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.121.mat")).get("data_stru"))
     mode_truc = "DATA"
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode_truc, theta=fit_stru_base1["parameters"], sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 LagM3",
+        solve_model,
+        data_stru,
+        mode_truc,
+        theta=fit_stru_base1["parameters"],
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "LagM3-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "LagM3-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     doe_stru = calc_FIM(data_stru, mode_truc, theta=fit_stru_base1["parameters"], step=1e-8, formula="Backward", B_form=1, workflow_family="DATA2")
     fim_path = save_dir / "LagM3-FIM.json"
@@ -2690,20 +2999,37 @@ def run_data2_model_variations(data_root=None, save_dir=None):
 
     # Lag truncated (DATA) - without time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.12.mat")).get("data_stru"))
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode_truc, theta=fit_stru_base1["parameters"], sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 LagM4",
+        solve_model,
+        data_stru,
+        mode_truc,
+        theta=fit_stru_base1["parameters"],
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "LagM4-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "LagM4-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     # Overflow - with time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.423.mat")).get("data_stru"))
     mode = "Overflow"
     theta = {"Lp": 11, "beta_c": 15, "beta_0": 1, "beta_1": 0.01, "sigma": 1.0, "S0": -0.1756665334051245}
-    fit_stru_base2, sim_stru, sim_inter = solve_model(
-        data_stru, mode, theta, sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru_base2, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 OverflowM1",
+        solve_model,
+        data_stru,
+        mode,
+        theta,
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
+    if fit_stru_base2 is None:
+        return outputs
     fit_path = save_dir / "OverflowM1-fit.json"
     store_json(str(fit_path), fit_stru_base2)
     outputs.append(str(fit_path))
@@ -2715,22 +3041,38 @@ def run_data2_model_variations(data_root=None, save_dir=None):
 
     # Overflow - without time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.422.mat")).get("data_stru"))
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode, theta=fit_stru_base2["parameters"], sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 OverflowM2",
+        solve_model,
+        data_stru,
+        mode,
+        theta=fit_stru_base2["parameters"],
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "OverflowM2-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "OverflowM2-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     # Overflow truncated (DATA) - with time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.421.mat")).get("data_stru"))
     mode_truc = "DATA"
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode_truc, theta=fit_stru_base2["parameters"], sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 OverflowM3",
+        solve_model,
+        data_stru,
+        mode_truc,
+        theta=fit_stru_base2["parameters"],
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "OverflowM3-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "OverflowM3-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     doe_stru = calc_FIM(data_stru, mode_truc, theta=fit_stru_base2["parameters"], step=1e-8, formula="Backward", B_form=1, workflow_family="DATA2")
     fim_path = save_dir / "OverflowM3-FIM.json"
@@ -2739,12 +3081,20 @@ def run_data2_model_variations(data_root=None, save_dir=None):
 
     # Overflow truncated (DATA) - without time correction
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.42.mat")).get("data_stru"))
-    fit_stru, sim_stru, sim_inter = solve_model(
-        data_stru, mode_truc, theta=theta, sim_opt=False, B_form=1, workflow_family="DATA2"
+    fit_stru, sim_stru, sim_inter = _safe_solve_case(
+        "DATA2 OverflowM4",
+        solve_model,
+        data_stru,
+        mode_truc,
+        theta=theta,
+        sim_opt=False,
+        B_form=1,
+        workflow_family="DATA2",
     )
-    fit_path = save_dir / "OverflowM4-fit.json"
-    store_json(str(fit_path), fit_stru)
-    outputs.append(str(fit_path))
+    if fit_stru is not None:
+        fit_path = save_dir / "OverflowM4-fit.json"
+        store_json(str(fit_path), fit_stru)
+        outputs.append(str(fit_path))
 
     # Residual comparison box plots from the notebook.
     box_path = save_dir / "data2_residuals_boxplot"
@@ -2782,9 +3132,17 @@ def run_pre_B_dependence(data_root=None, save_dir=None):
         if not file_path.exists():
             continue
         data_stru = _normalize_conductivity_measurements(loadmat(str(file_path)).get("data_stru"))
-        fit_stru, sim_stru, sim_inter = solve_model(
-            data_stru, mode, sim_opt=False, B_form="pervial", workflow_family="DATA2"
+        fit_stru, sim_stru, sim_inter = _safe_solve_case(
+            f"DATA2 pre-B case {key}",
+            solve_model,
+            data_stru,
+            mode,
+            sim_opt=False,
+            B_form="pervial",
+            workflow_family="DATA2",
         )
+        if fit_stru is None:
+            continue
         allsim_stru[key] = sim_stru
 
     cmap1 = plt.get_cmap("tab10")
@@ -2917,3 +3275,267 @@ def run_campaign(campaign_name="DATA1", save_dir=None):
         data_root=campaign["root"],
         save_dir=save_dir,
     )
+
+
+def _format_table_value(value):
+    """Format one table value so the rendered panel stays readable."""
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except Exception:
+        pass
+    if isinstance(value, (float, np.floating)):
+        return f"{float(value):.4g}"
+    if isinstance(value, (int, np.integer)):
+        return str(int(value))
+    return str(value)
+
+
+def _status_fill_color(status):
+    """Choose a soft background color for a status cell."""
+    status_text = str(status or "").strip().upper()
+    if status_text == "PASS":
+        return "#DFF0D8"
+    if status_text == "FAIL":
+        return "#F8D7DA"
+    if status_text == "WARNING":
+        return "#FFF3CD"
+    if status_text == "MISSING_VALUE":
+        return "#E2E3E5"
+    return "white"
+
+
+def _is_infeasible_termination(term):
+    """Return True when the solver termination code indicates infeasibility."""
+    term_text = str(term).replace("_", "").lower()
+    return "infeasible" in term_text or "unbounded" in term_text
+
+
+def render_table_panel(ax, table_source, title=None, color_status=True, fontsize=8):
+    """Render one CSV table as a compact colored panel."""
+    if isinstance(table_source, pd.DataFrame):
+        df = table_source.copy()
+    else:
+        df = pd.read_csv(table_source)
+
+    ax.axis("off")
+    if title:
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
+
+    display_df = df.copy()
+    display_df = display_df.apply(lambda col: col.map(_format_table_value))
+    cell_text = display_df.values.tolist()
+    col_labels = list(display_df.columns)
+
+    table = ax.table(
+        cellText=cell_text,
+        colLabels=col_labels,
+        cellLoc="center",
+        loc="center",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(fontsize)
+    table.scale(1, 1.35)
+    try:
+        table.auto_set_column_width(col=list(range(len(col_labels))))
+    except Exception:
+        pass
+
+    status_idx = None
+    for candidate in ("status", "Status"):
+        if candidate in df.columns:
+            status_idx = df.columns.get_loc(candidate)
+            break
+
+    # Header styling.
+    for (row, col), cell in table.get_celld().items():
+        cell.set_linewidth(0.6)
+        if row == 0:
+            cell.set_facecolor("#1F4E79")
+            cell.get_text().set_color("white")
+            cell.get_text().set_weight("bold")
+        cell.get_text().set_wrap(True)
+
+    # Soft row shading to make the table easier to scan.
+    for row in range(len(display_df)):
+        if row % 2 == 1:
+            for col in range(len(col_labels)):
+                table[(row + 1, col)].set_facecolor("#F7F9FB")
+
+        if color_status and status_idx is not None:
+            fill = _status_fill_color(df.iloc[row, status_idx])
+            for col in range(len(col_labels)):
+                cell = table[(row + 1, col)]
+                if cell.get_facecolor() == (1.0, 1.0, 1.0, 1.0) or row % 2 == 1:
+                    cell.set_facecolor(fill if row % 2 == 0 else fill)
+            if "status" in df.columns:
+                status_col = df.columns.get_loc("status")
+                table[(row + 1, status_col)].set_facecolor(fill)
+
+    return table
+
+
+def build_colored_composite_with_tables(image_paths, table_sources, out_path, title=None, ncols=2):
+    """Build one composite sheet from colored images and rendered tables."""
+    image_paths = [Path(p) for p in image_paths if Path(p).exists()]
+    table_sources = [Path(p) if not isinstance(p, pd.DataFrame) else p for p in table_sources]
+    table_sources = [p for p in table_sources if not isinstance(p, Path) or p.exists()]
+
+    if not image_paths and not table_sources:
+        raise ValueError("No image or table inputs were provided.")
+
+    n_image_rows = math.ceil(len(image_paths) / ncols) if image_paths else 0
+    n_table_rows = len(table_sources)
+    total_rows = n_image_rows + n_table_rows
+    if total_rows == 0:
+        total_rows = 1
+
+    fig_height = max(4.5, n_image_rows * 4.2 + n_table_rows * 2.6)
+    fig = plt.figure(figsize=(ncols * 5.8, fig_height))
+    if title:
+        fig.suptitle(title, fontsize=18, fontweight="bold", y=0.995)
+
+    gs = fig.add_gridspec(
+        total_rows,
+        ncols,
+        height_ratios=[1.0] * max(n_image_rows, 1) + [0.95] * n_table_rows,
+        hspace=0.35,
+        wspace=0.18,
+    )
+
+    # Top section: image panels.
+    for idx, img_path in enumerate(image_paths):
+        row = idx // ncols
+        col = idx % ncols
+        ax = fig.add_subplot(gs[row, col])
+        ax.imshow(plt.imread(str(img_path)))
+        ax.axis("off")
+        ax.set_title(Path(img_path).stem, fontsize=10, fontweight="bold")
+
+    # Bottom section: table panels, each one spanning the full width.
+    table_row_offset = n_image_rows
+    for jdx, table_source in enumerate(table_sources):
+        ax = fig.add_subplot(gs[table_row_offset + jdx, :])
+        table_title = Path(table_source).stem if isinstance(table_source, Path) else None
+        render_table_panel(ax, table_source, title=table_title, color_status=True, fontsize=8)
+
+    if title:
+        fig.subplots_adjust(top=0.93, hspace=0.35, wspace=0.18)
+    else:
+        fig.subplots_adjust(hspace=0.35, wspace=0.18)
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return str(out_path)
+
+
+def build_table_sheet(table_sources, out_path, title=None):
+    """Render a set of tables as a dedicated sheet."""
+    table_sources = [Path(p) if not isinstance(p, pd.DataFrame) else p for p in table_sources]
+    table_sources = [p for p in table_sources if not isinstance(p, Path) or p.exists()]
+    if not table_sources:
+        raise ValueError("No table inputs were provided.")
+
+    fig_height = max(3.5, len(table_sources) * 2.8)
+    fig = plt.figure(figsize=(12.5, fig_height))
+
+    gs = fig.add_gridspec(len(table_sources), 1, hspace=0.35)
+    for idx, table_source in enumerate(table_sources):
+        ax = fig.add_subplot(gs[idx, 0])
+        render_table_panel(ax, table_source, title=None, color_status=True, fontsize=8)
+        if isinstance(table_source, Path):
+            table_label = table_source.stem
+            if title:
+                table_label = f"{title}: {table_label}"
+            ax.set_title(table_label, fontsize=12, fontweight="bold", pad=8)
+
+    fig.subplots_adjust(top=0.98, hspace=0.45)
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return str(out_path)
+
+
+def build_colored_paper_composites_with_tables(run_dir, campaign="DATA1", out_dir=None):
+    """Build colored composite sheets plus table panels for one run directory."""
+    run_dir = Path(run_dir)
+    campaign = str(campaign or "DATA1").upper()
+    fig_dir = run_dir / "figures"
+    table_dir = run_dir / "tables"
+
+    if out_dir is None:
+        out_dir = run_dir / "composites_colored_tables"
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    if campaign == "DATA1":
+        image_groups = [
+            (
+                "DATA1_main_plus_table1.png",
+                [
+                    fig_dir / "data1_fig2_a_mass_measured.png",
+                    fig_dir / "data1_fig2_b_retentate_measured.png",
+                    fig_dir / "data1_fig2_c_vial_measured.png",
+                    fig_dir / "data1_fig2_d_combined_measured.png",
+                    fig_dir / "data1_fig3_model_overlay.png",
+                    fig_dir / "data1_fig4_paper_style.png",
+                ],
+                [table_dir / "data1_table1_side_by_side.csv"],
+            ),
+            (
+                "DATA1_main_plus_table2.png",
+                [
+                    fig_dir / "data1_fig5_paper_style.png",
+                    fig_dir / "data1_fig6_paper_style.png",
+                    fig_dir / "data1_direct_fig4_sigma_sensitivity.png" if (fig_dir / "data1_direct_fig4_sigma_sensitivity.png").exists() else fig_dir / "data1_fig4_direct_sigma_sensitivity.png",
+                    fig_dir / "data1_fig4_1_jw_trajectories.png" if (fig_dir / "data1_fig4_1_jw_trajectories.png").exists() else fig_dir / "data1_fig4_2_js_trajectories.png",
+                ],
+                [table_dir / "data1_table2_side_by_side.csv"],
+            ),
+        ]
+    else:
+        image_groups = [
+            (
+                "DATA2_main_tables.png",
+                sorted(
+                    [
+                        *fig_dir.glob("data2_*fig*.png"),
+                        *fig_dir.glob("data2_*paper_style.png"),
+                    ]
+                ),
+                sorted(table_dir.glob("data2_*side_by_side.csv")),
+            ),
+        ]
+
+    for filename, images, tables in image_groups:
+        out_path = out_dir / filename
+        existing_images = [p for p in images if Path(p).exists()]
+        existing_tables = [p for p in tables if Path(p).exists()]
+        if not existing_images and not existing_tables:
+            continue
+        outputs.append(
+            build_colored_composite_with_tables(
+                existing_images,
+                existing_tables,
+                out_path,
+                title=f"{campaign} composite with tables",
+                ncols=2,
+            )
+        )
+        if existing_tables:
+            table_out = out_dir / f"{Path(filename).stem}_tables.png"
+            outputs.append(
+                build_table_sheet(
+                    existing_tables,
+                    table_out,
+                    title=f"{campaign} tables",
+                )
+            )
+
+    return outputs

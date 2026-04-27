@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Simple runner for the refactored diafiltration workflow.
 
-The runner is intentionally plain:
+The runner stays thin:
 - choose DATA1 or DATA2 to recreate the paper-style plots
-- choose custom to run one experimental file through the model
+- choose custom to run one experimental file through the stage-based workflow
+
+The refactored folder is self-contained:
+- `refactored_ucb_library.py` holds the workflow functions
+- `conductivity_paper.py` sits beside it and handles conductivity-to-
+  concentration conversion
 """
 
 from __future__ import annotations
@@ -17,11 +22,8 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from refactored_ucb_library import (
-    calc_FIM,
-    loadmat,
-    _normalize_conductivity_measurements,
     run_campaign,
-    solve_model,
+    run_workflow,
 )
 
 
@@ -68,50 +70,38 @@ def _run_data2() -> None:
         print(f"  - {item}")
 
 
-def _choose_custom_files() -> list[Path]:
-    # Let the user paste one or more file paths, separated by commas.
-    raw = input("\nPaste one or more .mat file paths separated by commas: ").strip()
+def _choose_custom_file() -> Path | None:
+    # Ask for one MATLAB file path so the flow stays close to the staged example.
+    raw = input("\nPaste one .mat file path: ").strip()
     if not raw:
-        return []
-    # Clean up the user input and turn each item into a real Path object.
-    return [Path(item.strip()).expanduser().resolve() for item in raw.split(",") if item.strip()]
+        return None
+    return Path(raw).expanduser().resolve()
 
 
 def _run_custom() -> None:
-    """Run one or more experimental files through the existing model code."""
-    files = _choose_custom_files()
-    if not files:
-        print("No files were selected.")
+    """Run one experimental file through the staged workflow."""
+    file_path = _choose_custom_file()
+    if file_path is None:
+        print("No file was selected.")
         return
 
-    # Ask the user for the basic modeling choices.
+    # Ask for the key choices, keeping the prompt list short and explicit.
     mode = _prompt("Model mode", "DATA")
     workflow_family = _prompt("Model family", "DATA1 or DATA2").strip().upper()
-    run_fim = _prompt("Also compute FIM? (y/n)", "n").lower().startswith("y")
+    use_parmest = _prompt("Use ParmEst? (y/n)", "n").lower().startswith("y")
+    uncertainty_method = _prompt("Uncertainty method (fim/cov_est)", "fim").strip().lower()
 
-    for file_path in files:
-        # Load the MATLAB file into the nested Python dictionary used by the model.
-        data_stru = loadmat(str(file_path)).get("data_stru")
-        if data_stru is None:
-            print(f"Skipping {file_path}: no data_stru entry was found.")
-            continue
-
-        # Convert conductivity to concentration when the file asks for it.
-        _normalize_conductivity_measurements(data_stru)
-
-        # Fit the first-principles model to this data file.
-        print(f"\nFitting {file_path.name}...")
-        fit_stru, sim_stru, sim_inter = solve_model(data_stru, mode, workflow_family=workflow_family)
-        print(f"Finished fit for dataset {data_stru.get('dataset')}")
-        if fit_stru and "parameters" in fit_stru:
-            print(f"Parameters: {fit_stru['parameters']}")
-
-        if run_fim:
-            # Compute the Fisher Information Matrix if the user asked for it.
-            print("Computing FIM...")
-            fim = calc_FIM(data_stru, mode, theta=fit_stru["parameters"] if fit_stru else None, workflow_family=workflow_family)
-            print(f"FIM trace: {fim.get('trace')}")
-            print(f"FIM det: {fim.get('det')}")
+    results = run_workflow(
+        file_path,
+        mode=mode,
+        workflow_family=workflow_family,
+        use_parmest=use_parmest,
+        uncertainty_method=uncertainty_method,
+    )
+    print("\nCreated results:")
+    for key in results:
+        if not key.startswith("_"):
+            print(f"  - {key}")
 
 
 def main() -> None:
