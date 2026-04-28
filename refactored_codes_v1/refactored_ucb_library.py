@@ -2620,49 +2620,63 @@ def plot_contour(df, show_title=True, preface=False, save_path=None, cmap="virid
     return fig, axes
 
 
-def plot_sim(sim_stru, colorstring="r", linestyle="solid", ax=None, show_permeate=False):
-    """
-    Plot a sigma-sensitivity simulation curve.
+def plot_sim(sim_stru, color, linetype):
+    """Plot simulation results, matching the DATA1 sigma-sensitivity notebook helper."""
 
-    The MATLAB scripts use this helper to overlay several simulation runs.
-    """
-    if ax is None:
-        ax = plt.gca()
+    t_delay = np.asarray(sim_stru[0]["time"], dtype=float)[0]
+    # plot mass prediction
+    plt.figure(1, figsize=(4,4))
+    for i in sim_stru:
+        t = np.asarray(i["time"], dtype=float)
+        plt.plot((t-t_delay)/60, np.asarray(i["mV"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
 
-    # The saved MAT file may come back as a dict or a list of vial records.
-    if isinstance(sim_stru, dict):
-        vial_items = sim_stru.values()
-    else:
-        vial_items = sim_stru
+    # plot retentate concentration prediction
+    plt.figure(2, figsize=(4,4))
+    for i in sim_stru:
+        t = np.asarray(i["time"], dtype=float)
+        plt.plot((t-t_delay)/60, np.asarray(i["cF"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
 
-    first = True
-    for vial in vial_items:
-        if not isinstance(vial, dict):
-            continue
-        t = np.asarray(vial.get("time", []), dtype=float)
-        if t.size == 0:
-            continue
-        if "cF" in vial:
-            ax.plot(t, vial["cF"], color=colorstring, linestyle=linestyle, linewidth=2, alpha=0.85)
-        if show_permeate and "cH" in vial:
-            ax.plot(t, vial["cH"], color=colorstring, linestyle="--", linewidth=1.5, alpha=0.6)
-        if first:
-            first = False
-
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Concentration")
-    return ax
+    # plot permeate concentration prediction comparison
+    plt.figure(3, figsize=(4,4))
+    for i in sim_stru:
+        t = np.asarray(i["time"], dtype=float)
+        plt.plot((t-t_delay)/60, np.asarray(i["cH"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
 
 
-def plot_sim_show(sigma, colorstring):
-    """Create the small legend used in the sigma-sensitivity figures."""
-    handles = []
-    labels = []
-    for s, c in zip(sigma, colorstring):
-        handles.append(Line2D([0], [0], color=c, linewidth=2))
-        labels.append(f"sigma = {s}")
-    plt.legend(handles, labels, loc="best")
-    return handles, labels
+def plot_sim_show(sig, colors):
+    """Figure setup for different sigma values."""
+    custom_lines = [Line2D([0], [0], color=colors[0],ls='--', lw=3),
+                    Line2D([0], [0], color=colors[1],ls='-', lw=3),
+                    Line2D([0], [0], color=colors[2],ls=':', lw=3)]
+    legendname = ['$\\sigma$ = '+str(sig[0]),'$\\sigma$ = '+str(sig[1]),'$\\sigma$ = '+str(sig[2])]
+
+    fig = plt.figure(1)
+    plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
+    plt.ylabel('Mass [g]',fontsize=16,fontweight='bold')
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in")
+    plt.ylim(bottom=0)
+    fig.savefig('sigma_sensitivity-mass.png',dpi=300,bbox_inches='tight')
+
+    fig = plt.figure(2)
+    plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
+    plt.ylabel('Retentate Conc. [mM]',fontsize=16,fontweight='bold')
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in")
+    plt.legend(custom_lines,legendname,fontsize=15,loc='best')
+    fig.savefig('sigma_sensitivity-reten_conc.png',dpi=300,bbox_inches='tight')
+
+    fig = plt.figure(3)
+    plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
+    plt.ylabel('Permeate Conc. [mM]',fontsize=16,fontweight='bold')
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in")
+    fig.savefig('sigma_sensitivity-perme_conc.png',dpi=300,bbox_inches='tight')
+
+    return custom_lines, legendname
 
 
 def plot_conc_range(df_f, df_d, save_path=None, lg=True):
@@ -3125,7 +3139,13 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
         cf0 = 5.2843 if float(dataset) == 501.1 else 15.2052
 
     colorstring = "rbg"
-    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+    plt.close(1)
+    plt.close(2)
+    plt.close(3)
+    plt.figure(1, figsize=(4,4))
+    plt.figure(2, figsize=(4,4))
+    plt.figure(3, figsize=(4,4))
 
     for sigma_val, color in zip(sigmas, colorstring):
         mat_name = f"sim_stru-dat{dataset} C_Fin{cf0}sig{sigma_val}.mat"
@@ -3133,13 +3153,19 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
         if not mat_path.exists():
             continue
         sim_stru = loadmat(str(mat_path)).get("sim_stru")
-        plot_sim(sim_stru, color, "solid", ax=ax)
+        plot_sim(sim_stru, color, "solid")
 
     plot_sim_show(sigmas, colorstring[: len(sigmas)])
-    out = save_dir / f"sigma_sensitivity-dat{dataset}.png"
-    fig.savefig(out, dpi=300, bbox_inches="tight")
-    plt.close(fig)
-    return str(out)
+    out_mass = save_dir / "sigma_sensitivity-mass.png"
+    out_reten = save_dir / "sigma_sensitivity-reten_conc.png"
+    out_perm = save_dir / "sigma_sensitivity-perme_conc.png"
+    plt.figure(1).savefig(out_mass, dpi=300, bbox_inches="tight")
+    plt.figure(2).savefig(out_reten, dpi=300, bbox_inches="tight")
+    plt.figure(3).savefig(out_perm, dpi=300, bbox_inches="tight")
+    plt.close(1)
+    plt.close(2)
+    plt.close(3)
+    return [str(out_mass), str(out_reten), str(out_perm)]
 
 
 def run_data1_sigma_contours(data_root=None, save_dir=None):
@@ -3300,8 +3326,8 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
         fig, _ = plot_conc_range(df_f, df_d, save_path=save_dir / "concentration_range.png")
         outputs.append(str(save_dir / "concentration_range.png"))
         plt.close(fig)
-    outputs.append(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
-    outputs.append(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
+    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
     outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
     outputs = sorted(set(str(p) for p in outputs))
@@ -4631,8 +4657,8 @@ def run_paper_reproduction(workflow_family="DATA1", data_root=None, save_dir=Non
         case _:
             outputs = run_data_analysis(data_root=data_root, save_dir=save_dir)
             root = _resolve_data_root(data_root)
-            outputs.append(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
-            outputs.append(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+            outputs.extend(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
+            outputs.extend(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
             outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
             outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
             return outputs
