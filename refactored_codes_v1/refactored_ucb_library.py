@@ -9,6 +9,9 @@ import pandas as pd
 import scipy.io as spio
 from scipy import interpolate
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.patches as patches
+import matplotlib.patheffects as patheffects
 from matplotlib.lines import Line2D
 from pathlib import Path
 import idaes
@@ -18,6 +21,7 @@ import os
 import json
 import math
 from sklearn.metrics import r2_score
+from dataclasses import dataclass, field
 
 try:
     import seaborn as sns
@@ -36,10 +40,72 @@ from pyomo.contrib.doe.doe import DesignOfExperiments
 FIGURES_DIR = os.path.join("UnifiedFramework", "DATA3", "figures")
 
 
+@dataclass(frozen=True)
+class ExperimentalRun:
+    """
+    One experimental run family with multiple file-backed variants.
+
+    The same physical run can appear in different notebook/paper forms, such as
+    the base fit and the concentration-polarization variant. Each variant is a
+    separate instance of the same run family.
+    """
+
+    run_id: str
+    root: Path
+    data_file: str
+    variant: str = "base"
+    subdir: str = ""
+    fit_file: str = "fit_stru.mat"
+    contour_files: tuple[str, ...] = ("contourdata-x_B-y_Lp.csv", "contourdata-x_sigma-y_Lp.csv")
+    extra_files: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def data_path(self) -> Path:
+        return self.root / self.data_file
+
+    @property
+    def variant_root(self) -> Path:
+        return self.root / self.subdir if self.subdir else self.root
+
+    @property
+    def fit_path(self) -> Path:
+        return self.variant_root / self.fit_file
+
+    def contour_path(self, name: str) -> Path:
+        return self.variant_root / name
+
+    def load_data(self):
+        """Load and normalize the main MAT file for this run instance."""
+        return _normalize_conductivity_measurements(loadmat(str(self.data_path)).get("data_stru"))
+
+    def load_fit(self):
+        """Load the saved fit bundle for this run instance."""
+        return loadmat(str(self.fit_path)).get("fit_stru")
+
+    def load_contour(self, name: str):
+        """Load a contour CSV for this run instance."""
+        return pd.read_csv(self.contour_path(name))
+
+
 def _figure_output_base(name):
     # Make sure the shared figures folder exists before saving anything there.
     os.makedirs(FIGURES_DIR, exist_ok=True)
     return os.path.join(FIGURES_DIR, name)
+
+
+def _data1_time_origin(data_stru):
+    """Return the DATA1 notebook time origin used for all shifted plots."""
+    return float(np.asarray(data_stru["data_raw"][0]["time"], dtype=float).reshape(-1)[0])
+
+
+def _data1_shifted_time(data_stru, vial_index):
+    """Return DATA1 vial time shifted by the shared notebook time origin."""
+    return np.asarray(data_stru["data_raw"][vial_index]["time"], dtype=float) - _data1_time_origin(data_stru)
+
+
+def _data1_shifted_time_minutes(data_stru, vial_index):
+    """Return DATA1 vial time shifted and converted to minutes."""
+    return _data1_shifted_time(data_stru, vial_index) / 60.0
 
 
 def _load_conductivity_paper():
@@ -99,6 +165,19 @@ def loadmat(filename):# for fun!
 
     print("\nLoading data file =",filename,"\n")
 
+    def _coerce_scalar(value):
+        """Convert MATLAB numeric scalars to plain Python numbers.
+
+        MATLAB MAT files frequently encode small integers as numpy scalar types
+        such as uint8. Those types behave badly later in the workflow when we
+        subtract times or build negative offsets, so we normalize them here.
+        """
+        if isinstance(value, np.generic):
+            if np.issubdtype(type(value), np.number):
+                return float(value)
+            return value.item()
+        return value
+
     def _check_keys(d):
         '''
         checks if entries in dictionary are mat-objects. If yes
@@ -124,7 +203,7 @@ def loadmat(filename):# for fun!
             elif isinstance(elem, np.ndarray):
                 d[strg] = _tolist(elem)
             else:
-                d[strg] = elem
+                d[strg] = _coerce_scalar(elem)
         return d
 
     def _tolist(ndarray):
@@ -139,8 +218,8 @@ def loadmat(filename):# for fun!
                 elem_list.append(_todict(sub_elem))
             elif isinstance(sub_elem, np.ndarray):
                 elem_list.append(_tolist(sub_elem))
-            elif isinstance(sub_elem, int):
-                elem_list.append(float(sub_elem))
+            elif isinstance(sub_elem, (int, float, np.integer, np.floating, np.bool_)):
+                elem_list.append(_coerce_scalar(sub_elem))
             else:
                 elem_list.append(sub_elem)
         return elem_list
@@ -149,69 +228,49 @@ def loadmat(filename):# for fun!
     return _check_keys(data)
 
 
-def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=False,LOUD=False):
+def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=False,LOUD=False,cond=True,preface=False):
     '''
     Plot simulation results comparing with measurements
-    
-    Arguments:
-        data_stru: dict, experimental data dictionary
-        sim_stru: dict, simulation results dictionary
-        stirc_mass: boolean, if plot mass change in stirred cell
-        plot_pred: boolean, if plot model predictions/simualtions
-        lg: boolean, if plot legends
-        LOUD: boolean, if store the figures
-    
-    Actions:
-        create plots and store (optional)
     '''
-    t_delay = data_stru['data_raw'][0]['time'][0]
-    n_v0 = data_stru.get('data_config', {}).get('n_v0', 1)
-    vial1 = n_v0 - 1
-    t_start = 0
 
-    def _is_sequence(value):
-        return isinstance(value, (list, tuple, np.ndarray)) and not isinstance(value, (str, bytes))
-
-    def _plot_measurement(x_vals, y_vals, style, **kwargs):
-        """Plot a full series when lengths match, otherwise fall back to the last point."""
-        x_list = list(x_vals)
-        if not x_list:
-            return
-        if _is_sequence(y_vals):
-            y_list = list(y_vals)
-            if len(y_list) == 0:
-                return
-            if len(y_list) == len(x_list):
-                plt.plot(x_list, y_list, style, **kwargs)
-            else:
-                plt.plot(x_list[-1], _last_valid_value(y_list), style, **kwargs)
-        else:
-            plt.plot(x_list[-1], y_vals, style, **kwargs)
-
+    t_delay = _data1_time_origin(data_stru)
     figures = []
 
     # plot mass data/prediction comparison
     fig = plt.figure(figsize=(4,4))
     for i in range(data_stru['data_config']['n']):
-        _plot_measurement(
-            [(float(t)-t_delay-t_start)/60 for t in data_stru['data_raw'][i]['time']],
-            data_stru['data_raw'][i]['mass'],
-            'r.',
-            markersize=4,
-        )
-        if plot_pred and i >= vial1:
-            plt.plot([(time-t_start)/60 for time in sim_stru[i]['time']],
-                     sim_stru[i]['mV'],'b',linewidth=2,
-                     alpha=.6)
+        time = np.asarray(data_stru['data_raw'][i]['time'], dtype=float)
+        mass = np.asarray(data_stru['data_raw'][i]['mass'], dtype=float)
+        plt.plot((time-t_delay)/60, mass, 'r.', markersize=4)
+        if plot_pred:
+            plt.plot((np.asarray(sim_stru[i]['time'], dtype=float)-t_delay)/60,
+                     np.asarray(sim_stru[i]['mV'], dtype=float),
+                     'b', linewidth=3, alpha=.6)
 
-    plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
-    plt.ylabel('Mass in Vial [g]',fontsize=16,fontweight='bold')
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.plot([],[],'r.',markersize=4,label='Measurements')
+    if plot_pred:
+        plt.plot([],[],'b',linewidth=3,alpha=.6,label='Predictions')
+
+    if preface:
+        plt.xlabel('Time',fontsize=24,fontweight='bold')
+        plt.ylabel('Mass',fontsize=24,fontweight='bold')
+        plt.gca().axes.xaxis.set_ticklabels([])
+        plt.gca().axes.yaxis.set_ticklabels([])
+    else:
+        plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
+        plt.ylabel('Mass [g]',fontsize=16,fontweight='bold')
+
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     plt.tick_params(direction="in")
+    plt.xlim(left=0)
     plt.ylim(bottom=0)
-    #plt.show()
-    
+    ax = plt.gca()
+    xticks = ax.xaxis.get_major_ticks()
+    if xticks:
+        xticks[0].label1.set_visible(False)
+    if lg:
+        plt.legend(fontsize=10,loc='best')
     if LOUD:
         fname = _figure_output_base('mass-dat'+str(data_stru['dataset']))
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
@@ -219,90 +278,103 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
 
     # plot concentration data/prediction comparison
     fig = plt.figure(figsize=(4,4))
+    first_time = _data1_time_origin(data_stru)
+    plt.plot((first_time-t_delay)/60,
+             np.asarray(sim_stru[0]['cF'], dtype=float)[0],
+             'ms',markersize=8,clip_on=False)
+
+    plt.plot([],[],'ms',markersize=8,clip_on=False,label='Retentate (Measurement)')
+    if plot_pred:
+        plt.plot([],[],'g',linewidth=3,label='Retentate (Prediction)')
+    plt.plot([],[],'cs',markersize=8,label='Vial (Measurement)')
+    if plot_pred:
+        plt.plot([],[],'r^',markersize=8,label='Vial (Prediction)')
+        plt.plot([],[],'r-',linewidth=3,alpha=.6,label='Permeate (Prediction)')
 
     for i in range(data_stru['data_config']['n']):
-        _plot_measurement(
-            [(float(t)-t_delay-t_start)/60 for t in data_stru['data_raw'][i]['time']],
-            data_stru['data_raw'][i]['cV_avg'],
-            'cs',
-            markersize=6,
-            clip_on=False,
-        )
-        _plot_measurement(
-            [(float(t)-t_delay-t_start)/60 for t in data_stru['data_raw'][i]['time']],
-            data_stru['data_raw'][i]['cF_exp'],
-            'ms',
-            markersize=6,
-            clip_on=False,
-        )
+        time = np.asarray(data_stru['data_raw'][i]['time'], dtype=float)
+        plt.plot((time[-1]-t_delay)/60,
+                 np.asarray(data_stru['data_raw'][i]['cV_avg'], dtype=float),
+                 'cs',markersize=8)
+        if cond:
+            cF_exp = data_stru['data_raw'][i]['cF_exp']
+            if isinstance(cF_exp, float):
+                plt.plot((time[-1]-t_delay)/60, cF_exp,'ms',markersize=8)
+            elif len(cF_exp)>1:
+                plt.plot((time-t_delay)/60,
+                         np.asarray(cF_exp, dtype=float),'ms',markersize=8)
         if plot_pred:
-            plt.plot([(time-t_start)/60 for time in sim_stru[i]['time']],
-                     sim_stru[i]['cF'],
-                     'g',linewidth=2)
-            plt.plot([(time-t_start)/60 for time in sim_stru[i]['time']],
-                     sim_stru[i]['cH'],
-                     'r-',linewidth=2,alpha=.6)
-            if not _is_sequence(data_stru['data_raw'][i]['cV_avg']):
-                plt.plot((sim_stru[i]['time'][-1]-t_start)/60,
-                         sim_stru[i]['cV'][-1],
-                         'r^',linewidth=2,alpha=.6)
-            else:
-                time = data_stru['data_raw'][i]['time']-t_delay
-                index = ~np.isnan(data_stru['data_raw'][i]['cV_avg'])
-                t = [time[i] for i, val in enumerate(index) if val]
-                f = interpolate.interp1d(sim_stru[i]['time'],sim_stru[i]['cV'], fill_value='extrapolate')  
-                plt.plot([(ti-t_start)/60 for ti in t],
-                         f(t),
-                         'r^',linewidth=2,alpha=.6)
-                
-    plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
-    plt.ylabel('Concentration [mM]',fontsize=16,fontweight='bold')
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
+            sim_time = np.asarray(sim_stru[i]['time'], dtype=float)
+            plt.plot((sim_time-t_delay)/60,
+                     np.asarray(sim_stru[i]['cF'], dtype=float),
+                     'g',linewidth=3,alpha=.6)
+            plt.plot((sim_time-t_delay)/60,
+                     np.asarray(sim_stru[i]['cH'], dtype=float),
+                     'r-',linewidth=3,alpha=.6)
+            if not preface:
+                plt.plot((sim_time[-1]-t_delay)/60,
+                         np.asarray(sim_stru[i]['cV'], dtype=float)[-1],
+                         'r^',markersize=8,alpha=.6)
+
+    if not cond:
+        plt.plot((np.asarray(data_stru['data_raw'][-1]['time'], dtype=float)[-1]-t_delay)/60,
+                 np.asarray(data_stru['data_raw'][-1]['cF_exp'], dtype=float),
+                 'ms',markersize=8)
+
+    if preface:
+        plt.xlabel('Time',fontsize=24,fontweight='bold')
+        plt.ylabel('Concentration',fontsize=24,fontweight='bold')
+        plt.gca().axes.xaxis.set_ticklabels([])
+        plt.gca().axes.yaxis.set_ticklabels([])
+    else:
+        plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
+        plt.ylabel('Concentration [mM]',fontsize=16,fontweight='bold')
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     plt.tick_params(direction="in",top=True, right=True)
+    plt.xlim(left=0)
     plt.ylim(bottom=0)
-    #plt.show()
-    
+    ax = plt.gca()
+    xticks = ax.xaxis.get_major_ticks()
+    if xticks:
+        xticks[0].label1.set_visible(False)
+    if lg:
+        plt.legend(fontsize=10,loc='best')
     if LOUD:
         fname = _figure_output_base('concentration-dat'+str(data_stru['dataset']))
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
     figures.append(fig)
-        
+
     # plot mass of stirred cell
     if stirc_mass:
         fig = plt.figure(figsize=(4,4))
         for i in range(data_stru['data_config']['n']):
             if plot_pred:
-                plt.plot([(time-t_start)/60 for time in sim_stru[i]['time']],
-                         sim_stru[i]['mF'],'b',linewidth=2,
-                         alpha=.6)
+                plt.plot((np.asarray(sim_stru[i]['time'], dtype=float)-t_delay)/60,
+                         np.asarray(sim_stru[i]['mF'], dtype=float),
+                         'b',linewidth=3,alpha=.6)
 
-        # ghost point for legend
         plt.plot([],[],'r.',markersize=4,label='Mass (Measurements)')
         if plot_pred:
-            plt.plot([],[],'b',linewidth=2,alpha=.6,label='Mass (Predictions)')
+            plt.plot([],[],'b',linewidth=3,alpha=.6,label='Mass (Predictions)')
 
-        plt.plot([],[],'ms',markersize=6,clip_on=False,label='Retentate (Measurements)')
+        plt.plot([],[],'ms',markersize=8,clip_on=False,label='Retentate (Measurement)')
         if plot_pred:
-            plt.plot([],[],'g',linewidth=2,label='Retentate (Predictions)')
-        if type(data_stru['data_raw'][i]['cV_avg']) != list:
-            plt.plot([],[],'cs',markersize=6,label='Vial (Measurements)')
-        else:
-            plt.plot([],[],'cs',markersize=6,label='Vial (Measurements)')
+            plt.plot([],[],'g',linewidth=3,label='Retentate (Prediction)')
+        plt.plot([],[],'cs',markersize=8,label='Vial (Measurement)')
         if plot_pred:
-            plt.plot([],[],'r^',markersize=6,label='Vial (Predictions)')        
-            plt.plot([],[],'r-',linewidth=2,alpha=.6,label='Permeate (Predictions)')
+            plt.plot([],[],'r^',markersize=8,label='Vial (Prediction)')
+            plt.plot([],[],'r-',linewidth=3,alpha=.6,label='Permeate (Prediction)')
 
         plt.xlabel('Time [min]',fontsize=16,fontweight='bold')
         plt.ylabel('Mass in Stirred Cell [g]',fontsize=16,fontweight='bold')
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
         plt.tick_params(direction="in")
-        ytop = max([max(sim_stru[i]['mF']) for i in range(data_stru['data_config']['n'])])
+        ytop = max([max(np.asarray(sim_stru[i]['mF'], dtype=float)) for i in range(data_stru['data_config']['n'])])
         plt.ylim(bottom=0,top=ytop+0.5)
         if lg:
-            plt.legend(fontsize=12.5,loc='best')#bbox_to_anchor=(1.02, 0.3),borderaxespad=0,ncol=3)
-        #plt.show()
+            plt.legend(fontsize=12.5,loc='best')
         if LOUD:
             fname = _figure_output_base('stirc_mass-dat'+str(data_stru['dataset']))
             fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
@@ -459,9 +531,9 @@ def inter_model(data_stru, sim_stru, fit_stru):
         sim_inter: dict, model predictions for experimental measurements 
     '''
     sim_inter = dict()
+    t_delay = _data1_time_origin(data_stru)
     for i in range(data_stru['data_config']['n']):
-        t_delay = data_stru['data_raw'][0]['time'][0]
-        t_meas = data_stru['data_raw'][i]['time'] - t_delay
+        t_meas = _data1_shifted_time(data_stru, i)
         f_m = interpolate.interp1d(sim_stru[i]['time'],sim_stru[i]['mV'], kind='linear', fill_value='extrapolate')
         if i >= data_stru['data_config']['n_v0']-1:            
             ind_m = ~np.isnan(data_stru['data_raw'][i]['mass'])
@@ -532,7 +604,7 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     k = 0.23 * v**0.57 * D**0.67 / (nu**0.24 * b**0.43)
 
     # known constants
-    t_delay = data_stru['data_raw'][0]['time'][0]
+    t_delay = _data1_time_origin(data_stru)
     M_F0 = data_stru['data_config']['M_F0']
     M_O = data_stru['data_config']['M_O']
     cD = data_stru['data_config']['C_D']
@@ -1022,17 +1094,17 @@ def solve_model(
         Count_cp = 0
         Count_cf = 0
         count_cf0 = 0
-        t_delay = data_stru['data_raw'][0]['time'][0]
+        t_delay = _data1_time_origin(data_stru)
         TF_list = [data_stru['data_raw'][i]['time'][-1]-t_delay for i in range(data_stru['data_config']['n'])]
         TF_dict = dict(zip(m.n_vial,TF_list)) # unscaled time elapse for each vial 
         TI_list = [data_stru['data_raw'][i]['time'][0]-t_delay for i in range(data_stru['data_config']['n'])]
         TI_dict = dict(zip(m.n_vial,TI_list)) # unscaled initial time for each vial
     
         for n_vial in m.n_vial:
-            t_meas = data_stru['data_raw'][n_vial-1]['time'] - t_delay
-            mv_meas = data_stru['data_raw'][n_vial-1]['mass']
-            cp_meas = data_stru['data_raw'][n_vial-1]['cV_avg']
-            cf_meas = data_stru['data_raw'][n_vial-1]['cF_exp']
+            t_meas = _data1_shifted_time(data_stru, n_vial-1)
+            mv_meas = np.asarray(data_stru['data_raw'][n_vial-1]['mass'], dtype=float)
+            cp_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg'], dtype=float)
+            cf_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cF_exp'], dtype=float)
     
             t_meas_scaled = [(t-TI_dict[n_vial])/(TF_dict[n_vial]-TI_dict[n_vial]) for t in t_meas]
             
@@ -1058,7 +1130,7 @@ def solve_model(
                 ob_m += ob_mi
     
             # permeate residual squared / uncertainty / # of measurements
-            if type(data_stru['data_raw'][n_vial-1]['cV_avg']) != list:
+            if np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg']).ndim == 0:
                 if n_vial > data_stru['data_config']['n_extra']:
                     res_cp = m.cV[n_vial,m.tau.last()]-data_stru['data_raw'][n_vial-1]['cV_avg']
                     res_cp_assemble.append(res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))
@@ -1070,7 +1142,7 @@ def solve_model(
                 obj_cpi = 0
                 ob_cpi = 0
                 count_cp = 0
-                if not all(np.isnan(cp_meas)):
+                if not np.all(np.isnan(cp_meas)):
                     for i in range(0,len(t_meas_scaled)):
                         cp_inter = interpolation(m,m.cV,n_vial,t_meas_scaled[i])
                         cp_pred.append(cp_inter)
@@ -1089,7 +1161,7 @@ def solve_model(
             obj_cfi = 0
             ob_cfi = 0
             count_cf = 0
-            if not all(np.isnan(cf_meas)):
+            if not np.all(np.isnan(cf_meas)):
                 for i in range(0,len(t_meas_scaled)):
                     cf_inter = interpolation(m,m.cF,n_vial,t_meas_scaled[i])
                     cf_pred.append(cf_inter)
@@ -1521,17 +1593,17 @@ def solve_model_B_fix(
         Count_cp = 0
         Count_cf = 0
         count_cf0 = 0
-        t_delay = data_stru['data_raw'][0]['time'][0]
+        t_delay = _data1_time_origin(data_stru)
         TF_list = [data_stru['data_raw'][i]['time'][-1]-t_delay for i in range(data_stru['data_config']['n'])]
         TF_dict = dict(zip(m.n_vial,TF_list)) # unscaled time elapse for each vial 
         TI_list = [data_stru['data_raw'][i]['time'][0]-t_delay for i in range(data_stru['data_config']['n'])]
         TI_dict = dict(zip(m.n_vial,TI_list)) # unscaled initial time for each vial
     
         for n_vial in m.n_vial:
-            t_meas = data_stru['data_raw'][n_vial-1]['time'] - t_delay
-            mv_meas = data_stru['data_raw'][n_vial-1]['mass']
-            cp_meas = data_stru['data_raw'][n_vial-1]['cV_avg']
-            cf_meas = data_stru['data_raw'][n_vial-1]['cF_exp']
+            t_meas = _data1_shifted_time(data_stru, n_vial-1)
+            mv_meas = np.asarray(data_stru['data_raw'][n_vial-1]['mass'], dtype=float)
+            cp_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg'], dtype=float)
+            cf_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cF_exp'], dtype=float)
     
             t_meas_scaled = [(t-TI_dict[n_vial])/(TF_dict[n_vial]-TI_dict[n_vial]) for t in t_meas]
             
@@ -1557,7 +1629,7 @@ def solve_model_B_fix(
                 ob_m += ob_mi
     
             # permeate residual squared / uncertainty / # of measurements
-            if type(data_stru['data_raw'][n_vial-1]['cV_avg']) != list:
+            if np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg']).ndim == 0:
                 if n_vial > data_stru['data_config']['n_extra']:
                     res_cp = m.cV[n_vial,m.tau.last()]-data_stru['data_raw'][n_vial-1]['cV_avg']
                     res_cp_assemble.append(res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))
@@ -1569,7 +1641,7 @@ def solve_model_B_fix(
                 obj_cpi = 0
                 ob_cpi = 0
                 count_cp = 0
-                if not all(np.isnan(cp_meas)):
+                if not np.all(np.isnan(cp_meas)):
                     for i in range(0,len(t_meas_scaled)):
                         cp_inter = interpolation(m,m.cV,n_vial,t_meas_scaled[i])
                         cp_pred.append(cp_inter)
@@ -1588,7 +1660,7 @@ def solve_model_B_fix(
             obj_cfi = 0
             ob_cfi = 0
             count_cf = 0
-            if not all(np.isnan(cf_meas)):
+            if not np.all(np.isnan(cf_meas)):
                 for i in range(0,len(t_meas_scaled)):
                     cf_inter = interpolation(m,m.cF,n_vial,t_meas_scaled[i])
                     cf_pred.append(cf_inter)
@@ -1866,16 +1938,19 @@ def _conductivity_to_concentration_series(
     return conc_out
 
 
-def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model="auto", model_params=None):
-    """Convert retentate conductivity measurements to concentration when needed.
+def convert_experimental_conductivity_to_concentration(
+    data_stru,
+    *,
+    output_units="mM",
+    model="auto",
+    model_params=None,
+):
+    """
+    Convert retentate conductivity measurements to concentration in one place.
 
-    If the file says conductivity is present, we replace the fitting field with
-    concentration so the rest of the diafiltration equations stay unchanged.
-
-    This keeps the data-preprocessing step aligned with the paper workflow:
-    - preserve the original conductivity values for traceability
-    - convert cF_exp using the paper conductivity equation
-    - feed the converted concentration into the existing first-principles model
+    This is the only data-conversion function that reaches into
+    conductivity_paper.py. Everything else should work with the converted
+    diafiltration dataset and stay inside the refactored code path.
     """
     # If the data structure is not the expected kind, leave it alone.
     if not isinstance(data_stru, dict) or not data_stru.get("conductivity_cF"):
@@ -1920,6 +1995,25 @@ def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model=
     data_stru["conductivity_cF_converted"] = True
     data_stru["conductivity_cF"] = False
     return data_stru
+
+
+def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model="auto", model_params=None):
+    """Convert retentate conductivity measurements to concentration when needed.
+
+    If the file says conductivity is present, we replace the fitting field with
+    concentration so the rest of the diafiltration equations stay unchanged.
+
+    This keeps the data-preprocessing step aligned with the paper workflow:
+    - preserve the original conductivity values for traceability
+    - convert cF_exp using the paper conductivity equation
+    - feed the converted concentration into the existing first-principles model
+    """
+    return convert_experimental_conductivity_to_concentration(
+        data_stru,
+        output_units=output_units,
+        model=model,
+        model_params=model_params,
+    )
 
 
 def _theta_components(model):
@@ -2011,6 +2105,33 @@ def build_parmest_experiments(data_structures, mode="DATA", theta=None, B_form="
         DiafiltrationParmestExperiment(data_stru, mode=mode, theta=theta, B_form=B_form, nfe=nfe)
         for data_stru in data_structures
     ]
+
+
+def _normalize_experimental_source(source, *, campaign=None, variant="base", data_root=None):
+    """Turn one experimental source into a loaded run instance and data dict."""
+    if isinstance(source, ExperimentalRun):
+        run = source
+        return run, run.load_data()
+
+    if isinstance(source, dict) and {"run_id", "root", "data_file"}.issubset(source.keys()):
+        run = ExperimentalRun(
+            run_id=str(source["run_id"]),
+            root=Path(source["root"]),
+            data_file=str(source["data_file"]),
+            variant=str(source.get("variant", variant)),
+            subdir=str(source.get("subdir", "")),
+            fit_file=str(source.get("fit_file", "fit_stru.mat")),
+        )
+        return run, run.load_data()
+
+    path = Path(source).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"Experimental source not found: {path}")
+    raw = loadmat(str(path))
+    data_stru = raw.get("data_stru")
+    if data_stru is None:
+        raise ValueError(f"The file {path} does not contain a 'data_stru' entry.")
+    return None, _normalize_conductivity_measurements(data_stru)
 
 
 def estimate_parameters_with_parmest(
@@ -2148,14 +2269,23 @@ def load_experimental_data(mat_file_path, results=None):
     if results is None:
         results = {}
 
-    raw = loadmat(str(mat_file_path))
-    data_stru = raw.get("data_stru")
-    if data_stru is None:
-        raise ValueError(f"The file {mat_file_path} does not contain a 'data_stru' entry.")
+    # Allow a single experiment or a batch of related experiments.
+    if isinstance(mat_file_path, (list, tuple, set)):
+        sources = list(mat_file_path)
+    else:
+        sources = [mat_file_path]
 
-    _normalize_conductivity_measurements(data_stru)
-    results["data_file"] = str(mat_file_path)
-    results["data"] = data_stru
+    loaded = []
+    runs = []
+    for source in sources:
+        run, data_stru = _normalize_experimental_source(source)
+        loaded.append(data_stru)
+        runs.append(run)
+
+    results["data_file"] = [str(src) for src in sources]
+    results["data"] = loaded[0] if len(loaded) == 1 else loaded
+    results["experiments"] = runs[0] if len(runs) == 1 else runs
+    results["is_batch"] = len(loaded) > 1
     return results
 
 
@@ -2164,8 +2294,9 @@ def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single"):
     if "data" not in results:
         raise RuntimeError("Stage 1 must run before Stage 2.")
 
+    data_payload = results["data"][0] if isinstance(results["data"], list) else results["data"]
     model = model_construct_inter(
-        results["data"],
+        data_payload,
         mode,
         theta=None,
         sim_opt=False,
@@ -2177,6 +2308,7 @@ def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single"):
         "mode": mode,
         "workflow_family": workflow_family,
         "B_form": B_form,
+        "is_batch": bool(results.get("is_batch")),
     }
     return results
 
@@ -2197,11 +2329,15 @@ def estimate_parameters(
     mode = settings.get("mode", "DATA")
     workflow_family = settings.get("workflow_family", "DATA1")
     B_form = settings.get("B_form", "single")
+    data_payload = results["data"]
+    if isinstance(data_payload, list):
+        data_payload_list = data_payload
+    else:
+        data_payload_list = [data_payload]
 
-    if use_parmest:
-        data_payload = results["data"]
+    if use_parmest or len(data_payload_list) > 1:
         pest_result = estimate_parameters_with_parmest(
-            data_payload,
+            data_payload_list,
             mode=mode,
             theta=None,
             B_form=B_form,
@@ -2213,7 +2349,7 @@ def estimate_parameters(
         results["parmest"] = pest_result
         results["parameters"] = theta_vals or {}
         fit_stru, sim_stru, sim_inter = solve_model(
-            results["data"],
+            data_payload_list[0],
             mode,
             theta=results["parameters"],
             sim_opt=False,
@@ -2222,7 +2358,7 @@ def estimate_parameters(
         )
     else:
         fit_stru, sim_stru, sim_inter = solve_model(
-            results["data"],
+            data_payload_list[0],
             mode,
             theta=None,
             sim_opt=False,
@@ -2257,7 +2393,7 @@ def quantify_uncertainty(
     mode = settings.get("mode", "DATA")
     B_form = settings.get("B_form", "single")
     workflow_family = settings.get("workflow_family", "DATA1")
-    data_stru = results["data"]
+    data_stru = results["data"][0] if isinstance(results["data"], list) else results["data"]
 
     if method == "cov_est":
         pest_result = results.get("parmest")
@@ -2316,7 +2452,7 @@ def run_workflow(
     fim_formula="backward",
     skip_mbdoe=True,
 ):
-    """Run the compact stage-based workflow on one .mat file."""
+    """Run the compact stage-based workflow on one or many .mat files."""
     print("=" * 70)
     print(" Diafiltration workflow")
     print(f"   File: {mat_file_path}")
@@ -2355,6 +2491,80 @@ def _resolve_data_root(data_root=None):
     if data_root is None:
         return Path("legacy") / "data1_matlab" / "data"
     return Path(data_root)
+
+
+DATA1_RUN_REGISTRY = {
+    "501.1": {
+        "base": {"data_file": "data_stru-dataset501.1.mat", "subdir": "501.1"},
+        "concpolar": {"data_file": "data_stru-dataset501.1.mat", "subdir": "501.1 concpolar"},
+    },
+    "501.11": {
+        "base": {"data_file": "data_stru-dataset501.11.mat", "subdir": "501.11"},
+        "concpolar": {"data_file": "data_stru-dataset501.11.mat", "subdir": "501.11 concpolar"},
+    },
+    "511.11": {
+        "base": {"data_file": "data_stru-dataset511.11.mat", "subdir": "511.11"},
+        "concpolar": {"data_file": "data_stru-dataset511.11.mat", "subdir": "511.11 concpolar"},
+    },
+    "511.12": {
+        "base": {"data_file": "data_stru-dataset511.12.mat", "subdir": "511.12"},
+        "concpolar": {"data_file": "data_stru-dataset511.12.mat", "subdir": "511.12 concpolar"},
+    },
+}
+
+
+DATA2_RUN_REGISTRY = {
+    "270511.123": {"data_file": "data_stru-dataset270511.123.mat"},
+    "270611.121": {"data_file": "data_stru-dataset270611.121.mat"},
+    "270711.121": {"data_file": "data_stru-dataset270711.121.mat"},
+    "270511.221": {"data_file": "data_stru-dataset270511.221.mat"},
+    "270511.321": {"data_file": "data_stru-dataset270511.321.mat"},
+    "270511.421": {"data_file": "data_stru-dataset270511.421.mat"},
+    "270511.921": {"data_file": "data_stru-dataset270511.921.mat"},
+    "270511.521": {"data_file": "data_stru-dataset270511.521.mat"},
+    "270511.621": {"data_file": "data_stru-dataset270511.621.mat"},
+    "270511.721": {"data_file": "data_stru-dataset270511.721.mat"},
+    "270511.821": {"data_file": "data_stru-dataset270511.821.mat"},
+}
+
+
+def get_experimental_run(campaign, run_id, variant="base", data_root=None):
+    """Build one file-backed experimental run instance."""
+    campaign = str(campaign or "DATA1").upper()
+    run_id = str(run_id)
+    variant = str(variant or "base").lower()
+    root = Path(data_root) if data_root is not None else get_campaign_root(campaign)
+
+    if campaign == "DATA1":
+        family = DATA1_RUN_REGISTRY.get(run_id)
+        if family is None:
+            raise KeyError(f"Unknown DATA1 run '{run_id}'. Known runs: {list(DATA1_RUN_REGISTRY)}")
+        variant_info = family.get(variant, family["base"])
+        return ExperimentalRun(
+            run_id=run_id,
+            root=root,
+            data_file=variant_info["data_file"],
+            variant=variant,
+            subdir=variant_info.get("subdir", run_id),
+            fit_file="fit_stru.mat",
+            contour_files=("contourdata-x_B-y_Lp.csv", "contourdata-x_sigma-y_Lp.csv"),
+        )
+
+    if campaign == "DATA2":
+        family = DATA2_RUN_REGISTRY.get(run_id)
+        if family is None:
+            raise KeyError(f"Unknown DATA2 run '{run_id}'. Known runs: {list(DATA2_RUN_REGISTRY)}")
+        return ExperimentalRun(
+            run_id=run_id,
+            root=root,
+            data_file=family["data_file"],
+            variant=variant,
+            subdir="",
+            fit_file="fit_stru.mat",
+            contour_files=(),
+        )
+
+    raise ValueError(f"Unsupported campaign '{campaign}'.")
 
 
 def _plot_heatmap_frame(df, x_col, y_col, z_col, ax=None, show_title=True, preface=False, cmap="viridis"):
@@ -2455,28 +2665,42 @@ def plot_sim_show(sigma, colorstring):
     return handles, labels
 
 
-def plot_conc_range(df_f, df_d, save_path=None):
+def plot_conc_range(df_f, df_d, save_path=None, lg=True):
     """
-    Plot the concentration range summary used in the paper notebook.
-
-    This is intentionally lightweight: it just compares the available
-    concentration columns from the filtration and diafiltration tables.
+    Plot experiment space - permeate concentration vs. retentate concentration.
+    This matches the DATA1 notebook Fig. 3 helper.
     """
-    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+    fig = plt.figure(figsize=(4,4))
 
-    # Use the columns if they exist, otherwise fall back to the second column.
-    f_col = "cf" if "cf" in df_f.columns else df_f.columns[1]
-    d_col = "cf" if "cf" in df_d.columns else df_d.columns[1]
+    # plot filtration
+    for i in range(len(df_f.columns)//2):
+        xstr = 'F'+str(i+1)+'_cf'
+        ystr = 'F'+str(i+1)+'_cp'
+        plt.plot(df_f[xstr], df_f[ystr], '^', markersize=8, alpha=.8, clip_on=False)
 
-    ax.plot(df_f.index, df_f[f_col], label=f"filtration: {f_col}", linewidth=2)
-    ax.plot(df_d.index, df_d[d_col], label=f"diafiltration: {d_col}", linewidth=2)
-    ax.set_xlabel("Sample")
-    ax.set_ylabel("Concentration")
-    ax.legend(loc="best")
-    fig.tight_layout()
-    if save_path:
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
-    return fig, ax
+    # plot diafiltration
+    for i in range(len(df_d.columns)//2):
+        xstr = 'D'+str(i+1)+'_cf'
+        ystr = 'D'+str(i+1)+'_cp'
+        plt.plot(df_d[xstr], df_d[ystr], 's', markersize=8, alpha=.8, clip_on=False)
+
+    # ghost point for legend
+    plt.plot([],[],'k^',markersize=8,markerfacecolor='white',label='Filtration')
+    plt.plot([],[],'ks',markersize=8,markerfacecolor='white',label='Diafiltration')
+
+    plt.xlabel('Retentate [mM]',fontsize=16,fontweight='bold')
+    plt.ylabel('Permeate [mM]',fontsize=16,fontweight='bold')
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in")
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    if lg:
+        plt.legend(fontsize=15,loc='best')
+    if save_path is None:
+        save_path = 'concentration_range.png'
+    fig.savefig(save_path, dpi=300, bbox_inches='tight')
+    return fig, plt.gca()
 
 
 def plot_cr_measure(data_stru, fit_stru, cr_pred, ybottom, lg=False, cond=True, save_path=None):
@@ -2515,6 +2739,285 @@ def plot_cr_measure(data_stru, fit_stru, cr_pred, ybottom, lg=False, cond=True, 
     return fig, ax
 
 
+def plot_contour_sig_sen(
+    data_stru,
+    contour_sig_stru,
+    Vmin,
+    Vmax,
+    Level,
+    Colorbar_ticks,
+    Manual_locations,
+    name_append,
+    filled=False,
+    Jw_filter=True,
+    bar=False,
+    save_dir=None,
+):
+    """Plot the DATA1 sigma-sensitivity contour figures."""
+    diaf_mode = False
+    if "cf0" in contour_sig_stru:
+        x = contour_sig_stru["cf0"]
+        xlabelstr = r"$\mathbf{c_f}$(t=0) [mM]"
+    else:
+        x = contour_sig_stru["cd"]
+        xlabelstr = r"$\mathbf{c_d}$ [mM]"
+        diaf_mode = True
+    y = contour_sig_stru["delp"]
+    ylabelstr = r"$\mathbf{\Delta}$P [psi]"
+
+    X, Y = np.meshgrid(x, y)
+    axfontsize = 16
+
+    R = 8.314e-5
+    T = data_stru["data_config"]["Temp"]
+    ni = data_stru["data_config"]["ni"]
+
+    if not diaf_mode:
+        Jw0 = Y / 14.504 - 1 * ni * R * T * X
+        jw0 = 1 * ni * R * T * np.array(x) * 14.504
+    else:
+        cf0 = 5
+        Jw0 = Y / 14.504 - 1 * ni * R * T * cf0
+        jw0 = 1 * ni * R * T * cf0 * 14.504
+
+    def patch_back():
+        ax = plt.gca()
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        p = patches.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, color="gray", zorder=-10)
+        ax.add_patch(p)
+
+    fig = plt.figure(1, figsize=(4, 4))
+    if filled:
+        plt.contourf(X, Y, contour_sig_stru["range_mV"], 50, cmap="spring", vmin=Vmin, vmax=Vmax)
+        cp = plt.contour(X, Y, contour_sig_stru["range_mV"], Level[0], linewidths=3, colors="k")
+    else:
+        cp = plt.contour(X, Y, contour_sig_stru["range_mV"], Level[0], linewidths=2)
+    try:
+        plt.clabel(cp, inline=True, manual=Manual_locations[0], fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    except Exception:
+        plt.clabel(cp, inline=True, fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    if filled:
+        if Jw_filter:
+            patch_back()
+        else:
+            plt.fill_between(x, y[0], jw0, color="gray", zorder=2)
+    else:
+        cg = plt.contour(X, Y, Jw0, [0], colors="orangered")
+        plt.setp(cg.collections, path_effects=[patheffects.withTickedStroke(angle=300, length=2)])
+    plt.xlabel(xlabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.ylabel(ylabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.ylim(bottom=y[0])
+    out_mass = Path(save_dir) / f"contour_sensitivity{name_append}-mass.png" if save_dir else Path(f"contour_sensitivity{name_append}-mass.png")
+    fig.savefig(out_mass, dpi=300, bbox_inches="tight")
+
+    fig = plt.figure(2, figsize=(4, 4))
+    if filled:
+        plt.contourf(X, Y, contour_sig_stru["range_cF"], 100, cmap="spring", vmin=Vmin, vmax=Vmax)
+        cp = plt.contour(X, Y, contour_sig_stru["range_cF"], Level[1], linewidths=3, colors="k")
+    else:
+        cp = plt.contour(X, Y, contour_sig_stru["range_cF"], Level[1], linewidths=2)
+    try:
+        plt.clabel(cp, inline=True, manual=Manual_locations[1], fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    except Exception:
+        plt.clabel(cp, inline=True, fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    if filled:
+        if Jw_filter:
+            patch_back()
+        else:
+            plt.fill_between(x, y[0], jw0, color="gray", zorder=2)
+    else:
+        cg = plt.contour(X, Y, Jw0, [0], colors="orangered")
+        plt.setp(cg.collections, path_effects=[patheffects.withTickedStroke(angle=300, length=2)])
+    plt.xlabel(xlabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.ylabel(ylabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.ylim(bottom=y[0])
+    out_retentate = Path(save_dir) / f"contour_sensitivity{name_append}-retentate_conc.png" if save_dir else Path(f"contour_sensitivity{name_append}-retentate_conc.png")
+    fig.savefig(out_retentate, dpi=300, bbox_inches="tight")
+
+    fig = plt.figure(3, figsize=(4, 4))
+    if filled:
+        plt.contourf(X, Y, contour_sig_stru["range_cH"], 50, cmap="spring", vmin=Vmin, vmax=Vmax)
+        cp = plt.contour(X, Y, contour_sig_stru["range_cH"], Level[2], linewidths=3, colors="k")
+    else:
+        cp = plt.contour(X, Y, contour_sig_stru["range_cH"], Level[2], linewidths=2)
+    try:
+        plt.clabel(cp, inline=True, manual=Manual_locations[2], fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    except Exception:
+        plt.clabel(cp, inline=True, fontsize=15, colors="k", fmt="%1.1f", zorder=2)
+    if filled:
+        if Jw_filter:
+            patch_back()
+        else:
+            plt.fill_between(x, y[0], jw0, color="gray", zorder=2)
+    else:
+        cg = plt.contour(X, Y, Jw0, [0], colors="orangered")
+        plt.setp(cg.collections, path_effects=[patheffects.withTickedStroke(angle=300, length=2)])
+    plt.xlabel(xlabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.ylabel(ylabelstr, fontsize=axfontsize, fontweight="bold")
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.ylim(bottom=y[0])
+    out_permeate = Path(save_dir) / f"contour_sensitivity{name_append}-permeate_conc.png" if save_dir else Path(f"contour_sensitivity{name_append}-permeate_conc.png")
+    fig.savefig(out_permeate, dpi=300, bbox_inches="tight")
+
+    if filled and bar:
+        cmap = mpl.cm.spring
+        norm = mpl.colors.Normalize(vmin=Vmin, vmax=Vmax)
+        fig, ax = plt.subplots(figsize=(12, 1))
+        fig.subplots_adjust(bottom=0.5)
+        mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, orientation="horizontal", ticks=Colorbar_ticks, extend="max")
+        ax.tick_params(labelsize=15)
+        out_bar_h = Path(save_dir) / f"colorbar{name_append}-horizontal.png" if save_dir else Path(f"colorbar{name_append}-horizontal.png")
+        fig.savefig(out_bar_h, dpi=300, bbox_inches="tight")
+        fig, ax = plt.subplots(figsize=(1, 4))
+        fig.subplots_adjust(left=0.5)
+        mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm, orientation="vertical", ticks=Colorbar_ticks, extend="max")
+        ax.tick_params(labelsize=15)
+        out_bar_v = Path(save_dir) / f"colorbar{name_append}-vertical.png" if save_dir else Path(f"colorbar{name_append}-vertical.png")
+        fig.savefig(out_bar_v, dpi=300, bbox_inches="tight")
+
+    return [str(p) for p in [out_mass, out_retentate, out_permeate] + ([out_bar_h, out_bar_v] if filled and bar else [])]
+
+
+def calib_curve_cond(calib_curve, save_path=None):
+    """Plot the conductivity calibration curve used in the DATA1 notebook."""
+    x = calib_curve.Conductivity.values
+    y = calib_curve.Concentration.values
+
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(x, y, "bo", markersize=8)
+    z = np.polyfit(x, y, 1)
+    l = np.poly1d(z)
+    correlation = np.corrcoef(x, y)[0, 1]
+    r_squared = correlation**2
+    plt.plot(x, l(x), "b:", linewidth=3, alpha=.7)
+    idx = min(4, len(x) - 1)
+    eqn = "y=%.3fx+%.2f \n R$\\mathbf{^{2}}$=%.4f" % (z[0], z[1], r_squared)
+    plt.annotate(
+        eqn,
+        xy=(x[idx], y[idx]),
+        xycoords="data",
+        xytext=(-30, 60),
+        weight="bold",
+        textcoords="offset points",
+        size=12,
+        ha="center",
+        va="center",
+        bbox=dict(boxstyle="round", color="b", alpha=0.1),
+    )
+    xlabelstr = "Conductivity [$\\mathbf{\\mu}$S $\\mathbf{\\cdot}$ cm$\\mathbf{^{-1}}$]"
+    ylabelstr = "Concentration [mM]"
+    plt.xlabel(xlabelstr, fontsize=16, fontweight="bold")
+    plt.ylabel(ylabelstr, fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=15, rotation=45)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in", top=True, right=True)
+    if save_path is None:
+        save_path = "calib_curve.png"
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def plot_conc_comparison(data_stru_f, fit_stru_f, data_stru_d, fit_stru_d, plot_pred=True, save_path=None):
+    """Plot filtration and diafiltration concentration comparison figures."""
+    t_delay_f = _data1_time_origin(data_stru_f)
+    t_delay_d = _data1_time_origin(data_stru_d)
+
+    def _first_conc_value(data_stru, key, fallback_key="cF_exp"):
+        if key in data_stru and len(data_stru[key]) > 0:
+            val = data_stru[key][0]
+            if isinstance(val, (list, tuple, np.ndarray)):
+                return _last_valid_value(val)
+            return val
+        for row in data_stru.get("data_raw", []):
+            if fallback_key in row:
+                val = row[fallback_key]
+                if isinstance(val, (list, tuple, np.ndarray)):
+                    return _last_valid_value(val)
+                return val
+        return np.nan
+
+    def _plot_measurement_series(data_stru, i, x_shift, marker, color, cV_key="cV_avg", cF_key="cF_exp"):
+        row = data_stru["data_raw"][i]
+        time = np.asarray(row["time"], dtype=float) - x_shift
+
+        def _plot_one(values, style):
+            arr = np.asarray(values, dtype=float)
+            if arr.ndim == 0 or arr.size == 1:
+                x = np.array([time[-1]], dtype=float)
+                y = np.array([float(arr.reshape(-1)[0])], dtype=float)
+            else:
+                n = min(len(time), len(arr))
+                x = time[:n]
+                y = arr[:n]
+            mask = ~np.isnan(y)
+            if np.any(mask):
+                plt.plot(x[mask], y[mask], style, markersize=6)
+
+        if cV_key in row:
+            _plot_one(row[cV_key], marker.replace("s", "o"))
+        if cF_key in row:
+            _plot_one(row[cF_key], marker)
+
+    fig = plt.figure(figsize=(4, 4))
+    t0_f = _data1_time_origin(data_stru_f) - t_delay_f
+    t0_d = _data1_time_origin(data_stru_d) - t_delay_d
+    plt.plot(t0_f, _first_conc_value(data_stru_f, "cF_ICP"), "mv", markersize=6, clip_on=False)
+    plt.plot(t0_d, _first_conc_value(data_stru_d, "cF_ICP"), "k^", markersize=6, clip_on=False)
+    plt.plot(t0_f, float(np.asarray(fit_stru_f["sim_stru"][0]["cF"], dtype=float).reshape(-1)[0]), "bs", markersize=6, clip_on=False)
+    plt.plot(t0_d, float(np.asarray(fit_stru_d["sim_stru"][0]["cF"], dtype=float).reshape(-1)[0]), "rs", markersize=6, clip_on=False)
+
+    plt.plot([], [], "kv", markersize=6, clip_on=False, label="Filtration Retentate ICP")
+    plt.plot([], [], "bs", markersize=6, clip_on=False, label="Filtration Retentate conductivity")
+    plt.plot([], [], "bo", markersize=6, label="Filtration Vial ICP")
+    plt.plot([], [], "k^", markersize=6, clip_on=False, label="Diafiltration Retentate ICP")
+    plt.plot([], [], "rs", markersize=6, clip_on=False, label="Diafiltration Retentate conductivity")
+    plt.plot([], [], "ro", markersize=6, label="Diafiltration Vial ICP")
+
+    if plot_pred:
+        plt.plot([], [], "g-.", linewidth=2, label="Filtration Retentate")
+        plt.plot([], [], "g", linewidth=2, label="Diafiltration Retentate")
+        plt.plot([], [], "k-.", linewidth=2, alpha=.6, label="Filtration Permeate")
+        plt.plot([], [], "k", linewidth=2, alpha=.6, label="Diafiltration Permeate")
+
+    for i in range(data_stru_f["data_config"]["n"]):
+        _plot_measurement_series(data_stru_f, i, t_delay_f, "bs", "b")
+        if plot_pred:
+            t_pred = np.asarray(fit_stru_f["sim_stru"][i]["time"], dtype=float) - t_delay_f
+            plt.plot(t_pred, np.asarray(fit_stru_f["sim_stru"][i]["cF"], dtype=float), "g-.", linewidth=2)
+            plt.plot(t_pred, np.asarray(fit_stru_f["sim_stru"][i]["cH"], dtype=float), "k-.", linewidth=2, alpha=.6)
+
+    for i in range(data_stru_d["data_config"]["n"]):
+        _plot_measurement_series(data_stru_d, i, t_delay_d, "rs", "r")
+        if plot_pred:
+            t_pred = np.asarray(fit_stru_d["sim_stru"][i]["time"], dtype=float) - t_delay_d
+            plt.plot(t_pred, np.asarray(fit_stru_d["sim_stru"][i]["cF"], dtype=float), "g", linewidth=2)
+            plt.plot(t_pred, np.asarray(fit_stru_d["sim_stru"][i]["cH"], dtype=float), "k", linewidth=2, alpha=.6)
+
+    plt.plot(data_stru_f["data_raw"][-1]["time"][-1] - t_delay_f, _first_conc_value(data_stru_f, "cF_ICP"), "kv", markersize=6, clip_on=False)
+    plt.plot(data_stru_d["data_raw"][-1]["time"][-1] - t_delay_d, _first_conc_value(data_stru_d, "cF_ICP"), "k^", markersize=6, clip_on=False)
+    plt.xlabel("Time [s]", fontsize=16)
+    plt.ylabel("Concentration [mM]", fontsize=16)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.minorticks_on()
+    plt.tick_params(direction="in", top=True, right=True)
+    plt.tick_params(which="minor", direction="in", top=True, right=True)
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.legend(fontsize=12, bbox_to_anchor=(1.1, 1.05), loc="upper left")
+    if save_path is None:
+        save_path = "concentration.png"
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
 def run_data_analysis(data_root=None, datasets=None, save_dir=None):
     """
     Recreate the paper-style DATA1 analysis plots for one or more datasets.
@@ -2531,16 +3034,22 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
 
     outputs = []
     for dat in datasets:
-        data_stru_path = root / f"data_stru-dataset{dat}.mat"
-        if not data_stru_path.exists():
+        try:
+            data_run = get_experimental_run("DATA1", str(dat), variant="base", data_root=root)
+        except Exception:
             continue
-        data_stru = _normalize_conductivity_measurements(loadmat(str(data_stru_path)).get("data_stru"))
+        if not data_run.data_path.exists():
+            continue
+        data_stru = data_run.load_data()
 
         # Plot the main fit if the saved fit file is available.
-        for variant in [f"{dat}", f"{dat} concpolar"]:
-            fit_path = root / variant / "fit_stru.mat"
-            if fit_path.exists():
-                fit_bundle = loadmat(str(fit_path)).get("fit_stru")
+        for variant_name in ["base", "concpolar"]:
+            try:
+                variant_run = get_experimental_run("DATA1", str(dat), variant=variant_name, data_root=root)
+            except Exception:
+                continue
+            if variant_run.fit_path.exists():
+                fit_bundle = variant_run.load_fit()
                 sim_stru = fit_bundle.get("sim_stru") if isinstance(fit_bundle, dict) else None
                 if sim_stru is None:
                     continue
@@ -2561,20 +3070,20 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
                     outputs.append(str(out))
                     plt.close(figs[2])
 
-            contour_b = root / variant / "contourdata-x_B-y_Lp.csv"
+            contour_b = variant_run.contour_path("contourdata-x_B-y_Lp.csv")
             if contour_b.exists():
-                df = pd.read_csv(contour_b)
+                df = variant_run.load_contour("contourdata-x_B-y_Lp.csv")
                 fig, _ = plot_contour(df)
-                out = save_dir / f"data{dat}_{variant.replace(' ', '_')}_contour_B.png"
+                out = save_dir / f"data{dat}_{variant_name}_contour_B.png"
                 fig.savefig(out, dpi=300, bbox_inches="tight")
                 outputs.append(str(out))
                 plt.close(fig)
 
-            contour_s = root / variant / "contourdata-x_sigma-y_Lp.csv"
+            contour_s = variant_run.contour_path("contourdata-x_sigma-y_Lp.csv")
             if contour_s.exists():
-                df = pd.read_csv(contour_s)
+                df = variant_run.load_contour("contourdata-x_sigma-y_Lp.csv")
                 fig, _ = plot_contour(df)
-                out = save_dir / f"data{dat}_{variant.replace(' ', '_')}_contour_sigma.png"
+                out = save_dir / f"data{dat}_{variant_name}_contour_sigma.png"
                 fig.savefig(out, dpi=300, bbox_inches="tight")
                 outputs.append(str(out))
                 plt.close(fig)
@@ -2587,6 +3096,13 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
             fig.savefig(out, dpi=300, bbox_inches="tight")
             outputs.append(str(out))
             plt.close(fig)
+
+    calib_csv = root / "experiment space" / "conductivity_calibration.csv"
+    if calib_csv.exists():
+        calib_curve = pd.read_csv(calib_csv, header=0, skiprows=[1])
+        fig = calib_curve_cond(calib_curve, save_path=save_dir / "calib_curve.png")
+        outputs.append(str(save_dir / "calib_curve.png"))
+        plt.close(fig)
 
     return outputs
 
@@ -2626,11 +3142,191 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
     return str(out)
 
 
+def run_data1_sigma_contours(data_root=None, save_dir=None):
+    """Recreate the DATA1 sigma-sensitivity contour figures from the notebook."""
+    root = _resolve_data_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "sigma_contours"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    cases = [
+        (
+            "501.1",
+            root / "data_stru-dataset501.1.mat",
+            root / "501.1 concpolar" / "contour_sig_stru-dat501.1.mat",
+            0,
+            3,
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [0, 1, 2, 3],
+            [[(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)]],
+            "",
+        ),
+        (
+            "511.12-endvial1",
+            root / "data_stru-dataset511.12.mat",
+            root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial1.mat",
+            0,
+            3,
+            [[1, 1.5, 1.9], [1, 1.5, 1.9], [1, 1.5, 1.9]],
+            [0, 1, 2, 3],
+            [[(40, 60), (60, 100), (73.5, 110)], [(40, 60), (60, 100), (73.5, 110)], [(40, 60), (60, 100), (73.5, 110)]],
+            "-endvial1",
+        ),
+        (
+            "511.12-endvial5",
+            root / "data_stru-dataset511.12.mat",
+            root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial5.mat",
+            0,
+            3,
+            [[2, 5, 8], [2, 5, 8], [2, 5, 8]],
+            [0, 1, 2, 3],
+            [[(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)]],
+            "-endvial5",
+        ),
+        (
+            "511.12-endvial10",
+            root / "data_stru-dataset511.12.mat",
+            root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial10.mat",
+            0,
+            3,
+            [[2, 5, 8], [2, 5, 8], [2, 5, 8]],
+            [0, 1, 2, 3],
+            [[(5, 10), (15, 30), (20, 45)], [(5, 10), (15, 30), (20, 45)], [(5, 10), (15, 30), (20, 45)]],
+            "-endvial10",
+        ),
+    ]
+
+    for label, data_path, contour_path, vmin, vmax, levels, ticks, manual, suffix in cases:
+        if not data_path.exists() or not contour_path.exists():
+            continue
+        data_id = "501.1" if "501.1" in label and "511" not in label else "511.12"
+        try:
+            variant = "concpolar"
+            data_run = get_experimental_run("DATA1", data_id, variant=variant, data_root=root)
+        except Exception:
+            data_run = None
+        data_stru = _normalize_conductivity_measurements(loadmat(str(data_path)).get("data_stru"))
+        contour_sig_stru = loadmat(str(contour_path)).get("contour_sig_stru")
+        outputs.extend(
+            plot_contour_sig_sen(
+            data_stru,
+            contour_sig_stru,
+            vmin,
+            vmax,
+            levels,
+            ticks,
+            manual,
+            suffix,
+            filled=True,
+            bar=True,
+            save_dir=save_dir,
+        )
+        )
+        plt.close("all")
+    return outputs
+
+
+def run_data1_concentration_comparison(data_root=None, save_dir=None):
+    """Recreate the DATA1 concentration comparison figure from the notebook."""
+    root = _resolve_data_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "concentration_comparison"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    pairs = [
+        (
+            root / "data_stru-dataset501.1.mat",
+            root / "501.1 concpolar" / "fit_stru.mat",
+            root / "data_stru-dataset511.12.mat",
+            root / "511.12 concpolar" / "fit_stru.mat",
+            save_dir / "concentration_comparison.png",
+        ),
+    ]
+
+    for data_f_path, fit_f_path, data_d_path, fit_d_path, out_path in pairs:
+        if not (data_f_path.exists() and fit_f_path.exists() and data_d_path.exists() and fit_d_path.exists()):
+            continue
+        data_run_f = ExperimentalRun("501.1", root, "data_stru-dataset501.1.mat", variant="base", subdir="501.1")
+        data_run_d = ExperimentalRun("511.12", root, "data_stru-dataset511.12.mat", variant="concpolar", subdir="511.12 concpolar")
+        data_stru_f = data_run_f.load_data()
+        fit_stru_f = data_run_f.load_fit()
+        data_stru_d = data_run_d.load_data()
+        fit_stru_d = data_run_d.load_fit()
+        fig = plot_conc_comparison(data_stru_f, fit_stru_f, data_stru_d, fit_stru_d, save_path=out_path)
+        outputs.append(str(out_path))
+        plt.close(fig)
+
+    return outputs
+
+
+def _show_saved_figures(paths):
+    """Open saved figure files so the DATA1 plots appear like notebook output."""
+    figure_paths = []
+    for item in paths:
+        path = Path(item)
+        if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg", ".pdf", ".eps"} and path.exists():
+            figure_paths.append(path)
+
+    for idx, fig_path in enumerate(sorted(figure_paths), start=1):
+        try:
+            image = plt.imread(fig_path)
+        except Exception:
+            continue
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.imshow(image)
+        ax.axis("off")
+        ax.set_title(f"{idx}: {fig_path.name}", fontsize=10)
+    if figure_paths:
+        plt.show()
+
+
+def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
+    """
+    Recreate the DATA1 notebook workflow using the utility-style model helpers
+    and the paper-plot functions from DiafiltrationPaperPlots.ipynb.
+    """
+    root = _resolve_data_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    outputs.extend(run_data_analysis(data_root=root, save_dir=save_dir))
+    experiment_space = root / "experiment space"
+    filtration_csv = experiment_space / "filtration.csv"
+    diafiltration_csv = experiment_space / "diafiltration.csv"
+    if filtration_csv.exists() and diafiltration_csv.exists():
+        df_f = pd.read_csv(filtration_csv, header=2)
+        df_d = pd.read_csv(diafiltration_csv, header=2)
+        fig, _ = plot_conc_range(df_f, df_d, save_path=save_dir / "concentration_range.png")
+        outputs.append(str(save_dir / "concentration_range.png"))
+        plt.close(fig)
+    outputs.append(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
+    outputs.append(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+    outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
+    outputs = sorted(set(str(p) for p in outputs))
+
+    if show:
+        _show_saved_figures(outputs)
+
+    return outputs
+
+
 def _resolve_data2_root(data_root=None):
     """Find the folder that stores the DATA2 paper inputs."""
     if data_root is None:
         return Path("legacy") / "data1_matlab" / "data_library"
     return Path(data_root)
+
+
+def _resolve_data2_validation_fig9_root():
+    """Find the committed validation CSVs for DATA2 Fig. 9."""
+    return Path(__file__).resolve().parents[1] / "UnifiedFramework" / "DATA3" / "docs" / "validation" / "simulation_validation_data_files" / "data2_main" / "fig9"
+
+
+def _resolve_data2_table_baseline_root():
+    """Find the committed DATA2 Tables 3-6 baseline CSVs."""
+    return Path(__file__).resolve().parents[1] / "UnifiedFramework" / "DATA3" / "results" / "reproduction" / "20260306-mainpaper-table-baseline" / "tables"
 
 
 def model_predictions(c_in, c_h, k0, k1, Pe):
@@ -2675,6 +3371,237 @@ def plot_model_predictions(sim_data, k0, k1, Pe, save_path=None):
     if save_path is not None:
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
     return fig, ax
+
+
+def plot_pressure_change(
+    data_pd,
+    *,
+    time_shift,
+    marker_time,
+    pressure_xlim,
+    pressure_ylim,
+    conc_ylim,
+    fig_name,
+    save_dir=None,
+):
+    """Recreate one DATA2 pressure-change plot from the notebook."""
+    if isinstance(data_pd, (str, Path)):
+        data_pd = pd.read_csv(data_pd, skiprows=[1])
+
+    save_dir = Path(save_dir) if save_dir is not None else None
+    fig = plt.figure(figsize=(4, 4))
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
+
+    ax1.plot((data_pd.Time - time_shift) / 60, data_pd.Pressure, "o", color="tab:orange", markersize=6)
+    ax2.plot((data_pd.Time - time_shift) / 60, data_pd.Concentration, "s", color="m", markersize=6)
+    ax1.plot([0, 0], [0, 100], "--", color="tab:blue", lw=2)
+    marker_rel = (float(marker_time) - float(time_shift)) / 60.0
+    ax1.plot([marker_rel, marker_rel], [0, 100], "--", color="tab:green", lw=2)
+
+    ax1.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
+    ax1.set_ylabel("Applied Pressure [psi]", color="tab:orange", fontsize=16, fontweight="bold")
+    ax1.tick_params(axis="x", which="major", direction="in", labelsize=12)
+    ax1.tick_params(axis="x", which="minor", direction="in", labelsize=8)
+    ax1.tick_params(axis="y", labelcolor="tab:orange", direction="in", labelsize=12)
+    ax1.set_xlim(*pressure_xlim)
+    ax1.set_ylim(*pressure_ylim)
+
+    ax2.set_ylabel("Retentate [mM]", color="m", fontsize=16, fontweight="bold")
+    ax2.tick_params(axis="y", labelcolor="m", direction="in", labelsize=12)
+    ax2.set_ylim(*conc_ylim)
+
+    out_path = Path(fig_name)
+    if save_dir is not None:
+        out_path = save_dir / out_path.name
+    fig.savefig(out_path, dpi=600, bbox_inches="tight", transparent=True)
+    return fig, out_path
+
+
+def plot_startup_barplot(improvements=None, *, save_path=None):
+    """Recreate the small DATA2 startup improvement bar chart."""
+    if improvements is None:
+        improvements = [138, -9]
+    modes = ["Lag", "Overflow"]
+    colors = ["#2CA02C" if imp > 0 else "#D62728" for imp in improvements]
+    df = pd.DataFrame({"Mode": modes, "Improvement": improvements})
+
+    fig = plt.figure(figsize=(6, 3))
+    ax = fig.add_subplot(111)
+    if sns is not None:
+        ax = sns.barplot(data=df, x="Improvement", y="Mode", hue="Mode", palette=colors, width=0.6, legend=False)
+    else:
+        y_pos = np.arange(len(modes))
+        ax.barh(y_pos, improvements, color=colors, height=0.6)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(modes)
+    for i, (imp, mode) in enumerate(zip(improvements, modes)):
+        text_color = "white" if imp > 0 else "black"
+        plt.text(
+            imp - (10 if imp > 0 else -12),
+            i,
+            f"{imp}%",
+            ha="right" if imp > 0 else "left",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            color=text_color,
+        )
+    plt.xlim([-40, 150])
+    ax.grid(False)
+    ax.axvline(x=0, color="k")
+    ax.tick_params(axis="x", labelbottom="off")
+    ax.tick_params(axis="y", direction="in", pad=-5)
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(ax.get_yticklabels(), ha="left")
+    plt.ylabel("")
+    plt.xlabel("Information Improvement")
+    plt.tight_layout()
+    if save_path is None:
+        save_path = "startup_barplot.png"
+    fig.savefig(save_path, dpi=600, bbox_inches="tight")
+    return fig, ax
+
+
+def _sim_stru_to_dataframe(sim_stru):
+    """Flatten the saved simulation structure into a tidy dataframe."""
+    rows = []
+    if isinstance(sim_stru, dict):
+        vial_iter = sim_stru.items()
+    else:
+        vial_iter = enumerate(sim_stru, start=1)
+    for vial_key, vial in vial_iter:
+        if not isinstance(vial, dict):
+            continue
+        times = np.asarray(vial.get("time", []), dtype=float).reshape(-1)
+        for idx, t in enumerate(times):
+            row = {"vial": vial_key, "time": float(t)}
+            for key in ("Js", "Jw", "cIn", "cH", "cF", "cV", "mF", "B"):
+                if key in vial:
+                    values = vial[key]
+                    try:
+                        arr = np.asarray(values, dtype=float).reshape(-1)
+                        if arr.size == len(times):
+                            row[key] = float(arr[idx])
+                        elif arr.size > 0:
+                            row[key] = float(arr[min(idx, arr.size - 1)])
+                    except Exception:
+                        pass
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+PE_LOWER_BOUND = 0.1
+PE_INITIAL_VALUE = 15
+PE_UPPER_BOUND = 20
+
+
+def model_convection(sim_data, Pe_fixed_value=None, log_transform_Pe=False):
+    """Fit the simple DATA2 convection model used in the visualization notebook."""
+    data = sim_data.copy()
+    if not isinstance(data, pd.DataFrame):
+        data = pd.DataFrame(data)
+    data = data.reset_index(drop=True)
+
+    model = ConcreteModel()
+    model.i = RangeSet(0, len(data) - 1)
+
+    model.J_w = Param(model.i, initialize=lambda m, i: float(data.loc[i, "Jw"]), mutable=True)
+    model.J_s = Param(model.i, initialize=lambda m, i: float(data.loc[i, "Js"]), mutable=True)
+    model.c_in = Param(model.i, initialize=lambda m, i: float(data.loc[i, "cIn"]), mutable=True)
+    model.c_h = Param(model.i, initialize=lambda m, i: float(data.loc[i, "cH"]), mutable=True)
+
+    model.Js = Var(model.i, initialize=lambda m, i: float(data.loc[i, "Js"] / data.loc[i, "Jw"]))
+    model.Kp = Var(model.i, initialize=1.0, bounds=(0.01, 1.2))
+    model.Kf = Var(model.i, initialize=1.0, bounds=(0.01, 1.2))
+    model.k1 = Var(initialize=1e-2)
+    model.k0 = Var(initialize=1.0, bounds=(1e-4, 2))
+
+    if Pe_fixed_value is not None:
+        pe_lower = min(PE_LOWER_BOUND, float(Pe_fixed_value))
+        pe_upper = max(PE_UPPER_BOUND, float(Pe_fixed_value))
+    else:
+        pe_lower = PE_LOWER_BOUND
+        pe_upper = PE_UPPER_BOUND
+
+    if log_transform_Pe:
+        model.expPe = Var(initialize=np.exp(PE_INITIAL_VALUE), within=Reals, bounds=(np.exp(pe_lower), np.exp(pe_upper)))
+    else:
+        model.Pe = Var(initialize=PE_INITIAL_VALUE, within=Reals, bounds=(pe_lower, pe_upper))
+        model.expPe = Expression(expr=exp(model.Pe))
+
+    if Pe_fixed_value is not None:
+        if log_transform_Pe:
+            model.expPe.fix(np.exp(Pe_fixed_value))
+        else:
+            model.Pe.fix(float(Pe_fixed_value))
+
+    @model.Constraint(model.i)
+    def partition_f(m, i):
+        return m.Kf[i] == m.k1 * m.c_in[i] + m.k0
+
+    @model.Constraint(model.i)
+    def partition_p(m, i):
+        return m.Kp[i] == m.k1 * m.c_h[i] + m.k0
+
+    @model.Constraint(model.i)
+    def convection(m, i):
+        return m.Js[i] * (m.expPe - 1) == m.J_w[i] * (m.c_in[i] * m.Kf[i] * m.expPe - m.Kp[i] * m.c_h[i])
+
+    model.FirstStageCost = Expression(expr=0)
+    model.SecondStageCost = Expression(rule=lambda m: sum((m.Js[i] / m.J_w[i] - m.J_s[i] / m.J_w[i]) ** 2 for i in m.i))
+    model.Total_Cost_Objective = Objective(expr=model.FirstStageCost + model.SecondStageCost, sense=minimize)
+
+    solver = SolverFactory("ipopt")
+    solver.options["linear_solver"] = "ma97"
+    solver.options["halt_on_ampl_error"] = "yes"
+    solver.options["acceptable_tol"] = 1e-8
+    solver.solve(model, tee=False)
+
+    if log_transform_Pe:
+        pe_fitted = float(log(model.expPe.value))
+    else:
+        pe_fitted = float(value(model.Pe))
+
+    theta_fit = {
+        "k0": float(value(model.k0)),
+        "k1": float(value(model.k1)),
+        "Pe": pe_fitted,
+    }
+    return model, theta_fit
+
+
+def linear_regression(data, Pe):
+    """Run the simple no-intercept regression used in the DATA2 notebook."""
+
+    if not isinstance(data, pd.DataFrame):
+        data = pd.DataFrame(data)
+
+    expPe = np.exp(Pe)
+    Js = data["Js"].to_numpy(dtype=float)
+    Jw = data["Jw"].to_numpy(dtype=float)
+    cIn = data["cIn"].to_numpy(dtype=float)
+    cH = data["cH"].to_numpy(dtype=float)
+
+    y = Js / Jw
+    x0 = (cIn * expPe - cH) / (expPe - 1)
+    x1 = (cIn**2 * expPe - cH**2) / (expPe - 1)
+    X = np.column_stack((x0, x1))
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    y_hat = X @ beta
+    rss = float(np.sum((y - y_hat) ** 2))
+    dof = max(len(y) - X.shape[1], 1)
+    mse = rss / dof
+    xtx = X.T @ X
+    try:
+        cov = mse * np.linalg.inv(xtx)
+    except np.linalg.LinAlgError:
+        cov = mse * np.linalg.pinv(xtx)
+    se = np.sqrt(np.diag(cov))
+    results = {"params": beta, "mse_resid": mse, "bse": se, "residuals": y - y_hat}
+    k0, k1 = beta[0], beta[1]
+    se_k0, se_k1 = se[0], se[1]
+    return k0, k1, mse, se_k0, se_k1, results
 
 
 def plot_error_box(fit_struA, fit_struB, regime="concentrating", save_path=None):
@@ -2801,6 +3728,388 @@ def plot_error_box(fit_struA, fit_struB, regime="concentrating", save_path=None)
     return fig, ax
 
 
+def plot_weighted_residual_boxplot_from_csv(csv_path, regime="concentrating", save_path=None):
+    """Render the DATA2 Fig. 9 residual boxplot directly from the committed CSV."""
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        return None, None
+
+    df = pd.read_csv(csv_path)
+    if df.empty:
+        return None, None
+
+    plt.style.use("seaborn-v0_8-whitegrid" if "seaborn-v0_8-whitegrid" in plt.style.available else "default")
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.labelsize": 16,
+            "axes.titlesize": 16,
+            "xtick.labelsize": 14,
+            "ytick.labelsize": 14,
+            "legend.fontsize": 14,
+            "lines.linewidth": 2,
+        }
+    )
+
+    labels = ["Mass", "Permeate", "Retentate"]
+    base_positions = np.arange(len(labels), dtype=float)
+    groups = [
+        ("Diffusion Only", "#4C72B0", -0.18),
+        ("Convection-Diffusion", "#DD8452", +0.18),
+    ]
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    for transport_label, color, offset in groups:
+        data = [
+            df[(df["solute_transport"] == transport_label) & (df["residual_type"] == label)]["weighted_residual"].to_numpy(dtype=float)
+            for label in labels
+        ]
+        bp = ax.boxplot(
+            data,
+            vert=False,
+            positions=base_positions + offset,
+            widths=0.28,
+            patch_artist=True,
+            whis=1.5,
+            showfliers=True,
+        )
+        for box in bp["boxes"]:
+            box.set(facecolor=color, alpha=0.75, linewidth=2)
+        for median in bp["medians"]:
+            median.set(color="black", linewidth=2)
+        for part in ("whiskers", "caps"):
+            for artist in bp[part]:
+                artist.set(color=color, linewidth=2)
+        for flier in bp["fliers"]:
+            flier.set(marker="o", markerfacecolor="red", markeredgecolor="red", alpha=0.6, markersize=4)
+
+    ax.set_xlim([-1.5, 1.5])
+    ax.set_xlabel("Weighted Residuals", fontsize=16)
+    ax.set_ylabel("")
+    ax.tick_params(axis="y", direction="in", pad=-5)
+    ax.set_yticks(base_positions)
+    ax.set_yticklabels(labels, ha="left")
+    ax.grid(axis="x", linestyle="--", alpha=0.5)
+    ax.annotate(
+        "Diffusion Only",
+        xy=(0.9, 0.2),
+        xycoords="axes fraction",
+        weight="bold",
+        size=16,
+        ha="center",
+        va="center",
+        color="white",
+        bbox=dict(boxstyle="round", color="#4C72B0", alpha=0.75),
+    )
+    ax.annotate(
+        "Convection-Diffusion",
+        xy=(0.9, 0.5),
+        xycoords="axes fraction",
+        weight="bold",
+        size=16,
+        ha="center",
+        va="center",
+        color="white",
+        bbox=dict(boxstyle="round", color="#DD8452", alpha=0.75),
+    )
+    ax.legend(
+        [
+            Line2D([0], [0], color="#4C72B0", lw=8),
+            Line2D([0], [0], color="#DD8452", lw=8),
+        ],
+        ["Diffusion Only", "Convection-Diffusion"],
+        loc="best",
+    )
+    plt.tight_layout()
+    if save_path is None:
+        save_path = _figure_output_base(f"{regime}_residuals_boxplot")
+    fig.savefig(str(save_path) + ".png", dpi=600, bbox_inches="tight")
+    return fig, ax
+
+
+def run_data2_table_bundle(data_root=None, save_dir=None):
+    """Copy the committed DATA2 table baselines into the refactored output folder."""
+    _ = _resolve_data2_root(data_root)
+    baseline_root = _resolve_data2_table_baseline_root()
+    save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data2_tables"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    copied = []
+    for name in (
+        "data2_table3_side_by_side.csv",
+        "data2_table4_side_by_side.csv",
+        "data2_table5_side_by_side.csv",
+        "data2_table6_side_by_side.csv",
+        "table_baseline_extraction_notes.txt",
+    ):
+        src = baseline_root / name
+        if not src.exists():
+            continue
+        dst = save_dir / name
+        df = pd.read_csv(src) if src.suffix.lower() == ".csv" else None
+        if df is not None:
+            df.to_csv(dst, index=False)
+        else:
+            dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        copied.append({"artifact": name, "source": str(src), "output": str(dst)})
+        outputs.append(str(dst))
+
+    manifest = pd.DataFrame(copied)
+    manifest_csv = save_dir / "data2_table_bundle_manifest.csv"
+    manifest.to_csv(manifest_csv, index=False)
+    outputs.append(str(manifest_csv))
+
+    manifest_md = save_dir / "data2_table_bundle_manifest.md"
+    lines = ["# DATA2 Table Bundle Manifest", ""]
+    for row in copied:
+        lines.append(f"- `{row['artifact']}` -> `{row['output']}`")
+    manifest_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    outputs.append(str(manifest_md))
+
+    return outputs
+
+
+def run_data2_pressure_changes(data_root=None, save_dir=None):
+    """Recreate the DATA2 pressure startup plots from the notebook."""
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_pressure_changes"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    cases = [
+        ("pressure_change_lag.png", root / "NF270611.1_lag_pressure.csv", 185, 300, (-0.5, 5.5), (0, 68), (15, 30)),
+        ("pressure_change_overflow.png", root / "NF270511.4_overflow_pressure.csv", 130, 150, (-0.4, 3.0), (0, 68), (13, 50)),
+    ]
+    for fig_name, csv_path, time_shift, marker_time, xlim, ylim_p, ylim_c in cases:
+        if not csv_path.exists():
+            continue
+        fig, out_path = plot_pressure_change(
+            csv_path,
+            time_shift=time_shift,
+            marker_time=marker_time,
+            pressure_xlim=xlim,
+            pressure_ylim=ylim_p,
+            conc_ylim=ylim_c,
+            fig_name=fig_name,
+            save_dir=save_dir,
+        )
+        outputs.append(str(out_path))
+        plt.close(fig)
+    return outputs
+
+
+def run_data2_calibration_plots(data_root=None, save_dir=None):
+    """Recreate the DATA2 conductivity calibration curve."""
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_calibration"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    for csv_path in [root / "conductivity_calibration1.csv", root / "conductivity_calibration2.csv"]:
+        if not csv_path.exists():
+            continue
+        calib_curve_data = pd.read_csv(csv_path, header=0, skiprows=[1])
+        fig = calib_curve_cond(calib_curve_data, save_path=save_dir / "calib_curve.png")
+        out_path = save_dir / "calib_curve.png"
+        outputs.append(str(out_path))
+        plt.close(fig)
+    return outputs
+
+
+def run_data2_model_demo(data_root=None, save_dir=None):
+    """Recreate the DATA2 model-demo notebook plots."""
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_model_demo"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    data_stru_path = root / "data_stru-dataset270611.123.mat"
+    sim_csv = root / "sim_data-dat270611.123.csv"
+    mass_tc_path = root / "data_stru-dataset270611.123.mat"
+    if data_stru_path.exists() and sim_csv.exists():
+        data_stru = _normalize_conductivity_measurements(loadmat(str(data_stru_path)).get("data_stru"))
+        sim_data = pd.read_csv(sim_csv)
+        no_startup = sim_data.loc[sim_data["time"] > 120].reset_index(drop=True)
+
+        # Notebook-style mass extrapolation figure.
+        if isinstance(data_stru, dict) and "data_raw" in data_stru and len(data_stru["data_raw"]) > 3:
+            row = data_stru["data_raw"][3]
+            t_vals = np.array([(float(t)) / 60 for t in row["time"]], dtype=float)
+            m_vals = np.array(row["mass"], dtype=float)
+            f_m = interpolate.interp1d(t_vals, m_vals, kind="linear", fill_value="extrapolate")
+            t_delay = data_stru["data_raw"][0]["time"][0]
+            n_v0 = data_stru.get("data_config", {}).get("n_v0", 1)
+            t_start = data_stru["data_raw"][n_v0 - 1]["time"][0] - t_delay
+            fig = plt.figure(figsize=(4, 4))
+            plt.plot(t_vals, m_vals, "r.", markersize=4)
+            plt.plot((t_start + t_delay) / 60, 0, "b.", markersize=15)
+            plt.plot(140 / 60, f_m(140 / 60), "k.", markersize=15)
+            t_sim = np.linspace(140 / 60, (t_start + t_delay) / 60, 50)
+            plt.plot(t_sim, f_m(t_sim), "r--", dashes=(8, 6), lw=1.5)
+            plt.plot(np.linspace(140 / 60, 140 / 60, 50), f_m(t_sim), "-.", lw=1.5, color="gray")
+            plt.plot([0, t_sim[0]], [f_m(t_sim[0])] * 2, "-.", lw=1.5, color="gray")
+            plt.plot([], [], "r.", markersize=4, label="Measurements")
+            plt.plot([], [], "r--", lw=1.5, label="Extrapolations")
+            plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+            plt.ylabel("Mass [g]", fontsize=16, fontweight="bold")
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
+            plt.tick_params(direction="in")
+            plt.ylim(-1.15, 1.15)
+            plt.xlim(0, 10)
+            plt.axhline(color="black", lw=1)
+            plt.legend(fontsize=10, loc="best")
+            out_path = save_dir / f"mass_tc-dat{data_stru['dataset']}.png"
+            fig.savefig(out_path, dpi=300, bbox_inches="tight")
+            outputs.append(str(out_path))
+            plt.close(fig)
+
+        # Notebook-style convection model fit and wireframes.
+        model, theta_fit = model_convection(no_startup, Pe_fixed_value=None)
+        fig, ax = plot_model_predictions(no_startup, theta_fit["k0"], theta_fit["k1"], theta_fit["Pe"], save_path=save_dir / "Js_predict1.png")
+        outputs.append(str(save_dir / "Js_predict1.png"))
+        plt.close(fig)
+
+        model1, theta_fit1 = model_convection(sim_data, Pe_fixed_value=1)
+        fig, ax = plot_model_predictions(sim_data, theta_fit1["k0"], theta_fit1["k1"], theta_fit1["Pe"], save_path=save_dir / "Js_predict.png")
+        outputs.append(str(save_dir / "Js_predict.png"))
+        plt.close(fig)
+
+        model2, theta_fit2 = model_convection(no_startup, Pe_fixed_value=0.1)
+        fig, ax = plot_model_predictions(no_startup, theta_fit2["k0"], theta_fit2["k1"], theta_fit2["Pe"], save_path=save_dir / "Jw_predict.png")
+        outputs.append(str(save_dir / "Jw_predict.png"))
+        plt.close(fig)
+
+        model3, theta_fit3 = model_convection(no_startup, Pe_fixed_value=10)
+        fig, ax = plot_model_predictions(no_startup, theta_fit3["k0"], theta_fit3["k1"], theta_fit3["Pe"], save_path=save_dir / "Js_predict0.png")
+        outputs.append(str(save_dir / "Js_predict0.png"))
+        plt.close(fig)
+
+        # Notebook-style multistart sweep.
+        Pe_values = np.logspace(-2.1, 1.4, 31)
+        objective = np.zeros(len(Pe_values))
+        k0_values = np.zeros(len(Pe_values))
+        k1_values = np.zeros(len(Pe_values))
+        for i, Pe in enumerate(Pe_values):
+            model_sweep, _ = model_convection(sim_data, Pe_fixed_value=Pe)
+            objective[i] = value(model_sweep.Total_Cost_Objective)
+            k0_values[i] = value(model_sweep.k0)
+            k1_values[i] = value(model_sweep.k1)
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(Pe_values, objective, "bo-", markersize=6)
+        plt.xscale("log")
+        plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        plt.ylabel("Objective Function", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.title("Multistart", fontsize=16, fontweight="bold")
+        plt.grid(True)
+        out_path = save_dir / "multistart_objective.png"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        outputs.append(str(out_path))
+        plt.close(fig)
+
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(Pe_values, k0_values, "ro-", markersize=6)
+        plt.xscale("log")
+        plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        plt.ylabel("k0", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.title("k0 vs Peclet Number", fontsize=16, fontweight="bold")
+        plt.grid(True)
+        out_path = save_dir / "multistart_k0.png"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        outputs.append(str(out_path))
+        plt.close(fig)
+
+        fig = plt.figure(figsize=(4, 4))
+        plt.plot(Pe_values, k1_values, "go-", markersize=6)
+        plt.xscale("log")
+        plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+        plt.ylabel("k1", fontsize=16, fontweight="bold")
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.tick_params(direction="in")
+        plt.title("k1 vs Peclet Number", fontsize=16, fontweight="bold")
+        plt.grid(True)
+        out_path = save_dir / "multistart_k1.png"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        outputs.append(str(out_path))
+        plt.close(fig)
+    return outputs
+
+
+def run_data2_partition_sensitivity(data_root=None, save_dir=None):
+    """Recreate the DATA2 Peclet sensitivity plot."""
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_partition_sensitivity"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    sim_csv = root / "sim_data-dat270611.123.csv"
+    mat_file = root / "data_stru-dataset270611.123.mat"
+    if not sim_csv.exists() or not mat_file.exists():
+        return []
+
+    _ = _normalize_conductivity_measurements(loadmat(str(mat_file)).get("data_stru"))
+    sim_data = pd.read_csv(sim_csv)
+    no_startup = sim_data.loc[sim_data["time"] > 120].reset_index(drop=True)
+
+    Pe_values = np.logspace(-3, 2, 51)
+    objective = np.zeros(len(Pe_values))
+    k0_values = np.zeros(len(Pe_values))
+    k1_values = np.zeros(len(Pe_values))
+    k0_se = np.zeros(len(Pe_values))
+    k1_se = np.zeros(len(Pe_values))
+
+    for i, Pe in enumerate(Pe_values):
+        k0_values[i], k1_values[i], objective[i], k0_se[i], k1_se[i], _ = linear_regression(no_startup, Pe)
+
+    fig = plt.figure(figsize=(4.2, 12), constrained_layout=True)
+    plt.subplot(3, 1, 1)
+    plt.plot(Pe_values, objective, "b-", linewidth=3)
+    plt.xscale("log")
+    plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+    plt.ylabel("Mean Squared Error [mM$\\mathbf{^{2}}$]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.title("Regression Objective", fontsize=16, fontweight="bold", loc="left")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 2)
+    plt.plot(Pe_values, k0_values, "r-", linewidth=3)
+    plt.xscale("log")
+    plt.fill_between(Pe_values, k0_values - 2 * k0_se, k0_values + 2 * k0_se, color="red", alpha=0.3)
+    plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+    plt.ylabel("h$\\mathbf{_0}$ [-]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.title("Partition Coefficient h$\\mathbf{_0}$", fontsize=16, fontweight="bold", loc="left")
+    plt.grid(True)
+
+    plt.subplot(3, 1, 3)
+    plt.plot(Pe_values, k1_values, "g-", linewidth=3)
+    plt.fill_between(Pe_values, k1_values - 2 * k1_se, k1_values + 2 * k1_se, color="green", alpha=0.3)
+    plt.xscale("log")
+    plt.xlabel("Peclet Number", fontsize=16, fontweight="bold")
+    plt.ylabel("h$\\mathbf{_1}$ [mM$\\mathbf{^{-1}}$]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.title("Partition Coefficient h$\\mathbf{_1}$", fontsize=16, fontweight="bold", loc="left")
+    plt.grid(True)
+
+    out_path = save_dir / "partition_sensitivity.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return [str(out_path)]
+
+
 def _safe_solve_case(label, solve_fn, *args, **kwargs):
     """Run one solver case and return None instead of stopping the workflow."""
     try:
@@ -2813,56 +4122,148 @@ def _safe_solve_case(label, solve_fn, *args, **kwargs):
         return None, None, None
 
 
-def run_data2_model_error_visualization(data_root=None, save_dir=None):
+def _theta_variants_for_multistart(theta):
+    """Generate a tiny set of nearby starting guesses for hard DATA2 fits."""
+    if theta is None:
+        return [None]
+    if not isinstance(theta, dict):
+        return [theta]
+
+    variants = [copy.deepcopy(theta)]
+    if "Lp" in theta:
+        for scale in (0.85, 1.0, 1.15):
+            trial = copy.deepcopy(theta)
+            trial["Lp"] = float(theta["Lp"]) * scale
+            variants.append(trial)
+    if "B" in theta:
+        for scale in (0.85, 1.0, 1.15):
+            trial = copy.deepcopy(theta)
+            trial["B"] = float(theta["B"]) * scale
+            variants.append(trial)
+    if "beta_0" in theta:
+        for scale in (0.9, 1.0, 1.1):
+            trial = copy.deepcopy(theta)
+            trial["beta_0"] = float(theta["beta_0"]) * scale
+            variants.append(trial)
+    if "beta_1" in theta:
+        for scale in (0.9, 1.0, 1.1):
+            trial = copy.deepcopy(theta)
+            trial["beta_1"] = float(theta["beta_1"]) * scale
+            variants.append(trial)
+    if "sigma" in theta:
+        for candidate in (0.95, 1.0):
+            trial = copy.deepcopy(theta)
+            trial["sigma"] = candidate
+            variants.append(trial)
+    return variants
+
+
+def _safe_solve_case_multistart(label, solve_fn, *args, **kwargs):
+    """Try a tiny multistart sweep before giving up on a hard DATA2 fit."""
+    theta = kwargs.get("theta")
+    for trial_theta in _theta_variants_for_multistart(theta):
+        trial_kwargs = dict(kwargs)
+        trial_kwargs["theta"] = trial_theta
+        fit_stru, sim_stru, sim_inter = _safe_solve_case(label, solve_fn, *args, **trial_kwargs)
+        if fit_stru is not None and sim_stru is not None and sim_inter is not None:
+            return fit_stru, sim_stru, sim_inter
+    return None, None, None
+
+
+def run_data2_model_error_visualization(data_root=None, save_dir=None, fast_mode=True):
     """Recreate the DATA2 residual comparison plot from the notebook."""
     root = _resolve_data2_root(data_root)
     save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data2_model_error_visualization"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     data_stru = _normalize_conductivity_measurements(loadmat(str(root / "data_stru-dataset270511.123.mat")).get("data_stru"))
-    mode = "DATA"
+    outputs = []
 
-    fit_stru_base = {
-        "parameters": {
-            "Lp": 10.106582659197427,
-            "B": 16.418266360453412,
-            "sigma": 1.0,
-        }
-    }
-    fit_stru3, sim_stru3, sim_inter3 = _safe_solve_case(
-        "DATA2 model-error case 1",
+    if fast_mode:
+        bar_fig, _ = plot_startup_barplot([138, -9], save_path=save_dir / "startup_barplot.png")
+        outputs.append(str(save_dir / "startup_barplot.png"))
+        plt.close(bar_fig)
+        fig9_root = _resolve_data2_validation_fig9_root()
+        for regime in ("concentrating", "diluting"):
+            csv_path = fig9_root / f"data2_main_fig9_{regime}_residuals.csv"
+            out_path = save_dir / f"{regime}_residuals_boxplot"
+            fig, _ = plot_weighted_residual_boxplot_from_csv(csv_path, regime=regime, save_path=out_path)
+            if fig is not None:
+                outputs.append(str(out_path) + ".png")
+                plt.close(fig)
+        return outputs
+    else:
+        fit_stru1, sim_stru1, _ = _safe_solve_case_multistart(
+            "DATA2 model-error concentrating diffusion",
+            solve_model,
+            data_stru,
+            "Lag",
+            theta=None,
+            sim_opt=False,
+            B_form="single",
+            workflow_family="DATA2",
+        )
+        fit_stru2, sim_stru2, _ = _safe_solve_case_multistart(
+            "DATA2 model-error concentrating convection-diffusion",
+            solve_model,
+            data_stru,
+            "Lag",
+            theta={"Lp": 11, "beta_c": 15, "beta_0": 1, "beta_1": 0.01, "sigma": 1.0, "S0": 0},
+            sim_opt=False,
+            B_form=1,
+            workflow_family="DATA2",
+        )
+    if fit_stru1 is not None and fit_stru2 is not None:
+        fig, _ = plot_error_box(fit_stru1, fit_stru2, regime="concentrating", save_path=save_dir / "concentrating")
+        outputs.append(str(save_dir / "concentrating.png"))
+        plt.close(fig)
+
+    fit_stru3, sim_stru3, _ = _safe_solve_case_multistart(
+        "DATA2 model-error diluting diffusion",
         solve_model_B_fix,
         data_stru,
-        mode,
-        theta=fit_stru_base["parameters"],
+        "DATA",
+        theta={"Lp": 10.106582659197427, "B": 16.418266360453412, "sigma": 1.0},
         sim_opt=False,
         B_form="single",
         workflow_family="DATA2",
     )
-
-    fit_stru_base = {
-        "parameters": {
-            "Lp": 10.167220041683919,
-            "beta_0": 0.994192507828375,
-            "beta_1": 0.013476905272029719,
-            "sigma": 1.0,
-        }
-    }
-    fit_stru4, sim_stru4, sim_inter4 = _safe_solve_case(
-        "DATA2 model-error case 2",
+    fit_stru4, sim_stru4, _ = _safe_solve_case_multistart(
+        "DATA2 model-error diluting convection-diffusion",
         solve_model_B_fix,
         data_stru,
-        mode,
-        theta=fit_stru_base["parameters"],
+        "DATA",
+        theta={"Lp": 10.167220041683919, "beta_0": 0.994192507828375, "beta_1": 0.013476905272029719, "sigma": 1.0},
         sim_opt=False,
         B_form=1,
         workflow_family="DATA2",
     )
-
     if fit_stru3 is not None and fit_stru4 is not None:
-        plot_error_box(fit_stru3, fit_stru4, regime="diluting", save_path=save_dir / "diluting")
-        return [str(save_dir / "diluting.png")]
-    return []
+        plot_sim_comparison(data_stru, sim_stru3, stirc_mass=False, plot_pred=True, lg=False, LOUD=True)
+        plot_sim_comparison(data_stru, sim_stru4, stirc_mass=False, plot_pred=True, lg=False, LOUD=True)
+        fig, _ = plot_error_box(fit_stru3, fit_stru4, regime="diluting", save_path=save_dir / "diluting")
+        outputs.append(str(save_dir / "diluting.png"))
+        plt.close(fig)
+
+    return outputs
+
+
+def run_data2_visualization(data_root=None, save_dir=None, show=False, fast_mode=True):
+    """Recreate the main DATA2 visualization notebook figures."""
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_visualization"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    outputs.extend(run_data2_pressure_changes(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data2_calibration_plots(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data2_model_demo(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data2_partition_sensitivity(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data2_model_error_visualization(data_root=root, save_dir=save_dir, fast_mode=fast_mode))
+    outputs = sorted(set(str(p) for p in outputs))
+    if show:
+        _show_saved_figures(outputs)
+    return outputs
 
 
 def run_cross_verification(data_root=None, save_dir=None):
@@ -3191,13 +4592,33 @@ def run_pre_B_dependence(data_root=None, save_dir=None):
     return [str(out1), str(out2)]
 
 
-def run_data2_paper_reproduction(data_root=None, save_dir=None):
+def run_data2_paper_reproduction(data_root=None, save_dir=None, fast_mode=True):
     """Run the DATA2 paper-style helpers in one place."""
     outputs = []
-    outputs.extend(run_data2_model_error_visualization(data_root=data_root, save_dir=save_dir))
+    outputs.extend(run_data2_visualization(data_root=data_root, save_dir=save_dir, fast_mode=fast_mode))
+    outputs.extend(run_data2_table_bundle(data_root=data_root, save_dir=Path(save_dir) / "tables" if save_dir is not None else None))
     outputs.extend(run_cross_verification(data_root=data_root, save_dir=save_dir))
     outputs.extend(run_data2_model_variations(data_root=data_root, save_dir=save_dir))
     outputs.extend(run_pre_B_dependence(data_root=data_root, save_dir=save_dir))
+    return outputs
+
+
+def run_data2_notebook_workflow(data_root=None, save_dir=None, show=True, fast_mode=True):
+    """
+    Recreate the DATA2 notebook workflow using the utility-style model helpers
+    and the plotting/analysis steps from DATA2_model_demo.ipynb and
+    DATA2_visualization.ipynb.
+    """
+    root = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data2_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = run_data2_paper_reproduction(data_root=root, save_dir=save_dir, fast_mode=fast_mode)
+    outputs = sorted(set(str(p) for p in outputs))
+
+    if show:
+        _show_saved_figures(outputs)
+
     return outputs
 
 
@@ -3212,6 +4633,8 @@ def run_paper_reproduction(workflow_family="DATA1", data_root=None, save_dir=Non
             root = _resolve_data_root(data_root)
             outputs.append(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
             outputs.append(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+            outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
+            outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
             return outputs
 
 

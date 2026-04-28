@@ -2,7 +2,7 @@
 """Simple runner for the refactored diafiltration workflow.
 
 The runner stays thin:
-- choose DATA1 or DATA2 to recreate the paper-style plots
+- choose DATA1 or DATA2 to recreate the paper-style plots from the notebooks
 - choose custom to run one experimental file through the stage-based workflow
 
 The refactored folder is self-contained:
@@ -22,12 +22,14 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from refactored_ucb_library import (
-    run_campaign,
+    run_data2_notebook_workflow,
+    run_data1_notebook_workflow,
     run_workflow,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA1_ROOT = REPO_ROOT / "legacy" / "data1_matlab" / "data"
 
 
 def _prompt(prompt: str, default: str) -> str:
@@ -53,8 +55,11 @@ def _choose_mode() -> str:
 def _run_data1() -> None:
     """Recreate the paper-style plots for DATA1."""
     print("\nRunning DATA1 paper reproduction...")
-    # Let the library handle the full DATA1 paper workflow.
-    outputs = run_campaign("DATA1", save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures" / "data1")
+    outputs = run_data1_notebook_workflow(
+        data_root=DATA1_ROOT,
+        save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "data1" / "notebook_figures",
+        show=True,
+    )
     print("\nCreated outputs:")
     for item in outputs:
         print(f"  - {item}")
@@ -63,8 +68,12 @@ def _run_data1() -> None:
 def _run_data2() -> None:
     """Recreate the paper-style plots for DATA2."""
     print("\nRunning DATA2 paper reproduction...")
-    # Let the library handle the full DATA2 paper workflow.
-    outputs = run_campaign("DATA2", save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures" / "data2")
+    outputs = run_data2_notebook_workflow(
+        data_root=REPO_ROOT / "legacy" / "data1_matlab" / "data_library",
+        save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "data2" / "notebook_figures",
+        show=True,
+        fast_mode=True,
+    )
     print("\nCreated outputs:")
     for item in outputs:
         print(f"  - {item}")
