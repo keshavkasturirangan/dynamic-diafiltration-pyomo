@@ -16,6 +16,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import sys
+import zipfile
+import matplotlib.pyplot as plt
 
 # Add the script folder to Python's import path so Spyder can run it directly.
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -42,6 +44,143 @@ DATA2_ROOT = Path(
         REPO_ROOT / "legacy" / "data1_matlab" / "data_library",
     )
 ).expanduser().resolve()
+
+DATA1_MAIN_FIGURES = [
+    "figure_2.png",
+    "mass-dat501.1.png",
+    "concentration-dat501.1.png",
+    "mass-dat511.12.png",
+    "concentration-dat511.12.png",
+    "concentration_range.png",
+    "sigma_sensitivity-mass.png",
+    "sigma_sensitivity-reten_conc.png",
+    "sigma_sensitivity-perme_conc.png",
+    "contour_fixsig-mass.png",
+    "contour_fixsig-retentate_conc.png",
+    "contour_fixsig-permeate_conc.png",
+    "contour_fixB-mass.png",
+    "contour_fixB-retentate_conc.png",
+    "contour_fixB-permeate_conc.png",
+]
+
+DATA1_SI_FIGURES = [
+    "figure_s2.png",
+    "data1_si_reduced_diafiltration.png",
+    "data1_si_diafiltration_B.png",
+    "data1_si_reduced_filtration.png",
+    "data1_si_filtration_sigma.png",
+    "data1_si_filtration_B.png",
+    "figure_s3.png",
+]
+
+DATA2_SI_FIGURES = [
+    "calib_curve.png",
+    "mass-dat270611.121.png",
+    "concentration-dat270611.121.png",
+    "mass-dat270711.121.png",
+    "concentration-dat270711.121.png",
+    "mass-dat270511.221.png",
+    "concentration-dat270511.221.png",
+    "mass-dat270511.321.png",
+    "concentration-dat270511.321.png",
+    "mass-dat270511.421.png",
+    "concentration-dat270511.421.png",
+    "mass-dat270511.921.png",
+    "concentration-dat270511.921.png",
+    "mass-dat270511.521.png",
+    "concentration-dat270511.521.png",
+    "mass-dat270511.621.png",
+    "concentration-dat270511.621.png",
+    "mass-dat270511.721.png",
+    "concentration-dat270511.721.png",
+    "mass-dat270511.821.png",
+    "concentration-dat270511.821.png",
+    "Bpervial.png",
+    "Js_Jw_cin.png",
+    "Js_predict.png",
+    "Js_predict0.png",
+    "Js_predict1.png",
+    "Jw_predict.png",
+]
+
+
+def _ensure_data2_library() -> None:
+    """Extract the bundled DATA2 source folder when it is missing on a machine."""
+    sentinel = DATA2_ROOT / "data_stru-dataset270511.123.mat"
+    if sentinel.exists():
+        return
+
+    archive_path = REPO_ROOT / "legacy" / "data1_matlab" / "inputdata_mat_files.zip"
+    if not archive_path.exists():
+        raise FileNotFoundError(
+            f"DATA2 source folder is missing at {DATA2_ROOT} and archive was not found at {archive_path}."
+        )
+
+    DATA2_ROOT.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive_path, "r") as zip_ref:
+        zip_ref.extractall(DATA2_ROOT.parent)
+
+
+def _find_generated_figure(filename: str, outputs: list[str], save_dir: Path) -> Path | None:
+    """Resolve one generated figure by basename across the known output folders."""
+    output_paths = [Path(item) for item in outputs]
+    for path in output_paths:
+        if path.name == filename and path.exists():
+            return path
+
+    candidates = [
+        save_dir / filename,
+        REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures" / filename,
+        REPO_ROOT / "figures" / filename,
+        REPO_ROOT / filename,
+        Path.cwd() / filename,
+    ]
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
+
+def _find_generated_figures(pattern: str, outputs: list[str], save_dir: Path) -> list[Path]:
+    """Resolve one generated figure or wildcard pattern across the known output folders."""
+    if "*" not in pattern:
+        fig_path = _find_generated_figure(pattern, outputs, save_dir)
+        return [fig_path] if fig_path is not None else []
+
+    output_paths = [Path(item) for item in outputs]
+    matches = [path for path in output_paths if path.match(pattern) and path.exists()]
+    if matches:
+        return sorted(dict.fromkeys(matches))
+
+    search_roots = [
+        save_dir,
+        REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures",
+        REPO_ROOT / "figures",
+        REPO_ROOT,
+        Path.cwd(),
+    ]
+    found: list[Path] = []
+    for root in search_roots:
+        found.extend(sorted(root.glob(pattern)))
+    return sorted(dict.fromkeys(path for path in found if path.exists()))
+
+
+def _show_paper_figures(outputs: list[str], save_dir: Path, figure_names: list[str], title: str) -> None:
+    """Show one published-paper figure set in matplotlib windows."""
+    shown = 0
+    for filename in figure_names:
+        for fig_path in _find_generated_figures(filename, outputs, save_dir):
+            try:
+                image = plt.imread(fig_path)
+            except Exception:
+                continue
+            shown += 1
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.imshow(image)
+            ax.axis("off")
+            ax.set_title(f"{title} {shown}: {fig_path.name}", fontsize=10)
+    if shown:
+        plt.show()
 
 
 def _prompt(prompt: str, default: str) -> str:
@@ -80,12 +219,15 @@ def _run_data1() -> None:
 def _run_data2() -> None:
     """Recreate the paper-style plots for DATA2."""
     print("\nRunning DATA2 paper reproduction...")
+    _ensure_data2_library()
+    save_dir = REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "data2" / "notebook_figures"
     outputs = run_data2_notebook_workflow(
         data_root=DATA2_ROOT,
-        save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "data2" / "notebook_figures",
-        show=True,
+        save_dir=save_dir,
+        show=False,
         fast_mode=True,
     )
+    _show_paper_figures(outputs, save_dir, DATA2_SI_FIGURES, "DATA2 SI")
     print("\nCreated outputs:")
     for item in outputs:
         print(f"  - {item}")
