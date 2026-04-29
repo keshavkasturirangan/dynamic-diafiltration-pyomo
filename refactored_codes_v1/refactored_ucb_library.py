@@ -2625,19 +2625,28 @@ def plot_sim(sim_stru, color, linetype):
 
     t_delay = np.asarray(sim_stru[0]["time"], dtype=float)[0]
     # plot mass prediction
-    plt.figure(1, figsize=(4,4))
+    if plt.fignum_exists(1):
+        plt.figure(1)
+    else:
+        plt.figure(1, figsize=(4,4))
     for i in sim_stru:
         t = np.asarray(i["time"], dtype=float)
         plt.plot((t-t_delay)/60, np.asarray(i["mV"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
 
     # plot retentate concentration prediction
-    plt.figure(2, figsize=(4,4))
+    if plt.fignum_exists(2):
+        plt.figure(2)
+    else:
+        plt.figure(2, figsize=(4,4))
     for i in sim_stru:
         t = np.asarray(i["time"], dtype=float)
         plt.plot((t-t_delay)/60, np.asarray(i["cF"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
 
     # plot permeate concentration prediction comparison
-    plt.figure(3, figsize=(4,4))
+    if plt.fignum_exists(3):
+        plt.figure(3)
+    else:
+        plt.figure(3, figsize=(4,4))
     for i in sim_stru:
         t = np.asarray(i["time"], dtype=float)
         plt.plot((t-t_delay)/60, np.asarray(i["cH"], dtype=float), color, linestyle=linetype, linewidth=2, alpha=.8)
@@ -2718,38 +2727,93 @@ def plot_conc_range(df_f, df_d, save_path=None, lg=True):
 
 
 def plot_cr_measure(data_stru, fit_stru, cr_pred, ybottom, lg=False, cond=True, save_path=None):
-    """
-    Plot the concentration-ratio measurement figure from the notebook.
+    """Plot retentate concentration vs. time from measurements and mass balance."""
 
-    The inputs are kept flexible so the function can work with the raw
-    paper tables or with fitted model outputs.
-    """
-    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+    t_delay = _data1_time_origin(data_stru)
 
-    # Plot the predicted curve from the paper table.
-    cr_pred = np.asarray(cr_pred, dtype=float)
-    ax.plot(np.arange(len(cr_pred)), cr_pred, "k-", linewidth=2, label="paper prediction")
+    def _fit_first_cF(fit_bundle):
+        sim = fit_bundle.get("sim_stru") if isinstance(fit_bundle, dict) else fit_bundle
+        if isinstance(sim, dict):
+            sim = sim.get(0, sim.get("0", sim))
+        return np.asarray(sim[0]["cF"], dtype=float).reshape(-1)[0]
 
-    # Overlay the last available retentate concentration for each vial.
-    if isinstance(data_stru, dict) and "data_raw" in data_stru:
-        y_meas = []
-        for row in data_stru["data_raw"]:
-            val = row.get("cF_exp", np.nan)
-            if isinstance(val, (list, np.ndarray)):
-                val = _last_valid_value(val)
-            y_meas.append(val)
-        ax.plot(np.arange(len(y_meas)), y_meas, "ms", markersize=5, label="measurements")
+    def _as_scalar_or_array(values):
+        arr = np.asarray(values, dtype=float)
+        if arr.ndim == 0:
+            return float(arr.reshape(-1)[0])
+        return arr
 
-    ax.set_ylim(bottom=ybottom)
-    ax.set_xlabel("Sample")
-    ax.set_ylabel("Concentration ratio / concentration")
-    if lg:
-        ax.legend(loc="best")
+    fig = plt.figure(figsize=(4, 4))
+
+    # initial point / starting concentration
     if cond:
-        ax.set_title("Concentration ratio comparison")
-    fig.tight_layout()
-    if save_path:
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.plot(
+            (np.asarray(data_stru["data_raw"][0]["time"], dtype=float)[0] - t_delay) / 60,
+            _fit_first_cF(fit_stru),
+            "ms",
+            markersize=8,
+            clip_on=False,
+        )
+    else:
+        plt.plot(
+            (np.asarray(data_stru["data_raw"][0]["time"], dtype=float)[0] - t_delay) / 60,
+            data_stru["data_config"]["C_F0"],
+            "go",
+            markersize=8,
+            clip_on=False,
+        )
+
+    # measurement points from conductivity probe / vial sampling
+    for i in range(data_stru["data_config"]["n"]):
+        row = data_stru["data_raw"][i]
+        if cond:
+            cF_exp = row["cF_exp"]
+            if isinstance(cF_exp, (float, np.floating)):
+                plt.plot(
+                    (np.asarray(row["time"], dtype=float)[-1] - t_delay) / 60,
+                    cF_exp,
+                    "ms",
+                    markersize=8,
+                )
+            elif len(cF_exp) > 1:
+                plt.plot(
+                    (np.asarray(row["time"], dtype=float) - t_delay) / 60,
+                    np.asarray(cF_exp, dtype=float),
+                    "ms",
+                    markersize=8,
+                )
+
+    # calculated retentate concentration from mass balance
+    if len(cr_pred) > 0:
+        cr_pred = np.asarray(cr_pred, dtype=float).reshape(-1)
+        for i in range(data_stru["data_config"]["n"]):
+            plt.plot(
+                (np.asarray(data_stru["data_raw"][i]["time"], dtype=float)[-1] - t_delay) / 60,
+                cr_pred[i],
+                "go",
+                markersize=8,
+            )
+
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in", top=True, right=True)
+    plt.xlim(left=0)
+    plt.ylim(bottom=ybottom)
+    ax = plt.gca()
+    xticks = ax.xaxis.get_major_ticks()
+    if xticks:
+        xticks[0].label1.set_visible(False)
+
+    plt.plot([], [], "ms", markersize=8, label="Retentate \n (Measurements)")
+    plt.plot([], [], "go", markersize=8, label="Retentate \n (Calculated)")
+    if lg:
+        plt.legend(fontsize=15, loc="best")
+
+    if save_path is None:
+        save_path = f"cr_measure-dat{data_stru['dataset']}.png"
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
     return fig, ax
 
 
@@ -2938,6 +3002,100 @@ def calib_curve_cond(calib_curve, save_path=None):
     return fig
 
 
+def run_data1_si_s2(data_root=None, save_dir=None):
+    """Recreate DATA1 SI Figure S2 from the notebook's three concentration-ratio plots."""
+    root = _resolve_data_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "si_fig_s2"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    cases = [
+        {
+            "label": "A",
+            "dataset": "301.1",
+            "data_path": root / "dat 301.1 oneCPNT holdup concpolar cvmv fixed ch0" / "data_stru-dataset301.1.mat",
+            "fit_path": root / "dat 301.1 oneCPNT holdup concpolar cvmv fixed ch0" / "fit_stru-dat 301.1 oneCPNT holdup concpolar cvmv fixed ch0.mat",
+            "cr_path": root / "experiment space" / "Classical_analysis-dat301.1.csv",
+            "cr_col": "cf",
+            "ybottom": 4,
+            "cond": False,
+            "lg": False,
+        },
+        {
+            "label": "B",
+            "dataset": "501.1",
+            "data_path": root / "data_stru-dataset501.1.mat",
+            "fit_path": root / "501.1 concpolar" / "fit_stru.mat",
+            "cr_path": root / "experiment space" / "Classical_analysis-dat501.1.csv",
+            "cr_col": "cf",
+            "ybottom": 4,
+            "cond": True,
+            "lg": False,
+        },
+        {
+            "label": "C",
+            "dataset": "511.12",
+            "data_path": root / "data_stru-dataset511.12.mat",
+            "fit_path": root / "511.12 concpolar" / "fit_stru.mat",
+            "cr_path": root / "experiment space" / "diafiltration.csv",
+            "cr_col": "D3_cf",
+            "ybottom": 0,
+            "cond": True,
+            "lg": True,
+        },
+    ]
+
+    panel_paths = []
+    for case in cases:
+        data_stru = loadmat(str(case["data_path"]))["data_stru"]
+        fit_bundle = loadmat(str(case["fit_path"]))
+        fit_stru = fit_bundle.get("fit_stru", fit_bundle)
+        if case["dataset"] == "511.12":
+            df = pd.read_csv(case["cr_path"], header=2)
+        else:
+            df = pd.read_csv(case["cr_path"], header=0)
+        cr_pred = df[case["cr_col"]]
+        out_path = save_dir / f"cr_measure-dat{case['dataset']}.png"
+        fig, _ = plot_cr_measure(
+            data_stru,
+            fit_stru,
+            cr_pred,
+            case["ybottom"],
+            lg=case["lg"],
+            cond=case["cond"],
+            save_path=out_path,
+        )
+        plt.close(fig)
+        panel_paths.append(out_path)
+
+    # Compose the three panels into a single SI-style page image.
+    try:
+        from PIL import Image, ImageDraw
+
+        imgs = [Image.open(p).convert("RGB") for p in panel_paths]
+        # Keep the notebook aspect ratio while placing three panels side-by-side.
+        target_h = max(im.height for im in imgs)
+        resized = []
+        for im in imgs:
+            scale = target_h / im.height
+            new_size = (int(im.width * scale), target_h)
+            resized.append(im.resize(new_size, Image.Resampling.LANCZOS))
+        widths = [im.width for im in resized]
+        canvas = Image.new("RGB", (sum(widths) + 80, target_h + 80), "white")
+        draw = ImageDraw.Draw(canvas)
+        x = 20
+        for label, im in zip(["A", "B", "C"], resized):
+            draw.text((x, 10), label, fill="black")
+            canvas.paste(im, (x, 40))
+            x += im.width + 20
+        composite = save_dir / "figure_s2.png"
+        canvas.save(composite)
+        panel_paths.append(composite)
+    except Exception:
+        pass
+
+    return [str(p) for p in panel_paths]
+
+
 def plot_conc_comparison(data_stru_f, fit_stru_f, data_stru_d, fit_stru_d, plot_pred=True, save_path=None):
     """Plot filtration and diafiltration concentration comparison figures."""
     t_delay_f = _data1_time_origin(data_stru_f)
@@ -3067,7 +3225,10 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
                 sim_stru = fit_bundle.get("sim_stru") if isinstance(fit_bundle, dict) else None
                 if sim_stru is None:
                     continue
-                figs = plot_sim_comparison(data_stru, sim_stru, plot_pred=True, lg=False)
+                # Match the notebook's explicit cond flag choices.
+                # The "In+Fn retentate" blocks for 501.11 and 511.11 omit cF_exp.
+                cond = not (variant_name == "base" and str(dat) in {"501.11", "511.11"})
+                figs = plot_sim_comparison(data_stru, sim_stru, plot_pred=True, lg=False, cond=cond)
                 if figs:
                     out = save_dir / f"data{dat}_fit.png"
                     figs[0].savefig(out, dpi=300, bbox_inches="tight")
@@ -3139,21 +3300,19 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
         cf0 = 5.2843 if float(dataset) == 501.1 else 15.2052
 
     colorstring = "rbg"
+    linetypes = ["dashed", "solid", "dotted"]
 
     plt.close(1)
     plt.close(2)
     plt.close(3)
-    plt.figure(1, figsize=(4,4))
-    plt.figure(2, figsize=(4,4))
-    plt.figure(3, figsize=(4,4))
 
-    for sigma_val, color in zip(sigmas, colorstring):
+    for sigma_val, color, linetype in zip(sigmas, colorstring, linetypes):
         mat_name = f"sim_stru-dat{dataset} C_Fin{cf0}sig{sigma_val}.mat"
         mat_path = root / "sigma sensitivity" / mat_name
         if not mat_path.exists():
             continue
         sim_stru = loadmat(str(mat_path)).get("sim_stru")
-        plot_sim(sim_stru, color, "solid")
+        plot_sim(sim_stru, color, linetype)
 
     plot_sim_show(sigmas, colorstring[: len(sigmas)])
     out_mass = save_dir / "sigma_sensitivity-mass.png"
@@ -3182,10 +3341,11 @@ def run_data1_sigma_contours(data_root=None, save_dir=None):
             root / "501.1 concpolar" / "contour_sig_stru-dat501.1.mat",
             0,
             3,
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1, 2, 3], [1, 2, 3], [1, 1.3, 1.6]],
             [0, 1, 2, 3],
-            [[(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)]],
+            [[(20, 40), (35, 60), (50, 80)], [(10, 20), (15, 30), (20, 40)], [(50, 70), (60, 60), (75, 57)]],
             "",
+            False,
         ),
         (
             "511.12-endvial1",
@@ -3193,10 +3353,11 @@ def run_data1_sigma_contours(data_root=None, save_dir=None):
             root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial1.mat",
             0,
             3,
-            [[1, 1.5, 1.9], [1, 1.5, 1.9], [1, 1.5, 1.9]],
+            [[1, 1.5, 1.9], [1, 1.5, 2], [0.1, 0.2, 0.3]],
             [0, 1, 2, 3],
-            [[(40, 60), (60, 100), (73.5, 110)], [(40, 60), (60, 100), (73.5, 110)], [(40, 60), (60, 100), (73.5, 110)]],
+            [[(40, 60), (60, 100), (73.5, 110)], [(30, 40), (50, 50), (70, 60)], [(40, 100), (40, 50), (40, 30)]],
             "-endvial1",
+            False,
         ),
         (
             "511.12-endvial5",
@@ -3204,10 +3365,11 @@ def run_data1_sigma_contours(data_root=None, save_dir=None):
             root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial5.mat",
             0,
             3,
-            [[2, 5, 8], [2, 5, 8], [2, 5, 8]],
+            [[2, 5, 8], [2, 5, 8], [0.3, 0.4, 0.5]],
             [0, 1, 2, 3],
-            [[(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)], [(20, 40), (35, 60), (50, 80)]],
+            [[(20, 40), (35, 60), (50, 80)], [(15, 40), (40, 50), (70, 60)], [(20, 30), (50, 20), (15, 20), (60, 80), (2, 5), (75, 90)]],
             "-endvial5",
+            False,
         ),
         (
             "511.12-endvial10",
@@ -3215,14 +3377,15 @@ def run_data1_sigma_contours(data_root=None, save_dir=None):
             root / "511.12 concpolar" / "contour_sig_stru-dat511.12-endvial10.mat",
             0,
             3,
-            [[2, 5, 8], [2, 5, 8], [2, 5, 8]],
+            [[2, 5, 8], [2, 5, 8], [0.5, 0.6, 0.7]],
             [0, 1, 2, 3],
-            [[(5, 10), (15, 30), (20, 45)], [(5, 10), (15, 30), (20, 45)], [(5, 10), (15, 30), (20, 45)]],
+            [[(5, 10), (15, 30), (20, 45)], [(5, 50), (15, 60), (20, 70)], [(33, 40), (40, 58), (50, 80)]],
             "-endvial10",
+            False,
         ),
     ]
 
-    for label, data_path, contour_path, vmin, vmax, levels, ticks, manual, suffix in cases:
+    for label, data_path, contour_path, vmin, vmax, levels, ticks, manual, suffix, bar in cases:
         if not data_path.exists() or not contour_path.exists():
             continue
         data_id = "501.1" if "501.1" in label and "511" not in label else "511.12"
@@ -3244,11 +3407,76 @@ def run_data1_sigma_contours(data_root=None, save_dir=None):
             manual,
             suffix,
             filled=True,
-            bar=True,
+            bar=bar,
             save_dir=save_dir,
         )
         )
         plt.close("all")
+
+    # Compose the four notebook rows into a single paper-style page.
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        row_paths = [save_dir / "contour_sensitivity-mass.png",
+                     save_dir / "contour_sensitivity-retentate_conc.png",
+                     save_dir / "contour_sensitivity-permeate_conc.png"]
+        row_labels = ["A", "B", "C", "D"]
+        header_labels = ["Mass", "Permeate", "Retentate"]
+        row_images = []
+        for idx, row_label in enumerate(row_labels):
+            if idx == 0:
+                row_files = [save_dir / "contour_sensitivity-mass.png",
+                             save_dir / "contour_sensitivity-permeate_conc.png",
+                             save_dir / "contour_sensitivity-retentate_conc.png"]
+            else:
+                suffix = ["-endvial1", "-endvial5", "-endvial10"][idx - 1]
+                row_files = [save_dir / f"contour_sensitivity{suffix}-mass.png",
+                             save_dir / f"contour_sensitivity{suffix}-permeate_conc.png",
+                             save_dir / f"contour_sensitivity{suffix}-retentate_conc.png"]
+            if not all(p.exists() for p in row_files):
+                continue
+            imgs = [Image.open(p).convert("RGB") for p in row_files]
+            target_h = max(im.height for im in imgs)
+            resized = []
+            for im in imgs:
+                scale = target_h / im.height
+                resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+            row_w = sum(im.width for im in resized) + 40
+            row_h = target_h + 35
+            canvas = Image.new("RGB", (row_w, row_h), "white")
+            draw = ImageDraw.Draw(canvas)
+            x = 20
+            draw.text((5, 5), row_label, fill="black")
+            for im in resized:
+                canvas.paste(im, (x, 25))
+                x += im.width + 10
+            row_images.append(canvas)
+
+        if row_images:
+            # Add a title row matching the paper's Mass / Permeate / Retentate headers.
+            header_h = 40
+            width = max(im.width for im in row_images)
+            height = sum(im.height for im in row_images) + header_h + 20 * (len(row_images) - 1)
+            page = Image.new("RGB", (width, height), "white")
+            draw = ImageDraw.Draw(page)
+            font = None
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 20)
+            except Exception:
+                font = None
+            col_x = [65, 265, 475]
+            for hx, text in zip(col_x, header_labels):
+                draw.text((hx, 5), text, fill="black", font=font)
+            y = header_h
+            for row in row_images:
+                page.paste(row, (0, y))
+                y += row.height + 20
+            composite = save_dir / "figure_s3.png"
+            page.save(composite)
+            outputs.append(str(composite))
+    except Exception:
+        pass
+
     return outputs
 
 
