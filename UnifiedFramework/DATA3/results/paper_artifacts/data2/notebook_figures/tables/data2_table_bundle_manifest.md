@@ -1,0 +1,7 @@
+# DATA2 Table Bundle Manifest
+
+- `data2_table3_side_by_side.csv` -> `/Users/keshavkasturirangan/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/data2/notebook_figures/tables/data2_table3_side_by_side.csv`
+- `data2_table4_side_by_side.csv` -> `/Users/keshavkasturirangan/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/data2/notebook_figures/tables/data2_table4_side_by_side.csv`
+- `data2_table5_side_by_side.csv` -> `/Users/keshavkasturirangan/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/data2/notebook_figures/tables/data2_table5_side_by_side.csv`
+- `data2_table6_side_by_side.csv` -> `/Users/keshavkasturirangan/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/data2/notebook_figures/tables/data2_table6_side_by_side.csv`
+- `table_baseline_extraction_notes.txt` -> `/Users/keshavkasturirangan/GitHub/dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/data2/notebook_figures/tables/table_baseline_extraction_notes.txt`
