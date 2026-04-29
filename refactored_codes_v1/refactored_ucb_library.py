@@ -2488,8 +2488,12 @@ def run_workflow(
 
 def _resolve_data_root(data_root=None):
     """Find the folder that stores the DATA1 paper inputs."""
+    repo_root = Path(__file__).resolve().parents[1]
     if data_root is None:
-        return Path("legacy") / "data1_matlab" / "data"
+        env_root = os.environ.get("DIAFILTRATION_DATA1_ROOT")
+        if env_root:
+            return Path(env_root).expanduser().resolve()
+        return repo_root / "legacy" / "data1_matlab" / "data"
     return Path(data_root)
 
 
@@ -3263,10 +3267,12 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
                 outputs.append(str(out))
                 plt.close(fig)
 
-        classical = root / "experiment space" / f"Classical_analysis-dat{dat}.csv"
-        if classical.exists():
-            df = pd.read_csv(classical)
-            fig, _ = plot_conc_range(df, df)
+        filtration_csv = root / "experiment space" / "filtration.csv"
+        diafiltration_csv = root / "experiment space" / "diafiltration.csv"
+        if filtration_csv.exists() and diafiltration_csv.exists():
+            df_f = pd.read_csv(filtration_csv, header=2)
+            df_d = pd.read_csv(diafiltration_csv, header=2)
+            fig, _ = plot_conc_range(df_f, df_d)
             out = save_dir / f"data{dat}_conc_range.png"
             fig.savefig(out, dpi=300, bbox_inches="tight")
             outputs.append(str(out))
@@ -3568,8 +3574,12 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
 
 def _resolve_data2_root(data_root=None):
     """Find the folder that stores the DATA2 paper inputs."""
+    repo_root = Path(__file__).resolve().parents[1]
     if data_root is None:
-        return Path("legacy") / "data1_matlab" / "data_library"
+        env_root = os.environ.get("DIAFILTRATION_DATA2_ROOT")
+        if env_root:
+            return Path(env_root).expanduser().resolve()
+        return repo_root / "legacy" / "data1_matlab" / "data_library"
     return Path(data_root)
 
 

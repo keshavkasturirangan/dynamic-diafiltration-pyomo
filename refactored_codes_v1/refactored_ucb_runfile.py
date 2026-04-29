@@ -13,6 +13,7 @@ The refactored folder is self-contained:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import sys
 
@@ -29,7 +30,18 @@ from refactored_ucb_library import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DATA1_ROOT = REPO_ROOT / "legacy" / "data1_matlab" / "data"
+DATA1_ROOT = Path(
+    os.environ.get(
+        "DIAFILTRATION_DATA1_ROOT",
+        REPO_ROOT / "legacy" / "data1_matlab" / "data",
+    )
+).expanduser().resolve()
+DATA2_ROOT = Path(
+    os.environ.get(
+        "DIAFILTRATION_DATA2_ROOT",
+        REPO_ROOT / "legacy" / "data1_matlab" / "data_library",
+    )
+).expanduser().resolve()
 
 
 def _prompt(prompt: str, default: str) -> str:
@@ -69,7 +81,7 @@ def _run_data2() -> None:
     """Recreate the paper-style plots for DATA2."""
     print("\nRunning DATA2 paper reproduction...")
     outputs = run_data2_notebook_workflow(
-        data_root=REPO_ROOT / "legacy" / "data1_matlab" / "data_library",
+        data_root=DATA2_ROOT,
         save_dir=REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "data2" / "notebook_figures",
         show=True,
         fast_mode=True,
