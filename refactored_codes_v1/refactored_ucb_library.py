@@ -3916,6 +3916,71 @@ def run_data1_figure5_workflow(data_root=None, save_dir=None):
     return outputs
 
 
+def run_data1_figure6_workflow(data_root=None, save_dir=None):
+    """Recreate DATA1 Figure 6 using the notebook's diafiltration B contours."""
+    root = _resolve_data1_figure2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    cases = [
+        ("A", root / "511.12 concpolar" / "contourdata-x_B-y_Lp.csv", "figure6_panel_a"),
+        ("B", root / "511.11 concpolar" / "contourdata-x_B-y_Lp.csv", "figure6_panel_b"),
+        ("C", root / "511.12" / "contourdata-x_B-y_Lp.csv", "figure6_panel_c"),
+    ]
+
+    outputs = []
+    panel_groups = []
+    for _, csv_path, prefix in cases:
+        if not csv_path.exists():
+            continue
+        df = pd.read_csv(csv_path)
+        panel_paths = _plot_contour_data1_legacy(df, prefix, save_dir, show_title=False, preface=False)
+        outputs.extend(panel_paths)
+        panel_groups.append([Path(path) for path in panel_paths])
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        if len(panel_groups) == 3 and all(path.exists() for group in panel_groups for path in group):
+            rows = []
+            for group in panel_groups:
+                imgs = [Image.open(path).convert("RGB") for path in group]
+                target_h = max(im.height for im in imgs)
+                resized = []
+                for im in imgs:
+                    scale = target_h / im.height
+                    resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+                row_w = sum(im.width for im in resized) + 40
+                row_h = target_h + 40
+                canvas = Image.new("RGB", (row_w, row_h), "white")
+                x = 20
+                for im in resized:
+                    canvas.paste(im, (x, 20))
+                    x += im.width + 10
+                rows.append(canvas)
+
+            width = max(im.width for im in rows) + 20
+            height = sum(im.height for im in rows) + 30
+            page = Image.new("RGB", (width, height), "white")
+            draw = ImageDraw.Draw(page)
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 28)
+            except Exception:
+                font = None
+            y = 10
+            for label, row in zip(["A", "B", "C"], rows):
+                draw.text((10, y + 5), label, fill="black", font=font)
+                page.paste(row, (30, y))
+                y += row.height + 10
+            composite = save_dir / "figure_6.png"
+            page.save(composite)
+            outputs.append(str(composite))
+    except Exception:
+        pass
+
+    return outputs
+
+
 def run_data1_sigma_contours(data_root=None, save_dir=None):
     """Recreate the DATA1 sigma-sensitivity contour figures from the notebook."""
     root = _resolve_data_root(data_root)
@@ -4081,6 +4146,7 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
         plt.close(fig)
     outputs.extend(run_data1_figure4_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure5_workflow(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_figure6_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure2_workflow(data_root=root, save_dir=save_dir))

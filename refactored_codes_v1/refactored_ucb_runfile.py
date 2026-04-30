@@ -54,6 +54,7 @@ DATA1_MAIN_FIGURES = [
     "mass-dat511.12.png",
     "concentration-dat511.12.png",
     "concentration_range.png",
+    "figure_6.png",
     "sigma_sensitivity-mass.png",
     "sigma_sensitivity-reten_conc.png",
     "sigma_sensitivity-perme_conc.png",
