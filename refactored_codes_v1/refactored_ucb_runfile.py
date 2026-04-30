@@ -85,6 +85,8 @@ DATA1_SI_FIGURES = [
 ]
 
 DATA2_EASY_MAIN_FIGURES = [
+    "figure_8.png",
+    "figure_9.png",
     "calib_curve.png",
     "pressure_change_lag.png",
     "pressure_change_overflow.png",
@@ -95,9 +97,7 @@ DATA2_EASY_MAIN_FIGURES = [
     "figure_s1.png",
     "figure_2.png",
     "figure_3.png",
-    "figure_8.png",
     "figure_7.png",
-    "figure_9.png",
     "figure_s7.png",
     "figure_s8.png",
 ]
