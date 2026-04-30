@@ -48,6 +48,7 @@ DATA2_ROOT = Path(
 DATA1_MAIN_FIGURES = [
     "figure_2.png",
     "figure_4.png",
+    "figure_5.png",
     "mass-dat501.1.png",
     "concentration-dat501.1.png",
     "mass-dat511.12.png",

@@ -2906,6 +2906,87 @@ def plot_contour(df, show_title=True, preface=False, save_path=None, cmap="virid
     return fig, axes
 
 
+def _plot_contour_data1_legacy(df, output_prefix, save_dir, show_title=False, preface=False):
+    """Match the DATA1 notebook contour-panel plotting for main-paper figures."""
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    f_m = df.Obj_mass.values
+    ind_m = np.argmin(f_m)
+    f_pc = df.Obj_concentration.values
+    ind_pc = np.argmin(f_pc)
+    f_rc = df.Obj_retentate_concentration.values
+    ind_rc = np.argmin(f_rc)
+
+    F_m = np.reshape(f_m, (50, 50))
+    F_pc = np.reshape(f_pc, (50, 50))
+    F_rc = np.reshape(f_rc, (50, 50))
+
+    if "B" in df:
+        xx = df.B.values
+        if preface:
+            xlabelstr = "B"
+            axfontsize = 24
+        else:
+            xlabelstr = "B [$\\mathbf{\\mu}$m $\\mathbf{\\cdot}$ s$\\mathbf{^{-1}}$]"
+            axfontsize = 16
+    else:
+        xx = df.sigma.values
+        if preface:
+            xlabelstr = "$\\mathbf{\\sigma}$"
+            axfontsize = 24
+        else:
+            xlabelstr = "$\\mathbf{\\sigma}$ [dimensionless]"
+            axfontsize = 16
+
+    if preface:
+        ylabelstr = "L$\\mathbf{_p}$"
+    else:
+        ylabelstr = r"L$\mathbf{_p}$ [L $\mathbf{ \cdot}$ m$\mathbf{^{-2} \cdot}$h$\mathbf{^{-1} \cdot}$bar$\mathbf{^{-1}}$]"
+
+    yy = df.Lp.values
+    X = np.reshape(xx, (50, 50))
+    Y = np.reshape(yy, (50, 50))
+
+    panel_specs = [
+        ("mass", F_m, ind_m, "Log$\\mathbf{_e}$ transformed \n Mass Objective"),
+        ("permeate_conc", F_pc, ind_pc, "Log$\\mathbf{_e}$ transformed \n Permeate Concentration Objective"),
+        ("retentate_conc", F_rc, ind_rc, "Log$\\mathbf{_e}$ transformed \n Retentate Concentration Objective"),
+    ]
+
+    outputs = []
+    for fig_num, (suffix, surface, ind_opt, title) in enumerate(panel_specs, start=1):
+        fig = plt.figure(fig_num, figsize=(4, 4))
+        plt.clf()
+        cp = plt.contour(X, Y, surface, 10, linewidths=2)
+        plt.clabel(cp, cp.levels[::2], inline=True, fontsize=12, colors="k", fmt="%1.1f")
+        plt.plot(
+            xx[ind_opt],
+            yy[ind_opt],
+            "^",
+            markersize=12,
+            markeredgecolor="red",
+            markerfacecolor=[1, 0.6, 0.6],
+            clip_on=False,
+        )
+        if show_title:
+            plt.title(title, fontsize=16, fontweight="bold")
+        plt.xlabel(xlabelstr, fontsize=axfontsize, fontweight="bold")
+        plt.ylabel(ylabelstr, fontsize=axfontsize, fontweight="bold")
+        if preface:
+            plt.gca().axes.xaxis.set_ticklabels([])
+            plt.gca().axes.yaxis.set_ticklabels([])
+        plt.xticks(fontsize=15)
+        plt.yticks(fontsize=15)
+        plt.tick_params(direction="in")
+        out_path = save_dir / f"{output_prefix}-{suffix}.png"
+        fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        outputs.append(str(out_path))
+        plt.close(fig)
+
+    return outputs
+
+
 def plot_sim(sim_stru, color, linetype):
     """Plot simulation results, matching the DATA1 sigma-sensitivity notebook helper."""
 
@@ -3770,6 +3851,71 @@ def run_data1_figure4_workflow(data_root=None, save_dir=None):
     return outputs
 
 
+def run_data1_figure5_workflow(data_root=None, save_dir=None):
+    """Recreate DATA1 Figure 5 using the notebook's diafiltration sigma contours."""
+    root = _resolve_data1_figure2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    cases = [
+        ("A", root / "511.12 concpolar" / "contourdata-x_sigma-y_Lp.csv", "figure5_panel_a"),
+        ("B", root / "511.11 concpolar" / "contourdata-x_sigma-y_Lp.csv", "figure5_panel_b"),
+        ("C", root / "511.12" / "contourdata-x_sigma-y_Lp.csv", "figure5_panel_c"),
+    ]
+
+    outputs = []
+    panel_groups = []
+    for _, csv_path, prefix in cases:
+        if not csv_path.exists():
+            continue
+        df = pd.read_csv(csv_path)
+        panel_paths = _plot_contour_data1_legacy(df, prefix, save_dir, show_title=False, preface=False)
+        outputs.extend(panel_paths)
+        panel_groups.append([Path(path) for path in panel_paths])
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        if len(panel_groups) == 3 and all(path.exists() for group in panel_groups for path in group):
+            rows = []
+            for group in panel_groups:
+                imgs = [Image.open(path).convert("RGB") for path in group]
+                target_h = max(im.height for im in imgs)
+                resized = []
+                for im in imgs:
+                    scale = target_h / im.height
+                    resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+                row_w = sum(im.width for im in resized) + 40
+                row_h = target_h + 40
+                canvas = Image.new("RGB", (row_w, row_h), "white")
+                x = 20
+                for im in resized:
+                    canvas.paste(im, (x, 20))
+                    x += im.width + 10
+                rows.append(canvas)
+
+            width = max(im.width for im in rows) + 20
+            height = sum(im.height for im in rows) + 30
+            page = Image.new("RGB", (width, height), "white")
+            draw = ImageDraw.Draw(page)
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 28)
+            except Exception:
+                font = None
+            y = 10
+            for label, row in zip(["A", "B", "C"], rows):
+                draw.text((10, y + 5), label, fill="black", font=font)
+                page.paste(row, (30, y))
+                y += row.height + 10
+            composite = save_dir / "figure_5.png"
+            page.save(composite)
+            outputs.append(str(composite))
+    except Exception:
+        pass
+
+    return outputs
+
+
 def run_data1_sigma_contours(data_root=None, save_dir=None):
     """Recreate the DATA1 sigma-sensitivity contour figures from the notebook."""
     root = _resolve_data_root(data_root)
@@ -3934,6 +4080,7 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
         outputs.append(str(save_dir / "concentration_range.png"))
         plt.close(fig)
     outputs.extend(run_data1_figure4_workflow(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_figure5_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure2_workflow(data_root=root, save_dir=save_dir))
