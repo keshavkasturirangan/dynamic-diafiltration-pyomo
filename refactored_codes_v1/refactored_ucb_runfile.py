@@ -84,6 +84,39 @@ DATA1_SI_FIGURES = [
     "data1_si_filtration_B.png",
 ]
 
+DATA2_EASY_MAIN_FIGURES = [
+    "figure_2.png",
+    "figure_3.png",
+    "figure_7.png",
+    "figure_8.png",
+    "figure_9.png",
+    "figure_s1.png",
+    "figure_s7.png",
+    "figure_s8.png",
+]
+
+DATA2_COMPLEX_FIGURES = [
+    "figure_6.png",
+    "figure_s2.png",
+    "figure_s3.png",
+    "figure_s4.png",
+    "figure_s5.png",
+    "figure_s6.png",
+    "pressure_change_lag.png",
+    "pressure_change_overflow.png",
+    "mass_tc-dat270611.123.png",
+    "partition_sensitivity.png",
+    "startup_barplot.png",
+    "concentrating_residuals_boxplot.png",
+    "diluting_residuals_boxplot.png",
+    "Bpervial.png",
+    "Js_Jw_cin.png",
+    "Js_predict0.png",
+    "Jw_predict.png",
+    "Js_predict1.png",
+    "Js_predict.png",
+]
+
 DATA2_SI_FIGURES = [
     "calib_curve.png",
     "mass-dat270611.121.png",
@@ -238,7 +271,9 @@ def _run_data2() -> None:
         show=False,
         fast_mode=True,
     )
-    _show_paper_figures(outputs, save_dir, DATA2_SI_FIGURES, "DATA2 SI")
+    plt.close("all")
+    _show_paper_figures(outputs, save_dir, DATA2_EASY_MAIN_FIGURES, "DATA2 Easy")
+    _show_paper_figures(outputs, save_dir, DATA2_COMPLEX_FIGURES, "DATA2 Complex")
     print("\nCreated outputs:")
     for item in outputs:
         print(f"  - {item}")

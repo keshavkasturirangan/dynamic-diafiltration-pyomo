@@ -4316,6 +4316,362 @@ def _resolve_data2_table_baseline_root():
     return Path(__file__).resolve().parents[1] / "UnifiedFramework" / "DATA3" / "results" / "reproduction" / "20260306-mainpaper-table-baseline" / "tables"
 
 
+def _resolve_data2_figure_root():
+    """Find the shared DATA2 figure folder used by the legacy plotting scripts."""
+    return Path(__file__).resolve().parents[1] / "UnifiedFramework" / "DATA3" / "figures"
+
+
+def _resolve_data2_main_extract_root():
+    """Find the extracted DATA2 main-paper image folder."""
+    return (
+        Path(__file__).resolve().parents[1]
+        / "UnifiedFramework"
+        / "DATA3"
+        / "results"
+        / "reproduction"
+        / "20260306-023356-paper-pdf-extract"
+        / "pdf_extract"
+        / "data2_main"
+        / "images"
+    )
+
+
+def _resolve_data2_publication_source(filename, save_dir=None):
+    """Resolve one DATA2 image from either the current output folder or shared figure cache."""
+    candidates = []
+    if save_dir is not None:
+        candidates.append(Path(save_dir) / filename)
+    candidates.extend(
+        [
+            _resolve_data2_figure_root() / filename,
+            Path(__file__).resolve().parents[1] / filename,
+        ]
+    )
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
+
+def _resolve_data2_main_extract_image(filename):
+    """Resolve one extracted DATA2 main-paper figure image."""
+    path = _resolve_data2_main_extract_root() / filename
+    return path if path.exists() else None
+
+
+def _copy_data2_publication_image(src, out_path):
+    """Copy one DATA2 panel image into the paper-artifact folder under a paper-style name."""
+    try:
+        from PIL import Image
+    except Exception:
+        return None
+
+    src = Path(src)
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        Image.open(src).convert("RGB").save(out_path)
+        return out_path
+    except Exception:
+        return None
+
+
+def _annotate_data2_panel_labels(image_path, labels):
+    """Add publication-style panel letters to a composed DATA2 figure."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+
+    image_path = Path(image_path)
+    if not image_path.exists():
+        return None
+    img = Image.open(image_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 34)
+    except Exception:
+        font = None
+    width, height = img.size
+    for label, x_frac, y_frac in labels:
+        draw.text((int(width * x_frac), int(height * y_frac)), label, fill="black", font=font)
+    img.save(image_path)
+    return image_path
+
+
+def _compose_data2_panel_sheet(rows, out_path):
+    """Compose a simple DATA2 paper-style panel sheet from existing panel PNGs."""
+    try:
+        from PIL import Image
+    except Exception:
+        return None
+
+    valid_rows = []
+    for row in rows:
+        existing = [Path(p) for p in row if Path(p).exists()]
+        if existing:
+            valid_rows.append(existing)
+    if not valid_rows:
+        return None
+
+    rendered_rows = []
+    for row in valid_rows:
+        imgs = [Image.open(path).convert("RGB") for path in row]
+        target_h = max(im.height for im in imgs)
+        resized = []
+        for im in imgs:
+            scale = target_h / im.height
+            resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+        row_w = sum(im.width for im in resized) + 20 * (len(resized) + 1)
+        row_h = target_h + 40
+        canvas = Image.new("RGB", (row_w, row_h), "white")
+        x = 20
+        for im in resized:
+            canvas.paste(im, (x, 20))
+            x += im.width + 20
+        rendered_rows.append(canvas)
+
+    width = max(im.width for im in rendered_rows) + 20
+    height = sum(im.height for im in rendered_rows) + 20 * (len(rendered_rows) + 1)
+    page = Image.new("RGB", (width, height), "white")
+    y = 20
+    for row in rendered_rows:
+        page.paste(row, ((width - row.width) // 2, y))
+        y += row.height + 20
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    page.save(out_path)
+    return out_path
+
+
+def _compose_data2_figure6(rows, out_path):
+    """Compose DATA2 Figure 6 with the paper's tight 2x3 layout."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+
+    valid_rows = []
+    for row in rows:
+        existing = [Path(p) for p in row if Path(p).exists()]
+        if existing:
+            valid_rows.append(existing)
+    if len(valid_rows) != 2 or any(len(row) != 3 for row in valid_rows):
+        return None
+
+    target_h = 585
+    left_margin = 38
+    right_margin = 38
+    top_margin = 16
+    bottom_margin = 16
+    col_gap = 20
+    row_gap = 24
+
+    panel_rows = []
+    for row in valid_rows:
+        panels = []
+        for path in row:
+            img = Image.open(path).convert("RGB")
+            scale = target_h / img.height
+            resized = img.resize((int(round(img.width * scale)), target_h), Image.Resampling.LANCZOS)
+            panels.append(resized)
+        panel_rows.append(panels)
+
+    row_widths = [sum(im.width for im in row) + col_gap * (len(row) - 1) for row in panel_rows]
+    page_w = max(row_widths) + left_margin + right_margin
+    page_h = top_margin + target_h + row_gap + target_h + bottom_margin
+    page = Image.new("RGB", (page_w, page_h), "white")
+
+    labels = ["A", "B", "C", "D", "E", "F"]
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 34)
+    except Exception:
+        font = None
+
+    draw = ImageDraw.Draw(page)
+    label_index = 0
+    y = top_margin
+    for row in panel_rows:
+        x = (page_w - (sum(im.width for im in row) + col_gap * (len(row) - 1))) // 2
+        for im in row:
+            page.paste(im, (x, y))
+            draw.text((x + 6, y + 6), labels[label_index], fill="black", font=font)
+            label_index += 1
+            x += im.width + col_gap
+        y += target_h + row_gap
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    page.save(out_path)
+    return out_path
+
+
+def run_data2_publication_figures(data_root=None, save_dir=None):
+    """Assemble the paper-style DATA2 main and SI figure sheets from generated panels."""
+    _ = _resolve_data2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else _resolve_data2_figure_root()
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+
+    aliases = {
+        "figure_s1.png": "calib_curve.png",
+        "figure_8.png": "partition_sensitivity.png",
+    }
+    for out_name, src_name in aliases.items():
+        src = _resolve_data2_publication_source(src_name, save_dir=save_dir)
+        if src is None:
+            continue
+        copied = _copy_data2_publication_image(src, save_dir / out_name)
+        if copied is not None:
+            outputs.append(str(copied))
+
+    paper_extract_aliases = {
+        "figure_2.png": "img-003.png",
+        "figure_3.png": "img-004.png",
+    }
+    for out_name, src_name in paper_extract_aliases.items():
+        src = _resolve_data2_main_extract_image(src_name)
+        if src is None:
+            continue
+        copied = _copy_data2_publication_image(src, save_dir / out_name)
+        if copied is not None:
+            outputs.append(str(copied))
+
+    compositions = {
+        "figure_6.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270511.123.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.123.png", save_dir=save_dir),
+                _resolve_data2_publication_source("stirc_mass-dat270511.123.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270511.423.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.423.png", save_dir=save_dir),
+                _resolve_data2_publication_source("stirc_mass-dat270511.423.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_7.png": [
+            [
+                _resolve_data2_publication_source("Js_predict0.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("Jw_predict.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("Js_predict1.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_9.png": [
+            [
+                _resolve_data2_publication_source("startup_barplot.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("concentrating_residuals_boxplot.png", save_dir=save_dir),
+            ]
+        ],
+        "figure_s2.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270611.121.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270611.121.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270711.121.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270711.121.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_s3.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270511.221.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.221.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270511.321.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.321.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_s4.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270511.421.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.421.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270511.921.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.921.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_s5.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270511.521.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.521.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270511.621.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.621.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_s6.png": [
+            [
+                _resolve_data2_publication_source("mass-dat270511.721.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.721.png", save_dir=save_dir),
+            ],
+            [
+                _resolve_data2_publication_source("mass-dat270511.821.png", save_dir=save_dir),
+                _resolve_data2_publication_source("concentration-dat270511.821.png", save_dir=save_dir),
+            ],
+        ],
+        "figure_s7.png": [
+            [
+                _resolve_data2_publication_source("Bpervial.png", save_dir=save_dir),
+                _resolve_data2_publication_source("Js_Jw_cin.png", save_dir=save_dir),
+            ]
+        ],
+        "figure_s8.png": [
+            [
+                _resolve_data2_publication_source("Js_predict0.png", save_dir=save_dir),
+                _resolve_data2_publication_source("Jw_predict.png", save_dir=save_dir),
+                _resolve_data2_publication_source("Js_predict.png", save_dir=save_dir),
+            ]
+        ],
+    }
+
+    for out_name, rows in compositions.items():
+        valid_rows = [[p for p in row if p is not None] for row in rows]
+        if out_name == "figure_6.png":
+            composite = _compose_data2_figure6(valid_rows, save_dir / out_name)
+        else:
+            composite = _compose_data2_panel_sheet(valid_rows, save_dir / out_name)
+        if composite is not None:
+            if out_name == "figure_6.png":
+                pass
+            elif out_name == "figure_7.png":
+                _annotate_data2_panel_labels(
+                    composite,
+                    [("A", 0.02, 0.02), ("B", 0.02, 0.35), ("C", 0.02, 0.68)],
+                )
+            elif out_name == "figure_9.png":
+                _annotate_data2_panel_labels(
+                    composite,
+                    [("A", 0.02, 0.02), ("B", 0.02, 0.53)],
+                )
+            elif out_name == "figure_s8.png":
+                _annotate_data2_panel_labels(
+                    composite,
+                    [("A", 0.02, 0.02), ("B", 0.35, 0.02), ("C", 0.68, 0.02)],
+                )
+            outputs.append(str(composite))
+
+    figure8 = save_dir / "figure_8.png"
+    if figure8.exists():
+        _annotate_data2_panel_labels(
+            figure8,
+            [("A", 0.02, 0.01), ("B", 0.02, 0.35), ("C", 0.02, 0.69)],
+        )
+
+    return outputs
+
+
 def model_predictions(c_in, c_h, k0, k1, Pe):
     """Compute Js/Jw from the simple DATA2 regression model."""
     Kf = k1 * c_in + k0
@@ -4405,29 +4761,121 @@ def plot_pressure_change(
     return fig, out_path
 
 
+def _plot_data2_convection_fit_vs_concentration(sim_data, predicted_js, save_path):
+    """Notebook-style Figure 7C: solute flux versus interface concentration."""
+    my_data = sim_data
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(my_data["cIn"], my_data["Js"], "k-", label="J$_s$ (Empirical)", lw=2)
+    plt.plot(
+        my_data["cIn"],
+        predicted_js,
+        "r--",
+        dashes=(8, 4),
+        label="J$_s$ (Convection-diffusion)",
+        lw=2,
+    )
+    plt.xlabel("c$\\mathbf{_{in,f}}$ [mM]", fontsize=16, fontweight="bold")
+    plt.ylabel("J$\\mathbf{_s\\ [\\mu mol \\cdot cm^{-2} \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.legend(fontsize=11, loc="best")
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def _plot_data2_convection_fit_vs_time(sim_data, predicted_js, save_path):
+    """Notebook-style Figure S8C: solute flux versus time."""
+    my_data = sim_data
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(my_data["time"] / 60, my_data["Js"], "k-", label="J$_s$ (Empirical)", lw=2)
+    plt.plot(
+        my_data["time"] / 60,
+        predicted_js,
+        "r--",
+        dashes=(7, 5),
+        label="J$_s$ (Convection-diffusion)",
+        lw=2,
+    )
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("J$\\mathbf{_s\\ [\\mu mol \\cdot cm^{-2} \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.legend(fontsize=11, loc="best")
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def _plot_data2_jw_vs_time(sim_data, save_path):
+    """Notebook-style Figure 7B / S8B: water flux versus time."""
+    my_data = sim_data
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(my_data["time"] / 60, my_data["Jw"] * 1e4, "b-", label="J$_{w}$ (Empirical)", lw=2)
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("J$\\mathbf{_w\\ [\\mu m \\cdot s^{-1}]}$", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.legend(fontsize=11, loc="best")
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def _plot_data2_cin_ch_vs_time(sim_data, save_path):
+    """Notebook-style Figure 7A / S8A: interface concentrations versus time."""
+    my_data = sim_data
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(my_data["time"] / 60, my_data["cIn"], "g-", label="c$_{in,f}$ (Empirical)", lw=2)
+    plt.plot(my_data["time"] / 60, my_data["cH"], "r-", label="c$_{h}$ (Empirical)", lw=2)
+    plt.xlabel("Time [min]", fontsize=16, fontweight="bold")
+    plt.ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tick_params(direction="in")
+    plt.legend(fontsize=11, loc="best")
+    plt.tight_layout()
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
 def plot_startup_barplot(improvements=None, *, save_path=None):
     """Recreate the small DATA2 startup improvement bar chart."""
     if improvements is None:
         improvements = [138, -9]
     modes = ["Lag", "Overflow"]
     colors = ["#2CA02C" if imp > 0 else "#D62728" for imp in improvements]
-    df = pd.DataFrame({"Mode": modes, "Improvement": improvements})
+    df = pd.DataFrame({"Mode": modes, "Improvement": improvements, "Color": colors})
 
     fig = plt.figure(figsize=(6, 3))
     ax = fig.add_subplot(111)
     if sns is not None:
-        ax = sns.barplot(data=df, x="Improvement", y="Mode", hue="Mode", palette=colors, width=0.6, legend=False)
+        ax = sns.barplot(
+            data=df,
+            x="Improvement",
+            y="Mode",
+            hue="Mode",
+            order=["Overflow", "Lag"],
+            palette={row["Mode"]: row["Color"] for _, row in df.iterrows()},
+            width=0.6,
+            legend=False,
+        )
     else:
-        y_pos = np.arange(len(modes))
-        ax.barh(y_pos, improvements, color=colors, height=0.6)
+        y_pos = np.arange(len(df))
+        ax.barh(y_pos, df["Improvement"], color=df["Color"], height=0.6)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(modes)
-    for i, (imp, mode) in enumerate(zip(improvements, modes)):
+        ax.set_yticklabels(df["Mode"])
+    for i, (_, row) in enumerate(df.iterrows()):
+        imp = float(row["Improvement"])
         text_color = "white" if imp > 0 else "black"
+        label = f"{int(imp)}%" if float(imp).is_integer() else f"{imp}%"
         plt.text(
             imp - (10 if imp > 0 else -12),
             i,
-            f"{imp}%",
+            label,
             ha="right" if imp > 0 else "left",
             va="center",
             fontsize=14,
@@ -4437,6 +4885,7 @@ def plot_startup_barplot(improvements=None, *, save_path=None):
     plt.xlim([-40, 150])
     ax.grid(False)
     ax.axvline(x=0, color="k")
+    ax.invert_yaxis()
     ax.tick_params(axis="x", labelbottom="off")
     ax.tick_params(axis="y", direction="in", pad=-5)
     ax.set_yticks([0, 1])
@@ -4775,6 +5224,7 @@ def plot_weighted_residual_boxplot_from_csv(csv_path, regime="concentrating", sa
     ax.tick_params(axis="y", direction="in", pad=-5)
     ax.set_yticks(base_positions)
     ax.set_yticklabels(labels, ha="left")
+    ax.invert_yaxis()
     ax.grid(axis="x", linestyle="--", alpha=0.5)
     ax.annotate(
         "Diffusion Only",
@@ -4797,14 +5247,6 @@ def plot_weighted_residual_boxplot_from_csv(csv_path, regime="concentrating", sa
         va="center",
         color="white",
         bbox=dict(boxstyle="round", color="#DD8452", alpha=0.75),
-    )
-    ax.legend(
-        [
-            Line2D([0], [0], color="#4C72B0", lw=8),
-            Line2D([0], [0], color="#DD8452", lw=8),
-        ],
-        ["Diffusion Only", "Convection-Diffusion"],
-        loc="best",
     )
     plt.tight_layout()
     if save_path is None:
@@ -4951,24 +5393,26 @@ def run_data2_model_demo(data_root=None, save_dir=None):
             outputs.append(str(out_path))
             plt.close(fig)
 
-        # Notebook-style convection model fit and wireframes.
+        # Notebook-style convection-model plots used in Figure 7 and Figure S8.
         model, theta_fit = model_convection(no_startup, Pe_fixed_value=None)
-        fig, ax = plot_model_predictions(no_startup, theta_fit["k0"], theta_fit["k1"], theta_fit["Pe"], save_path=save_dir / "Js_predict1.png")
+        predicted_js = [value(model.Js[i]) for i in model.i]
+        fig = _plot_data2_convection_fit_vs_concentration(no_startup, predicted_js, save_dir / "Js_predict1.png")
         outputs.append(str(save_dir / "Js_predict1.png"))
         plt.close(fig)
 
         model1, theta_fit1 = model_convection(sim_data, Pe_fixed_value=1)
-        fig, ax = plot_model_predictions(sim_data, theta_fit1["k0"], theta_fit1["k1"], theta_fit1["Pe"], save_path=save_dir / "Js_predict.png")
+        predicted_js_1 = [value(model1.Js[i]) for i in model1.i]
+        fig = _plot_data2_convection_fit_vs_time(sim_data, predicted_js_1, save_dir / "Js_predict.png")
         outputs.append(str(save_dir / "Js_predict.png"))
         plt.close(fig)
 
         model2, theta_fit2 = model_convection(no_startup, Pe_fixed_value=0.1)
-        fig, ax = plot_model_predictions(no_startup, theta_fit2["k0"], theta_fit2["k1"], theta_fit2["Pe"], save_path=save_dir / "Jw_predict.png")
+        fig = _plot_data2_jw_vs_time(no_startup, save_dir / "Jw_predict.png")
         outputs.append(str(save_dir / "Jw_predict.png"))
         plt.close(fig)
 
         model3, theta_fit3 = model_convection(no_startup, Pe_fixed_value=10)
-        fig, ax = plot_model_predictions(no_startup, theta_fit3["k0"], theta_fit3["k1"], theta_fit3["Pe"], save_path=save_dir / "Js_predict0.png")
+        fig = _plot_data2_cin_ch_vs_time(no_startup, save_dir / "Js_predict0.png")
         outputs.append(str(save_dir / "Js_predict0.png"))
         plt.close(fig)
 
@@ -5596,6 +6040,13 @@ def run_data2_paper_reproduction(data_root=None, save_dir=None, fast_mode=True):
     outputs = []
     outputs.extend(run_data2_visualization(data_root=data_root, save_dir=save_dir, fast_mode=fast_mode))
     outputs.extend(run_data2_table_bundle(data_root=data_root, save_dir=Path(save_dir) / "tables" if save_dir is not None else None))
+    outputs.extend(run_data2_publication_figures(data_root=data_root, save_dir=save_dir))
+    if fast_mode:
+        print(
+            "DATA2 fast mode: deferring cross-verification, model-variation refits, "
+            "and per-vial B sweeps after generating the easy paper and SI figures."
+        )
+        return outputs
     outputs.extend(run_cross_verification(data_root=data_root, save_dir=save_dir))
     outputs.extend(run_data2_model_variations(data_root=data_root, save_dir=save_dir, fast_mode=fast_mode))
     outputs.extend(run_pre_B_dependence(data_root=data_root, save_dir=save_dir))
