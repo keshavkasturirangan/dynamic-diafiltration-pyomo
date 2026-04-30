@@ -3369,6 +3369,82 @@ def calib_curve_cond(calib_curve, save_path=None):
     return fig
 
 
+def _plot_data2_calibration_panel(calib_curve, z, save_path, panel_label=None):
+    """Notebook-faithful DATA2 conductivity-to-concentration calibration panel."""
+    x = calib_curve.Conductivity.values
+    y = calib_curve.Concentration.values
+
+    fig = plt.figure(figsize=(4, 4))
+    plt.plot(x, y, "bo", markersize=8)
+    trend = np.poly1d(z)
+    correlation = np.corrcoef(x, y)[0, 1]
+    r2 = r2_score(y, trend(x))
+    plt.plot(x, trend(x), "b:", linewidth=3, alpha=0.7)
+
+    eqn = "y=%.5fx%.2f\nR$\\mathbf{^{2}}$=%.4f" % (z[0], z[1], r2)
+    ax = plt.gca()
+    ax.text(
+        0.28,
+        0.87,
+        eqn,
+        transform=ax.transAxes,
+        fontsize=12,
+        fontweight="bold",
+        ha="center",
+        va="center",
+        bbox=dict(boxstyle="round", color="b", alpha=0.1),
+    )
+
+    xlabelstr = "Conductivity [$\\mathbf{\\mu}$S $\\mathbf{\\cdot}$ cm$\\mathbf{^{-1}}$]"
+    ylabelstr = "Concentration [mM]"
+    plt.xlabel(xlabelstr, fontsize=16, fontweight="bold")
+    plt.ylabel(ylabelstr, fontsize=16, fontweight="bold")
+    plt.xticks(fontsize=15, rotation=45)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.tick_params(direction="in", top=True, right=True)
+
+    if panel_label:
+        ax.text(-0.16, 1.02, panel_label, transform=ax.transAxes, fontsize=22, fontweight="bold")
+
+    fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def _compose_data2_figure_s1(panel_a, panel_b, out_path):
+    """Compose DATA2 SI Figure S1 from two calibration panels."""
+    try:
+        from PIL import Image
+    except Exception:
+        return None
+
+    panels = [Path(panel_a), Path(panel_b)]
+    if not all(path.exists() for path in panels):
+        return None
+
+    imgs = [Image.open(path).convert("RGB") for path in panels]
+    target_h = max(im.height for im in imgs)
+    resized = []
+    for im in imgs:
+        scale = target_h / im.height
+        resized.append(im.resize((int(round(im.width * scale)), target_h), Image.Resampling.LANCZOS))
+
+    margin = 20
+    gap = 24
+    page_w = margin * 2 + sum(im.width for im in resized) + gap
+    page_h = margin * 2 + target_h
+    page = Image.new("RGB", (page_w, page_h), "white")
+    x = margin
+    for im in resized:
+        page.paste(im, (x, margin))
+        x += im.width + gap
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    page.save(out_path)
+    return out_path
+
+
 def run_data1_si_s2(data_root=None, save_dir=None):
     """Recreate DATA1 SI Figure S2 from the notebook's three concentration-ratio plots."""
     root = _resolve_data1_figure2_root(data_root)
@@ -5386,14 +5462,27 @@ def run_data2_calibration_plots(data_root=None, save_dir=None):
     save_dir.mkdir(parents=True, exist_ok=True)
 
     outputs = []
-    for csv_path in [root / "conductivity_calibration1.csv", root / "conductivity_calibration2.csv"]:
+    cases = [
+        ("A", root / "conductivity_calibration1.csv", [0.008813, -0.6949], save_dir / "calib_curve_a.png"),
+        ("B", root / "conductivity_calibration2.csv", [0.008372, -0.8735], save_dir / "calib_curve_b.png"),
+    ]
+    panel_paths = []
+    for panel_label, csv_path, z, out_path in cases:
         if not csv_path.exists():
             continue
         calib_curve_data = pd.read_csv(csv_path, header=0, skiprows=[1])
-        fig = calib_curve_cond(calib_curve_data, save_path=save_dir / "calib_curve.png")
-        out_path = save_dir / "calib_curve.png"
+        fig = _plot_data2_calibration_panel(calib_curve_data, z, out_path, panel_label=panel_label)
         outputs.append(str(out_path))
+        panel_paths.append(out_path)
         plt.close(fig)
+
+    if len(panel_paths) == 2:
+        composite = _compose_data2_figure_s1(panel_paths[0], panel_paths[1], save_dir / "figure_s1.png")
+        if composite is not None:
+            outputs.append(str(composite))
+            copied = _copy_data2_publication_image(composite, save_dir / "calib_curve.png")
+            if copied is not None and str(copied) not in outputs:
+                outputs.append(str(copied))
     return outputs
 
 
