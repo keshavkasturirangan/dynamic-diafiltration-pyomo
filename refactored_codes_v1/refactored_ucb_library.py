@@ -4507,6 +4507,59 @@ def _compose_data2_figure6(rows, out_path):
     return out_path
 
 
+def _compose_data2_figure7(rows, out_path):
+    """Compose DATA2 Figure 7 as a vertical A/B/C stack with room for labels."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+
+    valid_rows = []
+    for row in rows:
+        existing = [Path(p) for p in row if Path(p).exists()]
+        if existing:
+            valid_rows.append(existing)
+    if len(valid_rows) != 3 or any(len(row) != 1 for row in valid_rows):
+        return None
+
+    target_w = 980
+    left_margin = 42
+    right_margin = 42
+    top_margin = 16
+    bottom_margin = 44
+    row_gap = 26
+
+    panels = []
+    for row in valid_rows:
+        img = Image.open(row[0]).convert("RGB")
+        scale = target_w / img.width
+        resized = img.resize((target_w, int(round(img.height * scale))), Image.Resampling.LANCZOS)
+        panels.append(resized)
+
+    page_w = left_margin + target_w + right_margin
+    page_h = top_margin + sum(im.height for im in panels) + row_gap * (len(panels) - 1) + bottom_margin
+    page = Image.new("RGB", (page_w, page_h), "white")
+
+    labels = ["A", "B", "C"]
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 34)
+    except Exception:
+        font = None
+
+    draw = ImageDraw.Draw(page)
+    x = left_margin
+    y = top_margin
+    for label, im in zip(labels, panels):
+        page.paste(im, (x, y))
+        draw.text((x + 6, y + 6), label, fill="black", font=font)
+        y += im.height + row_gap
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    page.save(out_path)
+    return out_path
+
+
 def run_data2_publication_figures(data_root=None, save_dir=None):
     """Assemble the paper-style DATA2 main and SI figure sheets from generated panels."""
     _ = _resolve_data2_root(data_root)
@@ -4640,16 +4693,15 @@ def run_data2_publication_figures(data_root=None, save_dir=None):
         valid_rows = [[p for p in row if p is not None] for row in rows]
         if out_name == "figure_6.png":
             composite = _compose_data2_figure6(valid_rows, save_dir / out_name)
+        elif out_name == "figure_7.png":
+            composite = _compose_data2_figure7(valid_rows, save_dir / out_name)
         else:
             composite = _compose_data2_panel_sheet(valid_rows, save_dir / out_name)
         if composite is not None:
             if out_name == "figure_6.png":
                 pass
             elif out_name == "figure_7.png":
-                _annotate_data2_panel_labels(
-                    composite,
-                    [("A", 0.02, 0.02), ("B", 0.02, 0.35), ("C", 0.02, 0.68)],
-                )
+                pass
             elif out_name == "figure_9.png":
                 _annotate_data2_panel_labels(
                     composite,
