@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Simple runner for the refactored diafiltration workflow.
+"""
+Unified Codebase Runner for memebrane separation - Modeling, ParmEst, UQ, DoE
+Keshav Kasturi Rangan
+University of Notre Dame
+
+Simple runner for the refactored diafiltration workflow.
 
 The runner stays thin:
 - choose DATA1 or DATA2 to recreate the paper-style plots from the notebooks
@@ -49,12 +54,12 @@ DATA1_MAIN_FIGURES = [
     "figure_2.png",
     "figure_4.png",
     "figure_5.png",
+    "figure_6.png",
     "mass-dat501.1.png",
     "concentration-dat501.1.png",
     "mass-dat511.12.png",
     "concentration-dat511.12.png",
     "concentration_range.png",
-    "figure_6.png",
     "sigma_sensitivity-mass.png",
     "sigma_sensitivity-reten_conc.png",
     "sigma_sensitivity-perme_conc.png",
@@ -68,15 +73,15 @@ DATA1_MAIN_FIGURES = [
 
 DATA1_SI_FIGURES = [
     "figure_s2.png",
+    "figure_s3.png",
+    "figure_s4.png",
+    "figure_s5.png",
+    "figure_s6.png",
     "data1_si_reduced_diafiltration.png",
     "data1_si_diafiltration_B.png",
     "data1_si_reduced_filtration.png",
     "data1_si_filtration_sigma.png",
     "data1_si_filtration_B.png",
-    "figure_s3.png",
-    "figure_s4.png",
-    "figure_s5.png",
-    "figure_s6.png",
 ]
 
 DATA2_SI_FIGURES = [

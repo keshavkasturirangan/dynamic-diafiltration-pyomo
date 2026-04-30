@@ -1,6 +1,6 @@
 """
-Library of functions for diafiltration experiment modeling
-Xinhong Liu
+Unified Codebase Library for memebrane separation - Modeling, ParmEst, UQ, DoE
+Keshav Kasturi Rangan
 University of Notre Dame
 """
 
