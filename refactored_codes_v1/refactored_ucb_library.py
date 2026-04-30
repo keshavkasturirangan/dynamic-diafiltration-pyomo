@@ -3371,7 +3371,7 @@ def calib_curve_cond(calib_curve, save_path=None):
 
 def run_data1_si_s2(data_root=None, save_dir=None):
     """Recreate DATA1 SI Figure S2 from the notebook's three concentration-ratio plots."""
-    root = _resolve_data_root(data_root)
+    root = _resolve_data1_figure2_root(data_root)
     save_dir = Path(save_dir) if save_dir is not None else root / "si_fig_s2"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3434,33 +3434,87 @@ def run_data1_si_s2(data_root=None, save_dir=None):
         plt.close(fig)
         panel_paths.append(out_path)
 
-    # Compose the three panels into a single SI-style page image.
-    try:
-        from PIL import Image, ImageDraw
+    composite = _compose_data1_panel_grid(
+        [[panel_paths[0], panel_paths[1], panel_paths[2]]] if len(panel_paths) == 3 else [],
+        save_dir / "figure_s2.png",
+        row_labels=["A", "B", "C"],
+        label_mode="per_panel",
+        panel_margin=30,
+        row_margin=30,
+        outer_margin=24,
+    )
+    if composite is not None:
+        panel_paths.append(composite)
 
-        imgs = [Image.open(p).convert("RGB") for p in panel_paths]
-        # Keep the notebook aspect ratio while placing three panels side-by-side.
+    return [str(p) for p in panel_paths]
+
+
+def _compose_data1_panel_grid(
+    row_paths,
+    out_path,
+    row_labels=None,
+    label_mode="per_row",
+    panel_margin=10,
+    row_margin=14,
+    outer_margin=20,
+):
+    """Compose notebook-style DATA1 panel sheets from existing image panels."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+
+    rows = []
+    for row in row_paths:
+        valid = [Path(p) for p in row if Path(p).exists()]
+        if not valid:
+            continue
+        imgs = [Image.open(path).convert("RGB") for path in valid]
         target_h = max(im.height for im in imgs)
         resized = []
         for im in imgs:
             scale = target_h / im.height
-            new_size = (int(im.width * scale), target_h)
-            resized.append(im.resize(new_size, Image.Resampling.LANCZOS))
-        widths = [im.width for im in resized]
-        canvas = Image.new("RGB", (sum(widths) + 80, target_h + 80), "white")
-        draw = ImageDraw.Draw(canvas)
-        x = 20
-        for label, im in zip(["A", "B", "C"], resized):
-            draw.text((x, 10), label, fill="black")
-            canvas.paste(im, (x, 40))
-            x += im.width + 20
-        composite = save_dir / "figure_s2.png"
-        canvas.save(composite)
-        panel_paths.append(composite)
-    except Exception:
-        pass
+            resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+        row_w = sum(im.width for im in resized) + panel_margin * max(0, len(resized) - 1)
+        row_h = target_h
+        rows.append((resized, row_w, row_h))
 
-    return [str(p) for p in panel_paths]
+    if not rows:
+        return None
+
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 28)
+    except Exception:
+        font = None
+
+    label_pad = 36 if row_labels else 0
+    width = max(row_w for _, row_w, _ in rows) + outer_margin * 2 + label_pad
+    height = sum(row_h for _, _, row_h in rows) + row_margin * max(0, len(rows) - 1) + outer_margin * 2
+    page = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(page)
+
+    y = outer_margin
+    label_iter = iter(row_labels or [])
+    for resized, _, row_h in rows:
+        x = outer_margin + label_pad
+        panel_labels = []
+        if label_mode == "per_row":
+            panel_labels = [next(label_iter, "")]
+        elif label_mode == "per_panel":
+            panel_labels = [next(label_iter, "") for _ in resized]
+        if label_mode == "per_row" and panel_labels:
+            draw.text((outer_margin, y + 4), panel_labels[0], fill="black", font=font)
+        for idx, im in enumerate(resized):
+            if label_mode == "per_panel" and idx < len(panel_labels):
+                draw.text((x, y - 28), panel_labels[idx], fill="black", font=font)
+            page.paste(im, (x, y))
+            x += im.width + panel_margin
+        y += row_h + row_margin
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    page.save(out_path)
+    return str(out_path)
 
 
 def _compose_data1_panel_sheet(row_paths, out_path):
@@ -3497,6 +3551,84 @@ def _compose_data1_panel_sheet(row_paths, out_path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     page.save(out_path)
     return str(out_path)
+
+
+def _run_data1_si_contour_figure(data_root, save_dir, figure_name, cases, contour_filename, prefix_base):
+    """Build one DATA1 SI contour page from notebook-style contour CSVs."""
+    root = _resolve_data1_figure2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    row_groups = []
+    row_labels = []
+    for label, folder in cases:
+        csv_path = root / folder / contour_filename
+        if not csv_path.exists():
+            continue
+        df = pd.read_csv(csv_path)
+        prefix = f"{prefix_base}_{label.lower()}"
+        panel_paths = _plot_contour_data1_legacy(df, prefix, save_dir, show_title=False, preface=False)
+        outputs.extend(panel_paths)
+        row_groups.append([Path(path) for path in panel_paths])
+        row_labels.append(label)
+
+    composite = _compose_data1_panel_grid(
+        row_groups,
+        save_dir / figure_name,
+        row_labels=row_labels,
+        label_mode="per_row",
+        panel_margin=12,
+        row_margin=18,
+        outer_margin=22,
+    )
+    if composite is not None:
+        outputs.append(composite)
+    return outputs
+
+
+def run_data1_si_s3(data_root=None, save_dir=None):
+    """Recreate DATA1 SI Figure S3 from notebook diafiltration sigma contours."""
+    cases = [
+        ("A", "511.12 concpolar"),
+        ("B", "511.11 concpolar"),
+        ("C", "511.12"),
+        ("D", "511.11"),
+    ]
+    return _run_data1_si_contour_figure(data_root, save_dir, "figure_s3.png", cases, "contourdata-x_sigma-y_Lp.csv", "figure_s3_panel")
+
+
+def run_data1_si_s4(data_root=None, save_dir=None):
+    """Recreate DATA1 SI Figure S4 from notebook diafiltration B contours."""
+    cases = [
+        ("A", "511.12 concpolar"),
+        ("B", "511.11 concpolar"),
+        ("C", "511.12"),
+        ("D", "511.11"),
+    ]
+    return _run_data1_si_contour_figure(data_root, save_dir, "figure_s4.png", cases, "contourdata-x_B-y_Lp.csv", "figure_s4_panel")
+
+
+def run_data1_si_s5(data_root=None, save_dir=None):
+    """Recreate DATA1 SI Figure S5 from notebook filtration sigma contours."""
+    cases = [
+        ("A", "501.1 concpolar"),
+        ("B", "501.11 concpolar"),
+        ("C", "501.1"),
+        ("D", "501.11"),
+    ]
+    return _run_data1_si_contour_figure(data_root, save_dir, "figure_s5.png", cases, "contourdata-x_sigma-y_Lp.csv", "figure_s5_panel")
+
+
+def run_data1_si_s6(data_root=None, save_dir=None):
+    """Recreate DATA1 SI Figure S6 from notebook filtration B contours."""
+    cases = [
+        ("A", "501.1 concpolar"),
+        ("B", "501.11 concpolar"),
+        ("C", "501.1"),
+        ("D", "501.11"),
+    ]
+    return _run_data1_si_contour_figure(data_root, save_dir, "figure_s6.png", cases, "contourdata-x_B-y_Lp.csv", "figure_s6_panel")
 
 
 def run_data1_si_panel_sheets(save_dir=None):
@@ -4147,6 +4279,11 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
     outputs.extend(run_data1_figure4_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure5_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure6_workflow(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_si_s2(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_si_s3(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_si_s4(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_si_s5(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_si_s6(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure2_workflow(data_root=root, save_dir=save_dir))

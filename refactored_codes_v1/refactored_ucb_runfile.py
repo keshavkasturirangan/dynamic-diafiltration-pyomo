@@ -74,6 +74,9 @@ DATA1_SI_FIGURES = [
     "data1_si_filtration_sigma.png",
     "data1_si_filtration_B.png",
     "figure_s3.png",
+    "figure_s4.png",
+    "figure_s5.png",
+    "figure_s6.png",
 ]
 
 DATA2_SI_FIGURES = [
