@@ -3645,7 +3645,7 @@ def run_data_analysis(data_root=None, datasets=None, save_dir=None):
     return outputs
 
 
-def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, save_dir=None):
+def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, save_dir=None, output_prefix=None):
     """
     Recreate the sigma-sensitivity plots from the DATA1 paper.
 
@@ -3678,9 +3678,10 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
         plot_sim(sim_stru, color, linetype)
 
     plot_sim_show(sigmas, colorstring[: len(sigmas)])
-    out_mass = save_dir / "sigma_sensitivity-mass.png"
-    out_reten = save_dir / "sigma_sensitivity-reten_conc.png"
-    out_perm = save_dir / "sigma_sensitivity-perme_conc.png"
+    prefix = output_prefix or "sigma_sensitivity"
+    out_mass = save_dir / f"{prefix}-mass.png"
+    out_reten = save_dir / f"{prefix}-reten_conc.png"
+    out_perm = save_dir / f"{prefix}-perme_conc.png"
     plt.figure(1).savefig(out_mass, dpi=300, bbox_inches="tight")
     plt.figure(2).savefig(out_reten, dpi=300, bbox_inches="tight")
     plt.figure(3).savefig(out_perm, dpi=300, bbox_inches="tight")
@@ -3688,6 +3689,85 @@ def run_sigma_sensitivity(data_root=None, dataset=501.1, cf0=None, sigmas=None, 
     plt.close(2)
     plt.close(3)
     return [str(out_mass), str(out_reten), str(out_perm)]
+
+
+def run_data1_figure4_workflow(data_root=None, save_dir=None):
+    """Recreate DATA1 Figure 4 from the notebook sigma-sensitivity panels."""
+    root = _resolve_data_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_paper_figures"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = []
+    outputs.extend(
+        run_sigma_sensitivity(
+            data_root=root,
+            dataset=501.1,
+            save_dir=save_dir,
+            output_prefix="sigma_sensitivity_filtration",
+        )
+    )
+    outputs.extend(
+        run_sigma_sensitivity(
+            data_root=root,
+            dataset=511.12,
+            save_dir=save_dir,
+            output_prefix="sigma_sensitivity_diafiltration",
+        )
+    )
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        ordered = [
+            [
+                save_dir / "sigma_sensitivity_filtration-mass.png",
+                save_dir / "sigma_sensitivity_filtration-perme_conc.png",
+                save_dir / "sigma_sensitivity_filtration-reten_conc.png",
+            ],
+            [
+                save_dir / "sigma_sensitivity_diafiltration-mass.png",
+                save_dir / "sigma_sensitivity_diafiltration-perme_conc.png",
+                save_dir / "sigma_sensitivity_diafiltration-reten_conc.png",
+            ],
+        ]
+        if all(path.exists() for row in ordered for path in row):
+            rows = []
+            for row in ordered:
+                imgs = [Image.open(path).convert("RGB") for path in row]
+                target_h = max(im.height for im in imgs)
+                resized = []
+                for im in imgs:
+                    scale = target_h / im.height
+                    resized.append(im.resize((int(im.width * scale), target_h), Image.Resampling.LANCZOS))
+                row_w = sum(im.width for im in resized) + 40
+                row_h = target_h + 40
+                canvas = Image.new("RGB", (row_w, row_h), "white")
+                x = 20
+                for im in resized:
+                    canvas.paste(im, (x, 20))
+                    x += im.width + 10
+                rows.append(canvas)
+
+            width = max(im.width for im in rows) + 20
+            height = sum(im.height for im in rows) + 30
+            page = Image.new("RGB", (width, height), "white")
+            draw = ImageDraw.Draw(page)
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 28)
+            except Exception:
+                font = None
+            y = 10
+            for label, row in zip(["A", "B"], rows):
+                draw.text((10, y + 5), label, fill="black", font=font)
+                page.paste(row, (30, y))
+                y += row.height + 10
+            composite = save_dir / "figure_4.png"
+            page.save(composite)
+            outputs.append(str(composite))
+    except Exception:
+        pass
+
+    return outputs
 
 
 def run_data1_sigma_contours(data_root=None, save_dir=None):
@@ -3853,8 +3933,7 @@ def run_data1_notebook_workflow(data_root=None, save_dir=None, show=True):
         fig, _ = plot_conc_range(df_f, df_d, save_path=save_dir / "concentration_range.png")
         outputs.append(str(save_dir / "concentration_range.png"))
         plt.close(fig)
-    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
-    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+    outputs.extend(run_data1_figure4_workflow(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
     outputs.extend(run_data1_figure2_workflow(data_root=root, save_dir=save_dir))
