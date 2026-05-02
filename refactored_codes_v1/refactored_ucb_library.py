@@ -21,6 +21,7 @@ import os
 import json
 import math
 import ctypes.util
+import re
 from sklearn.metrics import r2_score
 from dataclasses import dataclass, field
 
@@ -128,6 +129,44 @@ def _data1_shifted_time(data_stru, vial_index):
 def _data1_shifted_time_minutes(data_stru, vial_index):
     """Return DATA1 vial time shifted and converted to minutes."""
     return _data1_shifted_time(data_stru, vial_index) / 60.0
+
+
+def _parse_simple_salt_formula(salt):
+    """Parse a simple binary salt formula into cation/anion labels.
+
+    This helper is only used by the local DATA3 option-3 branch to derive a
+    reasonable diffusivity from the selected workbook sheet.
+    """
+    salt = str(salt or "").strip()
+    if not salt:
+        return "", 1, "", 1
+    match = re.fullmatch(r"([A-Z][a-z]?)(\d*)([A-Z][a-zA-Z0-9]*)(\d*)", salt)
+    if not match:
+        return salt, 1, "", 1
+    cation, cation_n, anion, anion_n = match.groups()
+    return cation, int(cation_n or 1), anion, int(anion_n or 1)
+
+
+def _data3_diffusivity_cm2_s(namec):
+    """Return a salt diffusivity for the local DATA3/custom workflow."""
+    name = str(namec or "").strip()
+    if not name:
+        return 1.960e-5
+    salt_map = {
+        "K": 1.960e-5,
+        "Na": 1.334e-5,
+        "Li": 1.03e-5,
+        "Mg": 0.706e-5,
+        "Ca": 0.792e-5,
+        "Co": 0.72e-5,
+        "La": 0.62e-5,
+    }
+    letters = "".join(c for c in name if c.isalpha())
+    for key, value in salt_map.items():
+        if letters.startswith(key) or key in letters:
+            return value
+    cation, _, _, _ = _parse_simple_salt_formula(name)
+    return salt_map.get(cation, 1.960e-5)
 
 
 def _load_conductivity_paper():
@@ -829,7 +868,9 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     # average velocity within the system
     v = 350/60 * np.pi * b #[cm/s]
     # diffusion coefficient
-    if isinstance(data_stru['data_config']['namec'], str) and 'K' in data_stru['data_config']['namec']:
+    if str(workflow_family).upper() == "DATA3":
+        D = _data3_diffusivity_cm2_s(data_stru['data_config'].get('namec'))
+    elif isinstance(data_stru['data_config']['namec'], str) and 'K' in data_stru['data_config']['namec']:
         D = 1.960e-5 #[cm^2/s]  - K+
     else:
         raise NotImplementedError
@@ -872,13 +913,8 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     m.ti = Set(initialize=TI_list)
 
     workflow_family = str(workflow_family or "DATA1").upper()
-    match workflow_family:
-        case "DATA2":
-            # DATA1 and DATA2 share the same first-principles builder today.
-            # Keeping the switch here makes future model-family changes local.
-            pass
-        case _:
-            workflow_family = "DATA1"
+    if workflow_family not in {"DATA1", "DATA2", "DATA3"}:
+        workflow_family = "DATA1"
 
     # parameter initialization
     param_in = dict()
@@ -2356,13 +2392,14 @@ def _label_parmest_model(model, data_stru, mode="DATA"):
 class DiafiltrationParmestExperiment(ParmestExperiment):
     """Small ParmEst wrapper around the diafiltration model."""
 
-    def __init__(self, data_stru, mode="DATA", theta=None, B_form="single", nfe=300):
+    def __init__(self, data_stru, mode="DATA", theta=None, B_form="single", nfe=300, workflow_family="DATA1"):
         super().__init__()
         self.data_stru = data_stru
         self.mode = mode
         self.theta = theta
         self.B_form = B_form
         self.nfe = nfe
+        self.workflow_family = workflow_family
 
     def get_labeled_model(self):
         """Build, discretize, and label the model for ParmEst."""
@@ -2372,6 +2409,7 @@ class DiafiltrationParmestExperiment(ParmestExperiment):
             theta=self.theta,
             sim_opt=False,
             B_form=self.B_form,
+            workflow_family=self.workflow_family,
         )
         TransformationFactory("dae.finite_difference").apply_to(
             model, nfe=self.nfe, scheme="BACKWARD"
@@ -2379,17 +2417,17 @@ class DiafiltrationParmestExperiment(ParmestExperiment):
         return _label_parmest_model(model, self.data_stru, mode=self.mode)
 
 
-def build_parmest_experiments(data_structures, mode="DATA", theta=None, B_form="single", nfe=300):
+def build_parmest_experiments(data_structures, mode="DATA", theta=None, B_form="single", nfe=300, workflow_family="DATA1"):
     """Turn one data set or many data sets into a ParmEst experiment list."""
     if not isinstance(data_structures, list):
         data_structures = [data_structures]
     return [
-        DiafiltrationParmestExperiment(data_stru, mode=mode, theta=theta, B_form=B_form, nfe=nfe)
+        DiafiltrationParmestExperiment(data_stru, mode=mode, theta=theta, B_form=B_form, nfe=nfe, workflow_family=workflow_family)
         for data_stru in data_structures
     ]
 
 
-def _normalize_experimental_source(source, *, campaign=None, variant="base", data_root=None):
+def _normalize_experimental_source(source, *, campaign=None, variant="base", data_root=None, selector=None):
     """Turn one experimental source into a loaded run instance and data dict."""
     if isinstance(source, ExperimentalRun):
         run = source
@@ -2409,11 +2447,190 @@ def _normalize_experimental_source(source, *, campaign=None, variant="base", dat
     path = Path(source).expanduser().resolve()
     if not path.exists():
         raise FileNotFoundError(f"Experimental source not found: {path}")
+    if path.suffix.lower() in {".xlsx", ".xls"}:
+        return None, _load_legacy_data_stru_from_excel(path, selector=selector)
     raw = loadmat(str(path))
     data_stru = raw.get("data_stru")
     if data_stru is None:
         raise ValueError(f"The file {path} does not contain a 'data_stru' entry.")
     return None, _normalize_conductivity_measurements(data_stru)
+
+
+def _parse_excel_metadata_and_table(sheet_df: pd.DataFrame) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
+    """Split the workbook into metadata, time-series, and calibration tables."""
+    metadata = {}
+    if sheet_df.shape[0] >= 1 and sheet_df.shape[1] >= 11:
+        for row_idx in range(min(sheet_df.shape[0], 20)):
+            key = sheet_df.iat[row_idx, 9] if 9 < sheet_df.shape[1] else None
+            value = sheet_df.iat[row_idx, 10] if 10 < sheet_df.shape[1] else None
+            if isinstance(key, str) and key.strip():
+                metadata[key.strip()] = value
+    time_cols = [0, 1, 2, 3, 4, 5, 6, 7]
+    ts = sheet_df.iloc[3:, time_cols].copy()
+    ts.columns = ["Time (s)", "Mass (g)", "Pressure (psi)", "Retentate Temp", "Retentate Cond @ Temp (uS/cm)", "Permeate Temp", "Permeate Cond @ Temp (uS/cm)", "Vial Swap"]
+    ts = ts.dropna(how="all")
+    calib = sheet_df.iloc[:, 23:27].copy() if sheet_df.shape[1] >= 27 else pd.DataFrame()
+    return metadata, ts, calib
+
+
+def _parse_excel_salt_name(sheet_name: str, metadata: dict, note_text: str = "") -> str:
+    """Infer the salt identity from the sheet name or notes."""
+    candidates = ["NaCl", "CaCl2", "LaCl3", "KCl"]
+    blob = " ".join([str(sheet_name or ""), note_text, " ".join(str(v) for v in metadata.values())])
+    for cand in candidates:
+        if cand.lower() in blob.lower():
+            return cand
+    return "NaCl"
+
+
+def _segment_indices_by_swap(swap_flags: np.ndarray) -> list[tuple[int, int]]:
+    """Split a time-series into vial segments using a 0/1 swap flag column."""
+    swap_flags = np.asarray(swap_flags).reshape(-1)
+    swap_idx = np.where(swap_flags == 1)[0]
+    segments: list[tuple[int, int]] = []
+    start = 0
+    for idx in swap_idx:
+        end = idx + 1
+        segments.append((start, end))
+        start = end
+    if start < len(swap_flags):
+        segments.append((start, len(swap_flags)))
+    return segments
+
+
+def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> dict:
+    """Load an Excel workbook into the legacy data_stru dict used by the refactored workflow."""
+    xl = pd.ExcelFile(path)
+    sheet_name = selector if isinstance(selector, str) and selector in xl.sheet_names else xl.sheet_names[0]
+    sheet_df = pd.read_excel(path, sheet_name=sheet_name, header=None)
+    metadata, ts, _calib = _parse_excel_metadata_and_table(sheet_df)
+    note_text = ""
+    if sheet_df.shape[0] > 0 and sheet_df.shape[1] > 4:
+        note_text = str(sheet_df.iat[0, 4]) if pd.notna(sheet_df.iat[0, 4]) else ""
+
+    def _to_float_series(series):
+        return np.asarray(pd.to_numeric(series, errors="coerce"), dtype=float)
+
+    time_all = _to_float_series(ts["Time (s)"])
+    mass_all = _to_float_series(ts["Mass (g)"])
+    pressure_all = _to_float_series(ts["Pressure (psi)"])
+    ret_temp_all = _to_float_series(ts["Retentate Temp"])
+    ret_cond_all = _to_float_series(ts["Retentate Cond @ Temp (uS/cm)"])
+    perm_temp_all = _to_float_series(ts["Permeate Temp"])
+    perm_cond_all = _to_float_series(ts["Permeate Cond @ Temp (uS/cm)"])
+    swap_all = _to_float_series(ts["Vial Swap"]).astype(int)
+
+    segments = _segment_indices_by_swap(swap_all)
+    if not segments:
+        raise ValueError(f"No vial segments could be parsed from Excel sheet '{sheet_name}'.")
+
+    salt_name = _parse_excel_salt_name(sheet_name, metadata, note_text=note_text)
+    temp_k = float(np.nanmean(ret_temp_all) + 273.15) if np.isfinite(np.nanmean(ret_temp_all)) else 298.15
+    delp_psi = float(np.nanmean(pressure_all)) if np.isfinite(np.nanmean(pressure_all)) else 0.0
+    delp = delp_psi * 0.0689475729
+    c_d = 0.0
+    feed_match = re.search(r"Feed:\s*([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
+    diafiltrate_match = re.search(r"Diafiltrate:\s*([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
+    if diafiltrate_match:
+        try:
+            c_d = float(diafiltrate_match.group(1))
+        except Exception:
+            c_d = 0.0
+    elif feed_match:
+        try:
+            c_d = float(feed_match.group(1))
+        except Exception:
+            c_d = 0.0
+    else:
+        for token in re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE):
+            try:
+                c_d = float(token)
+                break
+            except Exception:
+                pass
+    def _meta_float(*keys, default):
+        for key in keys:
+            if key in metadata:
+                val = pd.to_numeric(metadata.get(key), errors="coerce")
+                if pd.notna(val):
+                    return float(val)
+        return float(default)
+
+    data_raw = []
+    for idx, (a, b) in enumerate(segments, start=1):
+        row = {
+            "number": idx,
+            "time": time_all[a:b],
+            "mass": mass_all[a:b],
+            "cF_exp": ret_cond_all[a:b],
+            "cV_avg": perm_cond_all[a:b],
+            "pressure": pressure_all[a:b],
+            "retentate_temp": ret_temp_all[a:b],
+            "permeate_temp": perm_temp_all[a:b],
+            "vial_swap": swap_all[a:b],
+        }
+        data_raw.append(row)
+
+    data_stru = {
+        "dataset": Path(path).stem,
+        "filename": Path(path).name,
+        "mode": "Lag",
+        "continuous_cF": True,
+        "conductivity_cF": True,
+        "conductivity_cF_converted": False,
+        "data_config": {
+            "n": len(data_raw),
+            "n_v0": 1,
+            "n_extra": 0,
+            "n_h": 0,
+            "n_A": 0,
+            "delP": delp,
+            "Temp": temp_k,
+            "Am": 4.1,
+            "rho": 1.0,
+            "M_F0": _meta_float("Initial Solution Weight (g)", "Initial weight of solution (g)", "Initial weight (g)", default=10.0),
+            "M_O": _meta_float("Final Solution Weight (g)", "Final weight of solution (g)", "Final weight (g)", default=0.0),
+            "C_D": c_d,
+            "C_D_units": "mM",
+            "C_F0": float(feed_match.group(1)) if feed_match else 0.0,
+            "C_F0_units": "mM",
+            "namec": salt_name,
+            "ni": 1,
+            "Lp0": 5.0,
+            "B0": 0.5,
+            "sigma0": 0.9,
+            "theta0": np.array([5.0, 0.5, 0.9], dtype=float),
+        },
+        "data_raw": data_raw,
+        "sheet_name": sheet_name,
+    }
+    data_stru = _normalize_conductivity_measurements(data_stru)
+    if data_stru.get("data_raw"):
+        try:
+            first_cf = np.asarray(data_stru["data_raw"][0].get("cF_exp", []), dtype=float).reshape(-1)
+            if first_cf.size:
+                data_stru["data_config"]["C_F0"] = float(first_cf[0])
+        except Exception:
+            pass
+    for row in data_stru.get("data_raw", []):
+        raw_perm = row.get("cV_avg")
+        if raw_perm is None:
+            continue
+        try:
+            row["cV_avg_conductivity"] = copy.deepcopy(raw_perm)
+            row["cV_avg"] = list(
+                _conductivity_to_concentration_series(
+                cond_signal=raw_perm,
+                temp_K=temp_k,
+                salt_name=salt_name,
+                model="variant_shedlovsky",
+                model_params={},
+                output_units="mM",
+                )
+            )
+        except Exception:
+            pass
+    return data_stru
 
 
 def estimate_parameters_with_parmest(
@@ -2422,19 +2639,37 @@ def estimate_parameters_with_parmest(
     theta=None,
     B_form="single",
     nfe=300,
+    workflow_family="DATA1",
     weighted=True,
     solver_options=None,
     tee=False,
 ):
     """Estimate parameters using the current ParmEst API."""
     exp_list = build_parmest_experiments(
-        data_structures, mode=mode, theta=theta, B_form=B_form, nfe=nfe
+        data_structures, mode=mode, theta=theta, B_form=B_form, nfe=nfe, workflow_family=workflow_family
     )
     obj_function = "SSE_weighted" if weighted else "SSE"
     pest = Estimator(exp_list, obj_function=obj_function, tee=tee, solver_options=solver_options)
 
     obj_val, theta_vals = pest.theta_est()
-    cov = pest.cov_est()
+    try:
+        cov = pest.cov_est()
+    except Exception as err:
+        cov = None
+        result = {
+            "obj_val": obj_val,
+            "theta_vals": theta_vals,
+            "covariance": cov,
+            "covariance_warning": f"Covariance skipped because ParmEst covariance failed: {type(err).__name__}: {err}",
+        }
+        try:
+            std = np.sqrt(np.diag(cov))
+            result["std"] = std
+            result["correlation"] = correlation_from_covariance(cov.values if hasattr(cov, "values") else cov)
+        except Exception:
+            result["std"] = None
+            result["correlation"] = None
+        return result
 
     result = {
         "obj_val": obj_val,
@@ -2546,8 +2781,8 @@ def summarize_uncertainty(covariance):
     return summary
 
 
-def load_experimental_data(mat_file_path, results=None):
-    """Stage 1: load one MATLAB file and normalize the measured fields."""
+def load_experimental_data(mat_file_path, results=None, selector=None):
+    """Stage 1: load one experimental file and normalize the measured fields."""
     if results is None:
         results = {}
 
@@ -2560,7 +2795,7 @@ def load_experimental_data(mat_file_path, results=None):
     loaded = []
     runs = []
     for source in sources:
-        run, data_stru = _normalize_experimental_source(source)
+        run, data_stru = _normalize_experimental_source(source, selector=selector)
         loaded.append(data_stru)
         runs.append(run)
 
@@ -2623,6 +2858,7 @@ def estimate_parameters(
             mode=mode,
             theta=None,
             B_form=B_form,
+            workflow_family=workflow_family,
             tee=tee,
         )
         theta_vals = pest_result.get("theta_vals")
@@ -2725,6 +2961,7 @@ def run_workflow(
     mode="DATA",
     workflow_family="DATA1",
     B_form="single",
+    selector=None,
     use_parmest=False,
     multistart=False,
     multistart_iterations=10,
@@ -2734,7 +2971,7 @@ def run_workflow(
     fim_formula="backward",
     skip_mbdoe=True,
 ):
-    """Run the compact stage-based workflow on one or many .mat files."""
+    """Run the compact stage-based workflow on one or many experimental files."""
     print("=" * 70)
     print(" Diafiltration workflow")
     print(f"   File: {mat_file_path}")
@@ -2743,7 +2980,7 @@ def run_workflow(
     print("=" * 70)
 
     results = {}
-    results = load_experimental_data(mat_file_path, results)
+    results = load_experimental_data(mat_file_path, results, selector=selector)
     results = build_model(results, mode=mode, workflow_family=workflow_family, B_form=B_form)
     results = estimate_parameters(
         results,
@@ -2766,6 +3003,128 @@ def run_workflow(
         if not key.startswith("_"):
             print(f"   - {key}")
     return results
+
+
+def _sanitize_filename_component(value):
+    """Return a filesystem-safe token for generated figure names."""
+    token = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
+    return token.strip("._-") or "data3"
+
+
+def run_data3_time_series_plots(results, save_dir=None, show=False):
+    """Create DATA3-only mass and concentration time-series plots from a staged workflow result."""
+    settings = results.get("model_settings", {})
+    if str(settings.get("workflow_family", "DATA3")).upper() != "DATA3":
+        return []
+
+    data_payload = results.get("data")
+    if isinstance(data_payload, list):
+        data_payload = data_payload[0] if data_payload else None
+    if not isinstance(data_payload, dict):
+        return []
+
+    sim_stru = results.get("sim_stru") or []
+    save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    sheet_slug = _sanitize_filename_component(data_payload.get("sheet_name", "sheet"))
+    file_slug = _sanitize_filename_component(Path(str(data_payload.get("filename", "data3"))).stem)
+    prefix = f"{file_slug}_{sheet_slug}"
+    t_delay = _data1_time_origin(data_payload)
+    n_vials = int(data_payload.get("data_config", {}).get("n", len(data_payload.get("data_raw", []))))
+    outputs = []
+
+    # Mass vs time
+    mass_fig, mass_ax = plt.subplots(figsize=(4, 4))
+    for i in range(min(n_vials, len(data_payload.get("data_raw", [])))):
+        row = data_payload["data_raw"][i]
+        time = np.asarray(row.get("time", []), dtype=float)
+        mass = np.asarray(row.get("mass", []), dtype=float)
+        if time.size and mass.size:
+            mass_rel = mass - mass[0]
+            mass_ax.plot((time - t_delay) / 60.0, mass_rel, "r.", markersize=4)
+        if i < len(sim_stru):
+            sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
+            sim_mass = np.asarray(sim_stru[i].get("mV", []), dtype=float)
+            if sim_time.size and sim_mass.size:
+                sim_mass_rel = sim_mass - sim_mass[0]
+                mass_ax.plot((sim_time - t_delay) / 60.0, sim_mass_rel, "b", linewidth=3, alpha=0.6)
+    mass_ax.plot([], [], "r.", markersize=4, label="Measurements")
+    mass_ax.plot([], [], "b", linewidth=3, alpha=0.6, label="Predictions")
+    mass_ax.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
+    mass_ax.set_ylabel("Mass [g]", fontsize=16, fontweight="bold")
+    mass_ax.tick_params(direction="in")
+    mass_ax.xaxis.set_tick_params(labelsize=15)
+    mass_ax.yaxis.set_tick_params(labelsize=15)
+    mass_ax.set_xlim(left=0)
+    mass_ax.set_ylim(bottom=0)
+    mass_ax.legend(fontsize=10, loc="best")
+    mass_path = save_dir / f"mass-{prefix}.png"
+    mass_fig.savefig(mass_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(mass_path))
+    if show:
+        plt.show()
+    plt.close(mass_fig)
+
+    # Concentration vs time
+    conc_fig, conc_ax = plt.subplots(figsize=(4, 4))
+    for i in range(min(n_vials, len(data_payload.get("data_raw", [])))):
+        row = data_payload["data_raw"][i]
+        time = np.asarray(row.get("time", []), dtype=float)
+        if not time.size:
+            continue
+
+        cF_exp = np.asarray(row.get("cF_exp", []), dtype=float)
+        cV_avg = np.asarray(row.get("cV_avg", []), dtype=float)
+
+        if cF_exp.size:
+            if cF_exp.ndim == 0 or cF_exp.size == 1:
+                conc_ax.plot((time[-1] - t_delay) / 60.0, float(cF_exp.reshape(-1)[0]), "ms", markersize=8, clip_on=False)
+            else:
+                n = min(len(time), len(cF_exp))
+                conc_ax.plot((time[:n] - t_delay) / 60.0, cF_exp[:n], "ms", markersize=8, clip_on=False)
+
+        if cV_avg.size:
+            if cV_avg.ndim == 0 or cV_avg.size == 1:
+                conc_ax.plot((time[-1] - t_delay) / 60.0, float(cV_avg.reshape(-1)[0]), "cs", markersize=8, clip_on=False)
+            else:
+                n = min(len(time), len(cV_avg))
+                conc_ax.plot((time[:n] - t_delay) / 60.0, cV_avg[:n], "cs", markersize=8, clip_on=False)
+
+        if i < len(sim_stru):
+            sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
+            if sim_time.size:
+                cF = np.asarray(sim_stru[i].get("cF", []), dtype=float)
+                cH = np.asarray(sim_stru[i].get("cH", []), dtype=float)
+                cV = np.asarray(sim_stru[i].get("cV", []), dtype=float)
+                if cF.size:
+                    conc_ax.plot((sim_time - t_delay) / 60.0, cF, "g", linewidth=3, alpha=0.6)
+                if cH.size:
+                    conc_ax.plot((sim_time - t_delay) / 60.0, cH, "r-", linewidth=3, alpha=0.6)
+                if cV.size:
+                    conc_ax.plot((sim_time - t_delay) / 60.0, cV, "r^", markersize=8, alpha=0.6)
+
+    conc_ax.plot([], [], "ms", markersize=8, clip_on=False, label="Retentate (Measurement)")
+    conc_ax.plot([], [], "g", linewidth=3, label="Retentate (Prediction)")
+    conc_ax.plot([], [], "cs", markersize=8, label="Vial (Measurement)")
+    conc_ax.plot([], [], "r^", markersize=8, label="Vial (Prediction)")
+    conc_ax.plot([], [], "r-", linewidth=3, alpha=0.6, label="Permeate (Prediction)")
+    conc_ax.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
+    conc_ax.set_ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
+    conc_ax.tick_params(direction="in")
+    conc_ax.xaxis.set_tick_params(labelsize=15)
+    conc_ax.yaxis.set_tick_params(labelsize=15)
+    conc_ax.set_xlim(left=0)
+    conc_ax.set_ylim(bottom=0)
+    conc_ax.legend(fontsize=9, loc="best")
+    conc_path = save_dir / f"concentration-{prefix}.png"
+    conc_fig.savefig(conc_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(conc_path))
+    if show:
+        plt.show()
+    plt.close(conc_fig)
+
+    return outputs
 
 
 def _resolve_data_root(data_root=None):
@@ -6216,17 +6575,15 @@ def run_data2_notebook_workflow(data_root=None, save_dir=None, show=True, fast_m
 def run_paper_reproduction(workflow_family="DATA1", data_root=None, save_dir=None):
     """Dispatch DATA1 or DATA2 paper reproduction from one simple switch."""
     workflow_family = str(workflow_family or "DATA1").upper()
-    match workflow_family:
-        case "DATA2":
-            return run_data2_paper_reproduction(data_root=data_root, save_dir=save_dir)
-        case _:
-            outputs = run_data_analysis(data_root=data_root, save_dir=save_dir)
-            root = _resolve_data_root(data_root)
-            outputs.extend(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
-            outputs.extend(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
-            outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
-            outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
-            return outputs
+    if workflow_family == "DATA2":
+        return run_data2_paper_reproduction(data_root=data_root, save_dir=save_dir)
+    outputs = run_data_analysis(data_root=data_root, save_dir=save_dir)
+    root = _resolve_data_root(data_root)
+    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=501.1, save_dir=save_dir))
+    outputs.extend(run_sigma_sensitivity(data_root=root, dataset=511.12, save_dir=save_dir))
+    outputs.extend(run_data1_sigma_contours(data_root=root, save_dir=save_dir))
+    outputs.extend(run_data1_concentration_comparison(data_root=root, save_dir=save_dir))
+    return outputs
 
 
 CAMPAIGN_REGISTRY = {

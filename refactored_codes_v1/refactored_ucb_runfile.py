@@ -32,6 +32,7 @@ if str(SCRIPT_DIR) not in sys.path:
 from refactored_ucb_library import (
     run_data2_notebook_workflow,
     run_data1_notebook_workflow,
+    run_data3_time_series_plots,
     run_workflow,
 )
 
@@ -117,6 +118,8 @@ DATA2_COMPLEX_FIGURES = [
     "Js_predict1.png",
     "Js_predict.png",
 ]
+
+DATA3_CUSTOM_FIGURES = REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures" / "data3_option3"
 
 DATA2_SI_FIGURES = [
     "calib_curve.png",
@@ -281,8 +284,8 @@ def _run_data2() -> None:
 
 
 def _choose_custom_file() -> Path | None:
-    # Ask for one MATLAB file path so the flow stays close to the staged example.
-    raw = input("\nPaste one .mat file path: ").strip()
+    # Ask for one experiment file path so the flow stays close to the staged example.
+    raw = input("\nPaste one experiment file path (.mat or .xlsx): ").strip()
     if not raw:
         return None
     return Path(raw).expanduser().resolve()
@@ -295,9 +298,19 @@ def _run_custom() -> None:
         print("No file was selected.")
         return
 
+    selector = None
+    if file_path.suffix.lower() in {".xlsx", ".xls"}:
+        print("Detected Excel input; loading it through the Excel data loader and then running the same staged workflow.")
+        selector_raw = _prompt("Excel sheet selector (sheet name or index)", "")
+        if selector_raw.strip():
+            selector = int(selector_raw) if selector_raw.strip().isdigit() else selector_raw.strip()
+        else:
+            selector = 0
+
     # Ask for the key choices, keeping the prompt list short and explicit.
     mode = _prompt("Model mode", "DATA")
-    workflow_family = _prompt("Model family", "DATA1 or DATA2").strip().upper()
+    default_family = "DATA3" if file_path.suffix.lower() in {".xlsx", ".xls"} else "DATA2"
+    workflow_family = _prompt("Model family", default_family).strip().upper()
     use_parmest = _prompt("Use ParmEst? (y/n)", "n").lower().startswith("y")
     uncertainty_method = _prompt("Uncertainty method (fim/cov_est)", "fim").strip().lower()
 
@@ -305,9 +318,18 @@ def _run_custom() -> None:
         file_path,
         mode=mode,
         workflow_family=workflow_family,
+        selector=selector,
         use_parmest=use_parmest,
         uncertainty_method=uncertainty_method,
     )
+
+    if file_path.suffix.lower() in {".xlsx", ".xls"} and workflow_family == "DATA3":
+        figure_outputs = run_data3_time_series_plots(results, save_dir=DATA3_CUSTOM_FIGURES, show=False)
+        if figure_outputs:
+            print("\nCreated DATA3 plots:")
+            for item in figure_outputs:
+                print(f"  - {item}")
+
     print("\nCreated results:")
     for key in results:
         if not key.startswith("_"):
