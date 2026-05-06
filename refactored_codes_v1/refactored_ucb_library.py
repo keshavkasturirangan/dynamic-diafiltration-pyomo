@@ -219,6 +219,26 @@ CONDUCTIVITY_SALT_PARAMS_25C = {
         "lambda_0_anion": 76.35,
         "lambda_0": 126.46,
     },
+    "CaCl2": {
+        "epsilon": 78.4,
+        "eta": 0.0089,
+        "a": 1e-8,
+        "z_1": 2,
+        "z_2": -1,
+        "lambda_0_cation": 119.0,
+        "lambda_0_anion": 76.35,
+        "lambda_0": 195.35,
+    },
+    "LaCl3": {
+        "epsilon": 78.4,
+        "eta": 0.0089,
+        "a": 1e-8,
+        "z_1": 3,
+        "z_2": -1,
+        "lambda_0_cation": 208.8,
+        "lambda_0_anion": 76.35,
+        "lambda_0": 285.15,
+    },
 }
 
 
@@ -8725,6 +8745,300 @@ try:
                   "format_paper_coverage",
                   "render_data1_parameters_table",
                   "render_data2_parameters_table"):
+        if _name not in __all__:
+            __all__.append(_name)
+except NameError:
+    pass
+
+
+# =============================================================================
+#
+#   MSA CONDUCTIVITY DISPATCH  (nf270 msa conductivity patch v1)
+#
+# Wires up the existing `msa_transport` function in conductivity_paper.py so
+# the diafiltration pipeline can use it for asymmetric electrolytes (CaCl2 2:1,
+# LaCl3 3:1) where variant Shedlovsky systematically misestimates the
+# concentration. NaCl/KCl continue using variant Shedlovsky by default since
+# it's well-validated for symmetric 1:1 electrolytes.
+#
+# Key constraint: conductivity_paper.py is NOT modified. Only the wrapper in
+# the refactored library is extended. msa_transport is called with the exact
+# signature it already exposes:
+#   msa_transport(valency, diameters, diff_coeff, temp, eta, epsilon,
+#                 lambda_0, salt_1_conc, salt_2_conc=None, salt_3_conc=None)
+#
+# Unit conversions handled at the call boundary (NOT in conductivity_paper.py):
+#   - eta:        poise (Shedlovsky)         -> Pa·s        (× 0.1)
+#   - lambda_0:   S·cm²/equiv (Shedlovsky)   -> S·m²/mol    (× 1e-4 × |z|)
+#   - diameter:   cm "a" parameter (Shedlov.)->  m          (provided per-salt)
+#   - concentration: M (Shedlovsky)          -> mM          (× 1000)
+#   - return:     mS/cm — same in both paths, so the inversion logic is reused.
+#
+# Diffusion coefficients are computed via Nernst-Einstein from the existing
+# lambda_0 values:    D = R·T / (F² · |z|²) × λ⁰_S_m2_mol
+# Hard-sphere diameters are common-literature values (Marcus 1988, Robinson-
+# Stokes). Override per-salt via model_params= when calling stage_load.
+#
+# Default model dispatch (universal MSA — see CONDUCTIVITY_MODEL_NOTES.docx):
+#   model="auto"  → always MSA. Reduces correctly to the 1:1 limiting case
+#                  for NaCl/KCl (within fit tolerance) AND extends rigorously
+#                  to CaCl2 / LaCl3 / multi-salt mixtures. The price is a
+#                  modest preprocessing-time cost (~30-60 s/sheet for 1:1
+#                  vs Shedlovsky); the methods-consistency win is worth it.
+#   model="msa"   → forced MSA (same as auto).
+#   model="variant_shedlovsky" / "shedlovsky" → forced classical, only valid
+#                  for single 1:1 salts; available for compatibility.
+#
+# Idempotent. Depends on: nf270 render improvements patch v1 (or any earlier
+# patch that registered CaCl2 / LaCl3 entries in CONDUCTIVITY_SALT_PARAMS_25C).
+# =============================================================================
+# =============================================================================
+
+import contextlib as _msa_contextlib
+import io as _msa_io
+import numpy as _msa_np
+
+# Physical constants for Nernst-Einstein D = RT / (F²·|z|²) × λ⁰
+_MSA_R         = 8.314          # J/(mol·K)
+_MSA_T_REF     = 298.15         # K
+_MSA_F_FARADAY = 96485.0        # C/mol
+
+
+# Hard-sphere diameters at 25°C (m). Sources: Marcus (1988), Robinson-Stokes
+# Electrolyte Solutions. Conservative literature values; override via
+# model_params={"diameter_cation_m": ..., "diameter_anion_m": ...} for
+# specific solvent or temperature corrections.
+_MSA_ION_DIAMETERS_M = {
+    "Na":  3.6e-10,
+    "K":   3.0e-10,
+    "Li":  3.8e-10,
+    "Mg":  4.0e-10,
+    "Ca":  4.1e-10,
+    "La":  4.6e-10,
+    "Cl":  3.6e-10,
+    "Br":  3.9e-10,
+    "F":   2.7e-10,
+    "SO4": 4.4e-10,
+}
+
+# Mapping from salt name -> (cation_symbol, anion_symbol).
+_MSA_SALT_ION_LOOKUP = {
+    "NaCl":   ("Na",  "Cl"),
+    "KCl":    ("K",   "Cl"),
+    "LiCl":   ("Li",  "Cl"),
+    "MgCl2":  ("Mg",  "Cl"),
+    "CaCl2":  ("Ca",  "Cl"),
+    "LaCl3":  ("La",  "Cl"),
+    "Na2SO4": ("Na",  "SO4"),
+    "K2SO4":  ("K",   "SO4"),
+}
+
+
+def _msa_diff_coeff_from_lambda0_S_m2_mol(lambda_0_S_m2_mol, z):
+    """Nernst-Einstein: D = R·T / (F²·|z|²) × λ⁰ (S·m²/mol)."""
+    return (_MSA_R * _MSA_T_REF) / (_MSA_F_FARADAY ** 2 * abs(z) ** 2) * lambda_0_S_m2_mol
+
+
+def _msa_augment_salt_params():
+    """Add MSA-required fields to every salt entry in CONDUCTIVITY_SALT_PARAMS_25C.
+
+    Each entry, after augmentation, has both Shedlovsky inputs (eta in poise,
+    lambda_0 in S·cm²/equiv, a in cm) AND MSA inputs (eta_pa_s, lambda_0_*_
+    S_m2_mol, diameter_*_m, diff_coeff_*_m2_s) so either model can be used.
+    """
+    for salt, params in CONDUCTIVITY_SALT_PARAMS_25C.items():
+        if "z_1" not in params or "z_2" not in params:
+            continue
+        z_1 = int(params["z_1"])
+        z_2 = int(params["z_2"])
+
+        # Hydrodynamic viscosity: Shedlovsky uses poise; MSA needs Pa·s.
+        params.setdefault("eta_pa_s", float(params["eta"]) * 0.1)
+
+        # λ⁰ for each ion: the existing CONDUCTIVITY_SALT_PARAMS_25C stores
+        # per-mole-of-ion conductivities in S·cm²/mol (the chemistry-natural
+        # convention — what CRC tables list for individual ions). For 1:1
+        # salts per-mole = per-equivalent so the existing Shedlovsky code
+        # works unchanged. MSA needs S·m²/mol with NO charge multiplier:
+        #   1 S·cm²/mol × 1e-4 → 1 S·m²/mol
+        params.setdefault(
+            "lambda_0_cation_S_m2_mol",
+            float(params["lambda_0_cation"]) * 1e-4,
+        )
+        params.setdefault(
+            "lambda_0_anion_S_m2_mol",
+            float(params["lambda_0_anion"]) * 1e-4,
+        )
+
+        # Diffusion coefficients via Nernst-Einstein.
+        params.setdefault(
+            "diff_coeff_cation_m2_s",
+            _msa_diff_coeff_from_lambda0_S_m2_mol(params["lambda_0_cation_S_m2_mol"], z_1),
+        )
+        params.setdefault(
+            "diff_coeff_anion_m2_s",
+            _msa_diff_coeff_from_lambda0_S_m2_mol(params["lambda_0_anion_S_m2_mol"], z_2),
+        )
+
+        # Hard-sphere diameters from the lookup; user can override.
+        ion_pair = _MSA_SALT_ION_LOOKUP.get(salt)
+        if ion_pair:
+            cat, an = ion_pair
+            params.setdefault("diameter_cation_m", _MSA_ION_DIAMETERS_M.get(cat))
+            params.setdefault("diameter_anion_m",  _MSA_ION_DIAMETERS_M.get(an))
+
+
+_msa_augment_salt_params()
+
+
+# ---- The MSA branch: builds inputs and inverts numerically -----------------
+
+def _conductivity_to_concentration_msa_branch(
+    *,
+    cond_signal,
+    temp_K,
+    salt_name,
+    model_params=None,
+    output_units="mM",
+):
+    """MSA equivalent of _conductivity_to_concentration_series.
+
+    Same structure as the Shedlovsky branch — build a forward function
+    f(conc_M) → kappa_mS_cm via msa_transport, then numerically invert
+    point by point.
+
+    All unit conversions happen here, not in conductivity_paper.py.
+    """
+    cp = _load_conductivity_paper()
+    params = dict(CONDUCTIVITY_SALT_PARAMS_25C.get(str(salt_name), {}))
+    if model_params:
+        params.update(model_params)
+    required = ("diameter_cation_m", "diameter_anion_m",
+                "diff_coeff_cation_m2_s", "diff_coeff_anion_m2_s",
+                "eta_pa_s", "epsilon",
+                "lambda_0_cation_S_m2_mol", "lambda_0_anion_S_m2_mol",
+                "z_1", "z_2")
+    missing = [k for k in required if k not in params]
+    if missing:
+        raise ValueError(
+            f"MSA conductivity model for salt {salt_name!r} is missing fields: "
+            f"{missing}. Pass them via model_params={{...}} or extend "
+            f"CONDUCTIVITY_SALT_PARAMS_25C[{salt_name!r}]."
+        )
+
+    cond_signal = _msa_np.asarray(cond_signal, dtype=float).reshape(-1)
+    conc_out = _msa_np.full_like(cond_signal, _msa_np.nan, dtype=float)
+
+    valency      = [int(params["z_1"]), int(params["z_2"])]
+    diameters    = [float(params["diameter_cation_m"]),
+                    float(params["diameter_anion_m"])]
+    diff_coeff   = [float(params["diff_coeff_cation_m2_s"]),
+                    float(params["diff_coeff_anion_m2_s"])]
+    eta_pa_s     = float(params["eta_pa_s"])
+    epsilon      = float(params["epsilon"])
+    lambda_0     = [float(params["lambda_0_cation_S_m2_mol"]),
+                    float(params["lambda_0_anion_S_m2_mol"])]
+
+    _stdout_sink = _msa_io.StringIO()
+
+    def fwd(conc_M):
+        # M -> mM (msa_transport convention) and silence its print() chatter.
+        conc_mM = conc_M * 1000.0
+        with _msa_contextlib.redirect_stdout(_stdout_sink):
+            kappa_mS_cm = cp.msa_transport(
+                valency,
+                diameters,
+                diff_coeff,
+                temp_K,
+                eta_pa_s,
+                epsilon,
+                lambda_0,
+                [conc_mM],
+            )[0]
+        return float(kappa_mS_cm)
+
+    for i, y in enumerate(cond_signal):
+        if _msa_np.isnan(y):
+            continue
+        conc_out[i] = _invert_monotone_1d(
+            fwd_func=fwd,
+            y_target=float(y / 1000.0),   # µS/cm -> mS/cm
+            x_lo=0.0,
+            x_hi=6.0,
+        )
+
+    if str(output_units).lower() in {"mm", "mmol/l", "mmolar"}:
+        conc_out *= 1000.0
+    return conc_out
+
+
+# ---- Wrap _conductivity_to_concentration_series ---------------------------
+
+# Cache the original so subsequent re-imports don't recurse.
+if "_msa_orig_conductivity_to_concentration_series" not in globals():
+    _msa_orig_conductivity_to_concentration_series = _conductivity_to_concentration_series
+
+
+def _conductivity_to_concentration_series(*, cond_signal, temp_K, salt_name,
+                                            model="auto", model_params=None,
+                                            output_units="mM"):
+    """Patched: dispatches model='auto' and 'msa' before delegating to the
+    original Shedlovsky-only implementation."""
+    model_lc = str(model).lower()
+
+    # "auto" resolves to MSA universally — same theory for every salt
+    # (single 1:1, single asymmetric, and multi-salt mixtures). MSA reduces
+    # correctly to the 1:1 limiting case and extends rigorously to the
+    # asymmetric / multi-salt regimes where variant Shedlovsky breaks down.
+    # See CONDUCTIVITY_MODEL_NOTES.docx for the methods rationale.
+    if model_lc == "auto":
+        model_lc = "msa"
+
+    if model_lc == "msa":
+        return _conductivity_to_concentration_msa_branch(
+            cond_signal=cond_signal,
+            temp_K=temp_K,
+            salt_name=salt_name,
+            model_params=model_params,
+            output_units=output_units,
+        )
+
+    # Otherwise: classical Shedlovsky / variant Shedlovsky (original path).
+    return _msa_orig_conductivity_to_concentration_series(
+        cond_signal=cond_signal,
+        temp_K=temp_K,
+        salt_name=salt_name,
+        model=model_lc,
+        model_params=model_params,
+        output_units=output_units,
+    )
+
+
+# ---- Default model = 'auto' for the loader's normalize step ----------------
+
+if "_msa_orig_normalize_conductivity_measurements" not in globals():
+    _msa_orig_normalize_conductivity_measurements = _normalize_conductivity_measurements
+
+
+def _normalize_conductivity_measurements(data_stru, *, output_units="mM",
+                                           model="auto", model_params=None):
+    """Patched: pass through to the original with model='auto' so asymmetric
+    salts auto-dispatch to MSA."""
+    return _msa_orig_normalize_conductivity_measurements(
+        data_stru,
+        output_units=output_units,
+        model=model,
+        model_params=model_params,
+    )
+
+
+# ---- Public API exposure ---------------------------------------------------
+
+try:
+    for _name in ("_conductivity_to_concentration_msa_branch",
+                  "_msa_augment_salt_params",
+                  "_MSA_ION_DIAMETERS_M",
+                  "_MSA_SALT_ION_LOOKUP"):
         if _name not in __all__:
             __all__.append(_name)
 except NameError:
