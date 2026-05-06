@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
-"""
-Standalone CLI for the UCB diafiltration refactor (full-paper edition).
+"""Standalone CLI for the diafiltration workflow pipeline.
 
-Replaces the previous runfile. Differences:
-- Option 1 (DATA1): runs the full DATA1 manifest (no `only=` filter) so
-  every figure listed in the DATA1 main + SI papers is produced.
-- Option 2 (DATA2): runs the full DATA2 manifest (drops the previous
-  4-entry whitelist). Includes cross-verification per-case fits if the
-  cross_verification_patch_block has been applied.
-- Both options call `report_paper_coverage` from the
-  paper_coverage_patch_block at the end and print a checklist showing
-  every paper figure + table the campaign is supposed to produce, with
-  found/missing status.
-- A "fast subset" prompt is offered for users who only want the
-  cheap-to-render figures (the previous default).
+Menu:
+  1. DATA1 paper plots
+  2. DATA2 paper plots
+  3. NF270 experimental campaign
+  4. Custom one-file run
 
-The library is imported as `refactored_ucb_library` - which can be
-either the standalone v2 file (renamed) or the original library with
-the cross_verification + paper_coverage patches applied.
+Every option goes through the same dispatcher and returns a coverage /
+results report from the unified pipeline.
 """
 from __future__ import annotations
 
@@ -46,6 +37,12 @@ DATA2_ROOT = Path(
         REPO_ROOT / "legacy" / "data1_matlab" / "data_library",
     )
 ).expanduser().resolve()
+NF270_ROOT = Path(
+    os.environ.get(
+        "DIAFILTRATION_NF270_ROOT",
+        REPO_ROOT / "UnifiedFramework" / "ExperimentalDataFiles",
+    )
+).expanduser().resolve()
 DATA3_CUSTOM_FIGURES = REPO_ROOT / "UnifiedFramework" / "DATA3" / "figures" / "data3_option3"
 
 # The previous runfile's whitelist - kept around as the "fast subset"
@@ -60,6 +57,24 @@ DATA1_FAST_SUBSET = (
     "figure_2",
     "figure_3",
     "data_analysis",
+)
+NF270_SINGLE_SALT_RUNS = (
+    "MC2.05.07.24_CaCl2",
+    "MC2.05.07.24_NaCl",
+    "MC2.05.21.24_LaCl3",
+    "MC3.07.11.24_SCaCl2",
+    "MC3.07.12.24_S2CaCl2",
+    "MC3.07.22.24_SNaCl",
+    "MC4.07.11.24_SLaCl3",
+    "MC4.07.11.24_SNaCl",
+    "MC5.07.23.24_NaCl",
+    "MC5.07.23.24_S2NaCl",
+    "MC5.07.23.24_SNaCl",
+)
+NF270_FAST_SUBSET = (
+    "MC2.05.07.24_NaCl",
+    "MC3.07.22.24_SNaCl",
+    "MC5.07.23.24_NaCl",
 )
 
 
@@ -78,6 +93,15 @@ def _ensure_data2_library() -> None:
     DATA2_ROOT.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive_path, "r") as zip_ref:
         zip_ref.extractall(DATA2_ROOT.parent)
+
+
+def _ensure_nf270_root() -> None:
+    if NF270_ROOT.exists():
+        return
+    raise FileNotFoundError(
+        f"NF270 workbook folder is missing at {NF270_ROOT}. "
+        "Check DIAFILTRATION_NF270_ROOT or the repository checkout."
+    )
 
 
 def _prompt(message: str, default: str = "") -> str:
@@ -165,7 +189,49 @@ def _run_data2() -> None:
     _print_coverage("DATA2", save_dir)
 
 
-# ---- option 3: custom one-file run ------------------------------------------
+# ---- option 3: NF270 experimental campaign ---------------------------------
+
+def _run_nf270() -> None:
+    print("\nRunning NF270 experimental campaign through the standalone pipeline...")
+    _ensure_nf270_root()
+    save_dir = (REPO_ROOT / "UnifiedFramework" / "DATA3" / "results"
+                / "paper_artifacts" / "nf270" / "notebook_figures")
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\nNF270 subset choices:")
+    print("  1. All green-flagged NF270 sheets")
+    print("  2. Single-salt NF270 sheets only")
+    print("  3. Fast smoke subset")
+    subset_choice = _prompt("NF270 subset", "2").strip().lower()
+    if subset_choice in {"1", "all", "full"}:
+        only = None
+    elif subset_choice in {"3", "fast"}:
+        only = NF270_FAST_SUBSET
+    else:
+        only = NF270_SINGLE_SALT_RUNS
+
+    multistart = _prompt_yes_no("Enable multistart fits?", "y")
+    multistart_iterations = int(_prompt("Multistart iterations", "10"))
+    use_fim = _prompt_yes_no("Compute FIM uncertainty?", "y")
+
+    results = ucb.materialize_all(
+        campaign="NF270",
+        save_dir=save_dir,
+        data_root=NF270_ROOT,
+        only=only,
+        extra_opts={
+            "request_overrides": {
+                "multistart": multistart,
+                "multistart_iterations": multistart_iterations,
+                "uncertainty_method": "fim" if use_fim else "",
+            }
+        },
+    )
+    _print_outputs("NF270", results)
+    _print_coverage("NF270", save_dir)
+
+
+# ---- option 4: custom one-file run ------------------------------------------
 
 def _choose_custom_file() -> Path | None:
     raw = input("\nPaste one experiment file path (.mat or .xlsx): ").strip()
@@ -217,10 +283,13 @@ def _run_custom() -> None:
     )
 
     if file_path.suffix.lower() in {".xlsx", ".xls"} and workflow_family == "DATA3":
-        # DATA3 time-series via the legacy renderer.
-        figure_outputs = ucb.run_data3_time_series_plots(
-            results.to_dict(), save_dir=DATA3_CUSTOM_FIGURES, show=False
+        figure_result = ucb.materialize(
+            "data3.option3.time_series",
+            campaign="DATA3",
+            save_dir=DATA3_CUSTOM_FIGURES,
+            extra_opts={"results": results.to_dict(), "show": False},
         )
+        figure_outputs = figure_result.get("paths", [])
         if figure_outputs:
             print("\nCreated DATA3 plots:")
             for item in figure_outputs:
@@ -257,14 +326,17 @@ def _run_custom() -> None:
 
 def _choose_mode() -> str:
     print("\nChoose a workflow:")
-    print("  1. DATA1 paper reproduction (main + SI figures + Table 1)")
-    print("  2. DATA2 paper reproduction (main + SI figures + tables)")
-    print("  3. Custom one-file run")
+    print("  1. DATA1 paper plots")
+    print("  2. DATA2 paper plots")
+    print("  3. NF270 experimental campaign")
+    print("  4. Custom one-file run")
     choice = _prompt("Workflow", "1").strip().lower()
     if choice in {"1", "data1"}:
         return "DATA1"
     if choice in {"2", "data2"}:
         return "DATA2"
+    if choice in {"3", "nf270"}:
+        return "NF270"
     return "CUSTOM"
 
 
@@ -274,6 +346,8 @@ def main() -> None:
         _run_data1()
     elif workflow == "DATA2":
         _run_data2()
+    elif workflow == "NF270":
+        _run_nf270()
     else:
         _run_custom()
 

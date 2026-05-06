@@ -99,6 +99,12 @@ def test_data3_time_series_is_pipeline_backed():
     assert spec.renderer == "render_data3_time_series"
 
 
+def test_mode_canonicalization_accepts_lowercase_cli_inputs():
+    assert lib._canonical_mode("lag") == "Lag"
+    assert lib._canonical_mode("overflow") == "Overflow"
+    assert lib._canonical_mode("data") == "DATA"
+
+
 def test_runfile_imports_refactored_library_only():
     runfile = Path(__file__).resolve().parents[1] / "refactored_codes_v1" / "refactored_ucb_runfile.py"
     text = runfile.read_text()

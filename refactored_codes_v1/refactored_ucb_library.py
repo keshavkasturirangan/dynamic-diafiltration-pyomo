@@ -23,7 +23,7 @@ import math
 import ctypes.util
 import re
 from sklearn.metrics import r2_score
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 try:
     import seaborn as sns
@@ -61,6 +61,19 @@ def _build_ipopt_solver():
     solver = SolverFactory("ipopt")
     solver.options["linear_solver"] = _preferred_ipopt_linear_solver()
     return solver
+
+
+def _canonical_mode(mode):
+    """Normalize legacy mode spellings used by the interactive CLI."""
+    text = str(mode or "DATA").strip()
+    lower = text.lower()
+    if lower == "data":
+        return "DATA"
+    if lower == "overflow":
+        return "Overflow"
+    if lower == "lag":
+        return "Lag"
+    return text
 
 
 @dataclass(frozen=True)
@@ -918,6 +931,7 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
 
     # parameter initialization
     param_in = dict()
+    mode = _canonical_mode(mode)
     if theta is None:
         param_in['Lp'] = data_stru['data_config']['Lp0']
         param_in['B'] = data_stru['data_config']['B0']
@@ -7024,6 +7038,8 @@ class RunRequest:
     workflow_family: str = ""
     B_form: str = "single"
     use_parmest: bool = False
+    multistart: bool = False
+    multistart_iterations: int = 10
     uncertainty_method: str = ""
     selector: Any = None
 
@@ -7053,6 +7069,24 @@ def _resolve_renderer(renderer):
     if renderer in globals():
         return globals()[renderer]
     raise NameError("No renderer named %r in this module." % (renderer,))
+
+
+def _figure_name_matches(spec_name, query):
+    """Return True when a figure spec name matches a loose lookup query."""
+    spec_text = str(spec_name).lower().strip()
+    query_text = str(query).lower().strip()
+    if not spec_text or not query_text:
+        return False
+    if spec_text == query_text:
+        return True
+    if spec_text.endswith("." + query_text):
+        return True
+    if spec_text.endswith(query_text):
+        return True
+    suffix = spec_text.split(".", 1)[-1]
+    if suffix == query_text or suffix.endswith("." + query_text) or suffix.endswith(query_text):
+        return True
+    return False
 
 
 # -----------------------------------------------------------------------------
@@ -7163,6 +7197,7 @@ def run_pipeline(
     a typed return value, an optional `cached_fit_path` for paper replays,
     and an `uncertainty_method=None`/"" switch to skip Stage 4 entirely.
     """
+    mode = _canonical_mode(mode)
     results = stage_load(file_path, selector=selector)
 
     if str(Path(file_path).suffix).lower() == ".csv":
@@ -7222,6 +7257,8 @@ def materialize_run(req, *, data_root=None):
             B_form=req.B_form,
             selector=req.selector,
             use_parmest=req.use_parmest,
+            multistart=req.multistart,
+            multistart_iterations=req.multistart_iterations,
             uncertainty_method=req.uncertainty_method or None,
         )
 
@@ -7234,6 +7271,8 @@ def materialize_run(req, *, data_root=None):
         B_form=req.B_form,
         selector=req.selector,
         use_parmest=req.use_parmest,
+        multistart=req.multistart,
+        multistart_iterations=req.multistart_iterations,
         uncertainty_method=req.uncertainty_method or None,
         cached_fit_path=cached_fit_path,
     )
@@ -7827,9 +7866,7 @@ def lookup_figure(campaign, figure_name):
     campaign = str(campaign).upper()
     target = str(figure_name).lower()
     for spec in CAMPAIGN_MANIFESTS.get(campaign, ()):
-        if spec.name.lower() == target:
-            return spec
-        if spec.name.lower().endswith("." + target):
+        if _figure_name_matches(spec.name, target):
             return spec
     raise KeyError(
         "No figure named %r in campaign %r. Known: %s"
@@ -7863,14 +7900,23 @@ def materialize_all(*, campaign="DATA1", save_dir=None, data_root=None,
                     only=None, skip=None, extra_opts=None):
     campaign = str(campaign).upper()
     specs = list(CAMPAIGN_MANIFESTS.get(campaign, ()))
+    request_overrides = None
+    renderer_opts = extra_opts
+    if extra_opts:
+        renderer_opts = dict(extra_opts)
+        request_overrides = renderer_opts.pop("request_overrides", None)
     if only:
-        only_set = {str(n).lower() for n in only}
-        specs = [s for s in specs if s.name.lower() in only_set
-                 or s.name.split(".")[-1].lower() in only_set]
+        only_set = tuple(str(n).lower() for n in only)
+        specs = [
+            s for s in specs
+            if any(_figure_name_matches(s.name, item) for item in only_set)
+        ]
     if skip:
-        skip_set = {str(n).lower() for n in skip}
-        specs = [s for s in specs if s.name.lower() not in skip_set
-                 and s.name.split(".")[-1].lower() not in skip_set]
+        skip_set = tuple(str(n).lower() for n in skip)
+        specs = [
+            s for s in specs
+            if not any(_figure_name_matches(s.name, item) for item in skip_set)
+        ]
     run_cache = {}
     results = []
     for spec in specs:
@@ -7880,7 +7926,8 @@ def materialize_all(*, campaign="DATA1", save_dir=None, data_root=None,
                 save_dir=save_dir,
                 data_root=data_root,
                 run_cache=run_cache,
-                extra_opts=extra_opts,
+                extra_opts=renderer_opts,
+                request_overrides=request_overrides,
             ))
         except Exception as exc:
             _pipeline_log.exception("Figure %s failed: %s", spec.name, exc)
@@ -7888,10 +7935,13 @@ def materialize_all(*, campaign="DATA1", save_dir=None, data_root=None,
     return results
 
 
-def _materialize_spec(spec, *, save_dir, data_root, run_cache, extra_opts):
+def _materialize_spec(spec, *, save_dir, data_root, run_cache, extra_opts,
+                      request_overrides=None):
     cache = run_cache if run_cache is not None else {}
     populated_runs = []
     for req in spec.requires:
+        if request_overrides:
+            req = replace(req, **request_overrides)
         key = (req.campaign.upper(), str(req.run_id), req.variant, bool(req.load_cached_fit))
         if key not in cache:
             cache[key] = materialize_run(req, data_root=data_root)
@@ -8675,6 +8725,258 @@ try:
                   "format_paper_coverage",
                   "render_data1_parameters_table",
                   "render_data2_parameters_table"):
+        if _name not in __all__:
+            __all__.append(_name)
+except NameError:
+    pass
+
+
+# =============================================================================
+# =============================================================================
+#
+#   NF270 EXPERIMENTAL CAMPAIGN  (pipeline patch)
+#
+# Adds the current NF270 single-salt / mixed-salt workbook campaign as a
+# first-class campaign in the unified pipeline. The campaign is exposed
+# through the same dispatcher and coverage-report machinery as DATA1 and
+# DATA2, while keeping the Excel-specific loading path inside the pipeline.
+#
+# This section adds:
+#   - NF270_RUN_REGISTRY: the 26 green-flagged workbook sheets.
+#   - NF270_RUN_QUALITY: campaign quality markers for filtering.
+#   - get_experimental_run() support for campaign="NF270".
+#   - render_nf270_fit: a thin wrapper around the existing DATA3 renderer.
+#   - NF270 campaign manifest entries and paper coverage index entries.
+#   - NF270 parameter-table aggregation.
+# =============================================================================
+# =============================================================================
+
+NF270_DEFAULT_ROOT = Path(__file__).resolve().parents[1] / "UnifiedFramework" / "ExperimentalDataFiles"
+
+NF270_RUN_REGISTRY = {
+    # --- NF270_MC2.xlsx (15 green) ----------------------------------------
+    "MC2.05.07.24_NaCl":  {"workbook": "NF270_MC2.xlsx", "sheet": "05.07.24_NaCl",  "membrane": "NF270_MC2"},
+    "MC2.05.07.24_CaCl2": {"workbook": "NF270_MC2.xlsx", "sheet": "05.07.24_CaCl2", "membrane": "NF270_MC2"},
+    "MC2.05.21.24_LaCl3": {"workbook": "NF270_MC2.xlsx", "sheet": "05.21.24_LaCl3", "membrane": "NF270_MC2"},
+    "MC2.05.08.24_E1":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.08.24_E1",    "membrane": "NF270_MC2"},
+    "MC2.05.08.24_E2":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.08.24_E2",    "membrane": "NF270_MC2"},
+    "MC2.05.08.24_E3":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.08.24_E3",    "membrane": "NF270_MC2"},
+    "MC2.05.08.24_E4":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.08.24_E4",    "membrane": "NF270_MC2"},
+    "MC2.05.09.24_E5":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.09.24_E5",    "membrane": "NF270_MC2"},
+    "MC2.05.21.24_E6":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.21.24_E6",    "membrane": "NF270_MC2"},
+    "MC2.05.21.24_E7":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.21.24_E7",    "membrane": "NF270_MC2"},
+    "MC2.05.22.24_E8":    {"workbook": "NF270_MC2.xlsx", "sheet": "05.22.24_E8",    "membrane": "NF270_MC2"},
+    "MC2.05.22.24_E10":   {"workbook": "NF270_MC2.xlsx", "sheet": "05.22.24_E10",   "membrane": "NF270_MC2"},
+    "MC2.05.28.24_E11":   {"workbook": "NF270_MC2.xlsx", "sheet": "05.28.24_E11",   "membrane": "NF270_MC2"},
+    "MC2.05.28.24_E12":   {"workbook": "NF270_MC2.xlsx", "sheet": "05.28.24_E12",   "membrane": "NF270_MC2"},
+    "MC2.05.30.24_E15":   {"workbook": "NF270_MC2.xlsx", "sheet": "05.30.24_E15",   "membrane": "NF270_MC2"},
+
+    # --- NF270_MC3.xlsx (3 green) -----------------------------------------
+    "MC3.07.22.24_SNaCl":   {"workbook": "NF270_MC3.xlsx", "sheet": "07.22.24_SNaCl",   "membrane": "NF270_MC3"},
+    "MC3.07.11.24_SCaCl2":   {"workbook": "NF270_MC3.xlsx", "sheet": "07.11.24_SCaCl2",  "membrane": "NF270_MC3"},
+    "MC3.07.12.24_S2CaCl2":  {"workbook": "NF270_MC3.xlsx", "sheet": "07.12.24_S2CaCl2", "membrane": "NF270_MC3"},
+
+    # --- NF270_MC4.xlsx (5 green) -----------------------------------------
+    "MC4.07.11.24_SNaCl":   {"workbook": "NF270_MC4.xlsx", "sheet": "07.11.24_SNaCl",   "membrane": "NF270_MC4"},
+    "MC4.07.11.24_SLaCl3":  {"workbook": "NF270_MC4.xlsx", "sheet": "07.11.24_SLaCl3",  "membrane": "NF270_MC4"},
+    "MC4.07.12.24_E13":     {"workbook": "NF270_MC4.xlsx", "sheet": "07.12.24_E13",     "membrane": "NF270_MC4"},
+    "MC4.07.16.24_E16":     {"workbook": "NF270_MC4.xlsx", "sheet": "07.16.24_E16",     "membrane": "NF270_MC4"},
+    "MC4.07.16.24_E17":     {"workbook": "NF270_MC4.xlsx", "sheet": "07.16.24_E17",     "membrane": "NF270_MC4"},
+
+    # --- NF270_MC5.xlsx (3 green) -----------------------------------------
+    "MC5.07.23.24_NaCl":    {"workbook": "NF270_MC5.xlsx", "sheet": "07.23.24_NaCl",    "membrane": "NF270_MC5"},
+    "MC5.07.23.24_SNaCl":   {"workbook": "NF270_MC5.xlsx", "sheet": "07.23.24_SNaCl",   "membrane": "NF270_MC5"},
+    "MC5.07.23.24_S2NaCl":  {"workbook": "NF270_MC5.xlsx", "sheet": "07.23.24_S2NaCl",  "membrane": "NF270_MC5"},
+}
+
+NF270_RUN_QUALITY = {run_id: "green" for run_id in NF270_RUN_REGISTRY}
+
+NF270_SINGLE_SALT_RUNS = (
+    "MC2.05.07.24_CaCl2",
+    "MC2.05.07.24_NaCl",
+    "MC2.05.21.24_LaCl3",
+    "MC3.07.11.24_SCaCl2",
+    "MC3.07.12.24_S2CaCl2",
+    "MC3.07.22.24_SNaCl",
+    "MC4.07.11.24_SLaCl3",
+    "MC4.07.11.24_SNaCl",
+    "MC5.07.23.24_NaCl",
+    "MC5.07.23.24_S2NaCl",
+    "MC5.07.23.24_SNaCl",
+)
+
+NF270_FAST_SUBSET = (
+    "MC2.05.07.24_NaCl",
+    "MC3.07.22.24_SNaCl",
+    "MC5.07.23.24_NaCl",
+)
+
+
+_original_get_experimental_run_nf270 = get_experimental_run
+
+
+def get_experimental_run(campaign, run_id, variant="base", data_root=None):
+    """Build one file-backed experimental run instance."""
+    campaign = str(campaign or "DATA1").upper()
+    run_id = str(run_id)
+    variant = str(variant or "base").lower()
+
+    if campaign == "NF270":
+        family = NF270_RUN_REGISTRY.get(run_id)
+        if family is None:
+            raise KeyError(f"Unknown NF270 run '{run_id}'. Known runs: {list(NF270_RUN_REGISTRY)}")
+        root = Path(data_root) if data_root is not None else NF270_DEFAULT_ROOT
+        return ExperimentalRun(
+            run_id=run_id,
+            root=root,
+            data_file=family["workbook"],
+            variant=variant,
+            subdir="",
+            fit_file="",
+            contour_files=(),
+            extra_files=(),
+        )
+
+    return _original_get_experimental_run_nf270(
+        campaign, run_id, variant=variant, data_root=data_root
+    )
+
+
+def render_nf270_fit(results, *, save_path=None, run_id=None, **opts):
+    """One NF270 fit: mass-vs-time + concentration-vs-time plots."""
+    res = _first_result(results)
+    res.require("data")
+    if run_id and isinstance(res.meta, dict):
+        family = NF270_RUN_REGISTRY.get(str(run_id))
+        if family:
+            res.meta.setdefault("nf270_workbook", family["workbook"])
+            res.meta.setdefault("nf270_sheet", family["sheet"])
+            res.meta.setdefault("nf270_membrane", family["membrane"])
+    save_dir = Path(save_path) if save_path is not None else None
+    paths = run_data3_time_series_plots(res.to_dict(), save_dir=save_dir, show=False)
+    return [Path(p) for p in (paths or [])]
+
+
+def _build_nf270_figures():
+    """Return a tuple of FigureSpec - one per green-flagged NF270 run."""
+    specs = []
+    for run_id, family in NF270_RUN_REGISTRY.items():
+        specs.append(
+            FigureSpec(
+                name=f"nf270.{run_id}",
+                renderer="render_nf270_fit",
+                requires=(
+                    RunRequest(
+                        campaign="NF270",
+                        run_id=run_id,
+                        workflow_family="DATA3",
+                        mode="DATA",
+                        B_form="single",
+                        load_cached_fit=False,
+                        use_parmest=False,
+                        multistart=True,
+                        multistart_iterations=10,
+                        uncertainty_method="fim",
+                        selector=family["sheet"],
+                    ),
+                ),
+                opts={"run_id": run_id, "membrane": family["membrane"]},
+                output_filename=None,
+                description=(
+                    f"NF270 fit for {family['workbook']} :: {family['sheet']} "
+                    f"(membrane sample {family['membrane']})."
+                ),
+            )
+        )
+    return tuple(specs)
+
+
+def _register_nf270_campaign():
+    """Idempotently register the NF270 campaign + manifest entries."""
+    if "NF270" not in CAMPAIGN_REGISTRY:
+        CAMPAIGN_REGISTRY["NF270"] = {
+            "root": NF270_DEFAULT_ROOT,
+            "paper": "NF270",
+            "description": "NF270 mixed-salt and single-salt diafiltration experimental campaign.",
+        }
+
+    existing = {spec.name for spec in CAMPAIGN_MANIFESTS.get("NF270", ())}
+    new_specs = tuple(spec for spec in _build_nf270_figures() if spec.name not in existing)
+    if new_specs:
+        CAMPAIGN_MANIFESTS["NF270"] = CAMPAIGN_MANIFESTS.get("NF270", ()) + new_specs
+
+
+def _build_nf270_paper_index():
+    """Build NF270 entry for PAPER_FIGURE_INDEX."""
+    main_figures = {}
+    for run_id, family in NF270_RUN_REGISTRY.items():
+        workbook_stem = Path(family["workbook"]).stem
+        sheet = family["sheet"]
+        manifest_entry = (f"nf270.{run_id}",)
+        main_figures[f"mass-{workbook_stem}_{sheet}.png"] = manifest_entry
+        main_figures[f"concentration-{workbook_stem}_{sheet}.png"] = manifest_entry
+    tables = {
+        "nf270_fit_summary.json": ("nf270.tables.parameters_table",),
+        "nf270_fit_summary.csv": ("nf270.tables.parameters_table",),
+    }
+    return {"main_figures": main_figures, "si_figures": {}, "tables": tables}
+
+
+def _register_nf270_paper_index():
+    if "NF270" not in PAPER_FIGURE_INDEX:
+        PAPER_FIGURE_INDEX["NF270"] = _build_nf270_paper_index()
+
+
+def render_nf270_parameters_table(results, *, save_path=None,
+                                  output_basename="nf270_fit_summary", **_unused):
+    """Aggregate NF270 fitted parameters into a CSV + JSON table bundle."""
+    return render_data1_parameters_table(
+        results, save_path=save_path, output_basename=output_basename
+    )
+
+
+def _register_nf270_table_entry():
+    existing = {spec.name for spec in CAMPAIGN_MANIFESTS.get("NF270", ())}
+    if "nf270.tables.parameters_table" in existing:
+        return
+    register_figure("NF270", FigureSpec(
+        name="nf270.tables.parameters_table",
+        renderer="render_nf270_parameters_table",
+        requires=tuple(
+            RunRequest(
+                campaign="NF270",
+                run_id=run_id,
+                workflow_family="DATA3",
+                mode="DATA",
+                B_form="single",
+                load_cached_fit=False,
+                use_parmest=False,
+                multistart=True,
+                multistart_iterations=10,
+                uncertainty_method="fim",
+                selector=NF270_RUN_REGISTRY[run_id]["sheet"],
+            )
+            for run_id in NF270_RUN_REGISTRY
+        ),
+        opts={"output_basename": "nf270_fit_summary"},
+        output_filename=None,
+        description="NF270 fitted-parameter summary table across the full green campaign.",
+    ))
+
+
+_register_nf270_campaign()
+_register_nf270_paper_index()
+_register_nf270_table_entry()
+
+try:
+    for _name in (
+        "NF270_RUN_REGISTRY",
+        "NF270_RUN_QUALITY",
+        "NF270_SINGLE_SALT_RUNS",
+        "NF270_FAST_SUBSET",
+        "render_nf270_fit",
+        "render_nf270_parameters_table",
+    ):
         if _name not in __all__:
             __all__.append(_name)
 except NameError:
