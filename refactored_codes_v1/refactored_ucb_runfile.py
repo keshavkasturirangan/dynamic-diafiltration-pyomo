@@ -58,7 +58,7 @@ DATA1_FAST_SUBSET = (
     "figure_3",
     "data_analysis",
 )
-NF270_SINGLE_SALT_RUNS = (
+NF270_APPROVED_SINGLE_SALT_RUNS = (
     "MC2.05.07.24_CaCl2",
     "MC2.05.07.24_NaCl",
     "MC2.05.21.24_LaCl3",
@@ -71,6 +71,8 @@ NF270_SINGLE_SALT_RUNS = (
     "MC5.07.23.24_S2NaCl",
     "MC5.07.23.24_SNaCl",
 )
+# Backward-compatible alias used elsewhere in the runfile.
+NF270_SINGLE_SALT_RUNS = NF270_APPROVED_SINGLE_SALT_RUNS
 NF270_FAST_SUBSET = (
     "MC2.05.07.24_NaCl",
     "MC3.07.22.24_SNaCl",
@@ -200,7 +202,7 @@ def _run_nf270() -> None:
 
     print("\nNF270 subset choices:")
     print("  1. All green-flagged NF270 sheets")
-    print("  2. Single-salt NF270 sheets only")
+    print("  2. Approved single-salt NF270 sheets only")
     print("  3. Fast smoke subset")
     subset_choice = _prompt("NF270 subset", "2").strip().lower()
     if subset_choice in {"1", "all", "full"}:
@@ -208,7 +210,7 @@ def _run_nf270() -> None:
     elif subset_choice in {"3", "fast"}:
         only = NF270_FAST_SUBSET
     else:
-        only = NF270_SINGLE_SALT_RUNS
+        only = NF270_APPROVED_SINGLE_SALT_RUNS
 
     multistart = _prompt_yes_no("Enable multistart fits?", "y")
     multistart_iterations = int(_prompt("Multistart iterations", "10"))

@@ -1508,14 +1508,14 @@ def solve_model(
     else:
         instance.Obj = Objective(rule=obj_rule, sense=minimize)
 
-    #Try initialize
+    # Try initialize
     try:
-        #Simulate the model using scipy
+        # Simulate the model using scipy
         sim = Simulator(instance, package='casadi') 
         tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
-        #Discretize the model using finite_difference
+        # Discretize the model using finite_difference
         TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
-        #Initialize the discretized model using the simulator profiles
+        # Initialize the discretized model using the simulator profiles
         sim.initialize_model()
     except Exception as e:
         print(f"Initialization failed: {e}. Applying discretization without initialization.")
@@ -2069,14 +2069,14 @@ def solve_model_B_fix(
     else:
         instance.Obj = Objective(rule=obj_rule, sense=minimize)
 
-    #Try initialize
+    # Try initialize
     try:
-        #Simulate the model using scipy
+        # Simulate the model using scipy
         sim = Simulator(instance, package='casadi') 
         tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
-        #Discretize the model using finite difference
+        # Discretize the model using finite difference
         TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
-        #Initialize the discretized model using the simulator profiles
+        # Initialize the discretized model using the simulator profiles
         sim.initialize_model()
     except:
         TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
@@ -8979,8 +8979,9 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         keep = t >= t_perm_i
         if not keep.any():
             continue
+        mass_anchor = float(_np.interp(float(t_perm_i), t, m)) if t.size >= 2 else float(m[0])
         t_show = (t[keep] - t_origin) / 60.0
-        m_show = m[keep] - float(m[keep][0])
+        m_show = m[keep]
         ax_m.plot(t_show, m_show, "r.", markersize=3, alpha=0.65,
                   label=("Measurements" if i == 0 else None))
 
@@ -8995,7 +8996,8 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         if not keep.any():
             continue
         t_show = (t[keep] - t_origin) / 60.0
-        m_show = m[keep] - float(m[keep][0])
+        m_base = float(m[0])
+        m_show = m[keep] - m_base
         ax_m.plot(t_show, m_show, "b-", linewidth=2.0, alpha=0.85,
                   label=("Predictions" if i == 0 else None))
 
@@ -9048,7 +9050,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
             icp_t.append((float(t[n - 1]) - t_origin) / 60.0)
             icp_y.append(float(cv_arr[n - 1]))
     if icp_t:
-        ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85,
+        ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85, zorder=2,
                   label="Vial (ICP-OES)")
 
     # (3) Predicted retentate, permeate, vial.
@@ -9068,22 +9070,28 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
             pred_cV_t.append(float(t[-1])); pred_cV.append(float(cv[-1]))
 
     if pred_cF_t:
+        pred_line_fx = [
+            patheffects.Stroke(linewidth=4.5, foreground="white"),
+            patheffects.Normal(),
+        ]
         ax_c.plot((_np.array(pred_cF_t) - t_origin) / 60.0,
                   _np.array(pred_cF),
-                  "g-", linewidth=2.5, alpha=0.85,
+                  "g-", linewidth=3.2, alpha=1.0, zorder=6,
+                  path_effects=pred_line_fx,
                   label="Retentate (prediction)")
 
     if pred_cH:
         ph_t = (_np.array([t for t, _ in pred_cH]) - t_origin) / 60.0
         ph_y = _np.array([y for _, y in pred_cH])
         ax_c.plot(ph_t, ph_y,
-                  "r-", linewidth=2.5, alpha=0.85,
+                  "r-", linewidth=3.2, alpha=1.0, zorder=6,
+                  path_effects=pred_line_fx,
                   label="Permeate (prediction)")
 
     if pred_cV_t:
         ax_c.plot((_np.array(pred_cV_t) - t_origin) / 60.0,
                   _np.array(pred_cV),
-                  "r^", markersize=8, alpha=0.9,
+                  "r^", markersize=8, alpha=0.9, zorder=7,
                   label="Vial (prediction)")
 
     ax_c.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
@@ -9661,6 +9669,344 @@ def _register_nf270_table_entry():
 _register_nf270_campaign()
 _register_nf270_paper_index()
 _register_nf270_table_entry()
+
+try:
+    if "_orig_load_legacy_excel_pre_lp_seed" not in globals():
+        _orig_load_legacy_excel_pre_lp_seed = _load_legacy_data_stru_from_excel  # type: ignore[name-defined]
+
+        import numpy as _np
+
+        def _estimate_lp_seed_from_data_raw(data_raw, *, A_m_cm2, delP_bar,
+                                            rho_g_per_cm3=1.0,
+                                            fallback=5.0,
+                                            threshold_g=0.05,
+                                            min_points=3,
+                                            upper_fraction=0.95,
+                                            lp_lower=1.0,
+                                            lp_upper=50.0):
+            """Return an Lp seed [L/(m²·hr·bar)] derived from vial-1 mass slope."""
+            if not data_raw or A_m_cm2 <= 0 or delP_bar <= 0:
+                return float(fallback), "fallback_bad_inputs"
+
+            row = data_raw[0]
+            t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+            m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
+            n = min(t.size, m.size)
+            if n < min_points + 1:
+                return float(fallback), "fallback_too_few_points"
+            t = t[:n]
+            m = m[:n]
+            m_base = float(m[0])
+            rose = (m - m_base) >= threshold_g
+            if not rose.any():
+                return float(fallback), "fallback_no_rise"
+
+            i_start = int(_np.argmax(rose))
+            m_rise = m - m_base
+            m_max = float(_np.nanmax(m_rise[i_start:]))
+            if m_max < 2.0 * threshold_g:
+                return float(fallback), "fallback_too_few_points"
+
+            keep = (m_rise >= threshold_g) & (m_rise <= upper_fraction * m_max)
+            keep[:i_start] = False
+            if int(keep.sum()) < min_points:
+                return float(fallback), "fallback_too_few_points"
+
+            t_fit = t[keep]
+            m_fit = m_rise[keep]
+            try:
+                slope, _intercept = _np.polyfit(t_fit, m_fit, 1)
+            except Exception:
+                return float(fallback), "fallback_bad_slope"
+            if not _np.isfinite(slope) or slope <= 0:
+                return float(fallback), "fallback_bad_slope"
+
+            lp = float(slope) * 36000.0 / (float(A_m_cm2) * float(rho_g_per_cm3) * float(delP_bar))
+            if (not _np.isfinite(lp)) or lp < lp_lower or lp > lp_upper:
+                return float(fallback), "fallback_out_of_bounds"
+            return float(lp), "data_driven"
+
+        def _load_legacy_data_stru_from_excel(*args, **kwargs):  # noqa: F811
+            """Wrapper: call the original loader, then refine ``Lp0`` from the vial-1 mass slope."""
+            data_stru = _orig_load_legacy_excel_pre_lp_seed(*args, **kwargs)
+            cfg = data_stru.get("data_config", {}) if isinstance(data_stru, dict) else {}
+            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
+
+            try:
+                lp_seed, lp_method = _estimate_lp_seed_from_data_raw(
+                    data_raw,
+                    A_m_cm2=float(cfg.get("Am", 4.1)),
+                    delP_bar=float(cfg.get("delP", 0.0)),
+                    rho_g_per_cm3=float(cfg.get("rho", 1.0)),
+                    fallback=float(cfg.get("Lp0", 5.0)),
+                )
+            except Exception:
+                lp_seed = float(cfg.get("Lp0", 5.0))
+                lp_method = "fallback_exception"
+
+            cfg["Lp0_original_default"] = float(cfg.get("Lp0", 5.0))
+            cfg["Lp0"] = float(lp_seed)
+            cfg["Lp0_method"] = str(lp_method)
+
+            try:
+                theta0 = cfg.get("theta0")
+                if theta0 is not None:
+                    arr = _np.asarray(theta0, dtype=float)
+                    if arr.size >= 1:
+                        arr = arr.copy()
+                        arr[0] = float(lp_seed)
+                        cfg["theta0"] = arr
+            except Exception:
+                pass
+
+            return data_stru
+
+        globals()["_load_legacy_data_stru_from_excel"] = _load_legacy_data_stru_from_excel
+        try:
+            for _name in ("_estimate_lp_seed_from_data_raw",):
+                if _name not in __all__:
+                    __all__.append(_name)
+        except NameError:
+            pass
+
+        # =============================================================================
+        # =============================================================================
+        #
+        #   NF270 / DATA3 VIAL-1 TRIM (data2-style fix)  (nf270 vial1 trim patch v1)
+        #
+        # Mirrors the DATA2 lag-mode convention by trimming vial 1's data_raw window
+        # to start at the empirical permeate-start time. This trims the holdup-fill
+        # samples from the first NF270 vial so the fit sees the same effective window
+        # that DATA2 already uses.
+        #
+        # The model still uses the physical mass axis. We simply remove the pre-drop
+        # startup segment from vial 1 at load time, then plot the raw mass values
+        # against the trimmed time axis.
+        #
+        # =============================================================================
+        # =============================================================================
+
+        def _trim_vial1_to_perm_start(data_stru, *, threshold_g=0.05,
+                                       min_samples_kept=10):
+            """Trim vial 1 in-place so the fit starts at empirical permeate start."""
+            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
+            if not data_raw:
+                return "skip_no_data", None, 0
+
+            row = data_raw[0]
+            t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+            m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
+            n = min(t.size, m.size)
+            if n < min_samples_kept + 1:
+                return "skip_too_few_samples", None, 0
+
+            t = t[:n]
+            m = m[:n]
+            m_base = float(m[0])
+            rose = (m - m_base) >= threshold_g
+            if not rose.any():
+                return "skip_no_rise", None, 0
+
+            i_start = int(_np.argmax(rose))
+            if (n - i_start) < min_samples_kept:
+                return "skip_window_too_small", float(t[i_start]), 0
+            if i_start == 0:
+                return "skip_no_lag", float(t[0]), 0
+
+            t_perm_start = float(t[i_start])
+            new_row = {}
+            for key, val in row.items():
+                try:
+                    arr = _np.asarray(val)
+                    if arr.ndim >= 1 and arr.shape[0] == n:
+                        new_row[key] = arr[i_start:].copy()
+                        continue
+                except Exception:
+                    pass
+                new_row[key] = val
+            data_raw[0] = new_row
+            return "trimmed", t_perm_start, int(i_start)
+
+        def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):  # noqa: F811
+            """NF270 mass + concentration plots with empirical vial-1 trimming."""
+            res = _first_result(results)
+            res.require("data")
+            data_stru = _data_payload(res)
+            sim_stru = res.sim_stru or []
+            if isinstance(sim_stru, dict):
+                sim_stru = [sim_stru[key] for key in sorted(sim_stru)]
+
+            if run_id and isinstance(res.meta, dict):
+                family = NF270_RUN_REGISTRY.get(run_id)
+                if family:
+                    res.meta.setdefault("nf270_workbook", family["workbook"])
+                    res.meta.setdefault("nf270_sheet", family["sheet"])
+                    res.meta.setdefault("nf270_membrane", family["membrane"])
+
+            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
+            if not data_raw:
+                return []
+
+            t_perm_per_vial = _detect_perm_start_per_vial(data_raw)
+            t_delay = float(_np.asarray(data_raw[0]["time"], dtype=float).reshape(-1)[0])
+            if isinstance(res.meta, dict):
+                res.meta["t_delay_s"] = float(t_delay)
+                res.meta["t_perm_start_per_vial_s"] = list(t_perm_per_vial)
+                cfg = data_stru.get("data_config", {})
+                for k in ("vial1_trim_status", "vial1_trim_t_perm_start_s",
+                          "vial1_trim_n_dropped", "Lp0", "Lp0_method"):
+                    if k in cfg:
+                        res.meta.setdefault(k, cfg[k])
+
+            save_dir = _ensure_save_dir(save_path) or Path.cwd()
+            dataset_id = data_stru.get("dataset", "unknown") if isinstance(data_stru, dict) else "unknown"
+            saved_paths = []
+
+            # ---- Mass plot: per-vial zeroed scale ----------------------------
+            fig_m, ax_m = _plt.subplots(figsize=(5, 4))
+            for i, row in enumerate(data_raw):
+                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+                m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
+                if t.size == 0 or m.size == 0:
+                    continue
+                m_rel = m - float(m[0])
+                ax_m.plot((t - t_delay) / 60.0, m_rel, "r.", markersize=3, alpha=0.7,
+                          label=("Measurements" if i == 0 else None))
+            for i, sim in enumerate(sim_stru):
+                t = _np.asarray(sim.get("time", []), dtype=float).reshape(-1)
+                mv = _np.asarray(sim.get("mV", []), dtype=float).reshape(-1)
+                if t.size == 0 or mv.size == 0:
+                    continue
+                t_perm_i = t_perm_per_vial[i] if i < len(t_perm_per_vial) else float(t[0])
+                mv_rel = mv - float(mv[0])
+                keep = t >= t_perm_i
+                if keep.any():
+                    t_flat = _np.array([float(t[0]), float(t_perm_i)], dtype=float)
+                    y_flat = _np.array([0.0, 0.0], dtype=float)
+                    t_post = t[keep]
+                    y_post = mv_rel[keep]
+                    t_plot = _np.concatenate([t_flat, t_post])
+                    y_plot = _np.concatenate([y_flat, y_post])
+                else:
+                    t_plot = t
+                    y_plot = _np.zeros_like(t)
+                ax_m.plot((t_plot - t_delay) / 60.0, y_plot, "b-",
+                          linewidth=2.8, alpha=0.95, zorder=6,
+                          label=("Predictions" if i == 0 else None))
+
+            ax_m.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
+            ax_m.set_ylabel("Mass [g]", fontsize=14, fontweight="bold")
+            ax_m.tick_params(direction="in")
+            ax_m.legend(fontsize=10, loc="best")
+            ax_m.set_xlim(left=0)
+            ax_m.set_ylim(bottom=0)
+            fig_m.tight_layout()
+            mass_path = save_dir / f"mass-{dataset_id}.png"
+            fig_m.savefig(mass_path, dpi=300, bbox_inches="tight")
+            _plt.close(fig_m)
+            saved_paths.append(mass_path)
+
+            # ---- Concentration plot: same DATA1/DATA2-style convention -----
+            fig_c, ax_c = _plt.subplots(figsize=(5, 4))
+
+            cF_t, cF_y = [], []
+            for row in data_raw:
+                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+                cf = _np.asarray(row.get("cF_exp", []), dtype=float).reshape(-1)
+                if t.size == 0 or cf.size == 0:
+                    continue
+                n = min(t.size, cf.size)
+                cF_t.extend(t[:n].tolist())
+                cF_y.extend(cf[:n].tolist())
+            if cF_t:
+                cF_t_arr = (_np.array(cF_t) - t_delay) / 60.0
+                cF_y_arr = _np.array(cF_y)
+                ax_c.plot(cF_t_arr, cF_y_arr, "m:", linewidth=1.5, alpha=0.75,
+                          label="Retentate (conductivity)")
+
+            icp_t, icp_y = [], []
+            for row in data_raw:
+                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+                cv = row.get("cV_avg")
+                if cv is None:
+                    continue
+                cv_arr = _np.asarray(cv, dtype=float).reshape(-1)
+                if t.size == 0 or cv_arr.size == 0:
+                    continue
+                n = min(t.size, cv_arr.size)
+                icp_t.append((float(t[n - 1]) - t_delay) / 60.0)
+                icp_y.append(float(cv_arr[n - 1]))
+            if icp_t:
+                ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85, zorder=2,
+                          label="Vial (ICP-OES)")
+
+            pred_cF_t, pred_cF = [], []
+            pred_cH = []
+            pred_cV_t, pred_cV = [], []
+            for sim in sim_stru:
+                t = _np.asarray(sim.get("time", []), dtype=float).reshape(-1)
+                if t.size == 0:
+                    continue
+                cF = _np.asarray(sim.get("cF", []), dtype=float).reshape(-1)
+                cH = _np.asarray(sim.get("cH", []), dtype=float).reshape(-1)
+                cV = _np.asarray(sim.get("cV", []), dtype=float).reshape(-1)
+                if cF.size:
+                    pred_cF_t.extend(t.tolist())
+                    pred_cF.extend(cF.tolist())
+                if cH.size:
+                    pred_cH.extend([(float(tt), float(val)) for tt, val in zip(t, cH)])
+                if cV.size:
+                    pred_cV_t.append(float(t[-1]))
+                    pred_cV.append(float(cV[-1]))
+
+            if pred_cF_t:
+                pred_line_fx = [
+                    patheffects.Stroke(linewidth=4.5, foreground="white"),
+                    patheffects.Normal(),
+                ]
+                ax_c.plot((_np.array(pred_cF_t) - t_delay) / 60.0,
+                          _np.array(pred_cF),
+                          "g-", linewidth=3.2, alpha=1.0, zorder=6,
+                          path_effects=pred_line_fx,
+                          label="Retentate (prediction)")
+
+            if pred_cH:
+                ph_t = (_np.array([t for t, _ in pred_cH]) - t_delay) / 60.0
+                ph_y = _np.array([y for _, y in pred_cH])
+                ax_c.plot(ph_t, ph_y,
+                          "r-", linewidth=3.2, alpha=1.0, zorder=6,
+                          path_effects=pred_line_fx,
+                          label="Permeate (prediction)")
+
+            if pred_cV_t:
+                ax_c.plot((_np.array(pred_cV_t) - t_delay) / 60.0,
+                          _np.array(pred_cV),
+                          "r^", markersize=8, alpha=0.9, zorder=7,
+                          label="Vial (prediction)")
+
+            ax_c.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
+            ax_c.set_ylabel("Concentration [mM]", fontsize=14, fontweight="bold")
+            ax_c.tick_params(direction="in")
+            ax_c.legend(fontsize=10, loc="best")
+            ax_c.set_xlim(left=0)
+            ax_c.set_ylim(bottom=0)
+            fig_c.tight_layout()
+            conc_path = save_dir / f"concentration-{dataset_id}.png"
+            fig_c.savefig(conc_path, dpi=300, bbox_inches="tight")
+            _plt.close(fig_c)
+            saved_paths.append(conc_path)
+            return saved_paths
+
+        globals()["_trim_vial1_to_perm_start"] = _trim_vial1_to_perm_start
+        globals()["render_nf270_fit_v2"] = render_nf270_fit_v2
+        try:
+            for _name in ("_trim_vial1_to_perm_start",):
+                if _name not in __all__:
+                    __all__.append(_name)
+        except NameError:
+            pass
+except Exception:
+    pass
 
 try:
     for _name in (
