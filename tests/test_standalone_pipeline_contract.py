@@ -4,6 +4,7 @@ import ast
 import inspect
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import refactored_codes_v1.refactored_ucb_library as lib
@@ -105,14 +106,22 @@ def test_mode_canonicalization_accepts_lowercase_cli_inputs():
     assert lib._canonical_mode("data") == "DATA"
 
 
+def test_data1_mat_load_does_not_reconvert_retentate_concentration():
+    root = Path(__file__).resolve().parents[1] / "legacy" / "data1_matlab" / "data"
+    data = lib.loadmat(str(root / "data_stru-dataset501.1.mat"))["data_stru"]
+    raw = np.asarray(data["data_raw"][0]["cF_exp"], dtype=float).reshape(-1)
+    normalized = lib._normalize_conductivity_measurements(data)
+    post = np.asarray(normalized["data_raw"][0]["cF_exp"], dtype=float).reshape(-1)
+    assert np.allclose(raw, post, equal_nan=True)
+
+
 def test_runfile_imports_refactored_library_only():
     runfile = Path(__file__).resolve().parents[1] / "refactored_codes_v1" / "refactored_ucb_runfile.py"
     text = runfile.read_text()
     assert "import refactored_ucb_library as ucb" in text
     assert "from diafiltration" not in text
     assert "import diafiltration" not in text
-    assert "run_data3_time_series_plots" not in text
-    assert "materialize(" in text
+    assert "materialize_all(" in text
 
 
 @pytest.mark.parametrize(

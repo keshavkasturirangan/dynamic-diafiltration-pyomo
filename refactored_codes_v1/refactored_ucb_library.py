@@ -197,6 +197,23 @@ def _load_conductivity_paper():
     return cp
 
 
+# Module-level toggle for the mass-litmus test. When True, solve_model pins
+# sigma=0 and replaces the WSSE objective with a mass-only term, even if
+# mass_litmus_test=False is passed explicitly. The runfile sets this for
+# the diagnostic menu option; otherwise it stays False.
+#
+# What the test does
+# ------------------
+# Collapses the parameter estimation to its simplest possible form:
+#   * sigma = 0 (no rejection) → flux equation reduces to Jw = Lp × ΔP
+#   * objective = mass residuals only (drop cV and cF terms)
+# This isolates the volumetric flux model from the concentration model and
+# leaves a one-parameter convex fit (Lp from vial mass slopes). If the
+# mass plots overlay cleanly under this test, the model + data + units
+# pipeline is sound. If they don't, the issue is upstream of the optimizer.
+NF270_MASS_LITMUS_TEST_ACTIVE = False
+
+
 CONDUCTIVITY_SALT_PARAMS_25C = {
     # Simple built-in defaults for the paper data files.
     "KCl": {
@@ -318,8 +335,64 @@ def loadmat(filename):# for fun!
                 elem_list.append(sub_elem)
         return elem_list
     data = spio.loadmat(filename, struct_as_record=False, squeeze_me=True)
-    
+
     return _check_keys(data)
+
+
+def loadxlsx(filename, *, sheet=None):
+    '''
+    Read in an NF270 / DATA3 experimental Excel workbook into the same
+    nested-dict shape that loadmat() produces for DATA1 / DATA2 .mat files.
+
+    The DATA3 workflow is now syntactically identical to DATA1 / DATA2:
+
+        from refactored_ucb_library import *
+
+        # DATA1 / DATA2 (.mat):
+        data_stru = loadmat('data_stru-dataset270511.123.mat')['data_stru']
+
+        # DATA3 / NF270 (.xlsx):
+        data_stru = loadxlsx('NF270_MC2.xlsx', sheet='05.07.24_NaCl')['data_stru']
+
+        sim_stru = []
+        plot_sim_comparison(data_stru, sim_stru, plot_pred=False, lg=True)
+
+        mode = 'Lag'
+        fit_stru, sim_stru, sim_inter = solve_model(
+            data_stru, mode, sim_opt=False, B_form='single')
+        plot_sim_comparison(data_stru, sim_stru, plot_pred=True)
+
+    The returned data_stru carries every field DATA2 .mat data_stru carries:
+    data_config (n, n_v0, n_extra, n_h, n_A, M_F0, M_O, C_F0, C_D, namec,
+    ni, nc, nr, delP, Temp, Am, rho, Lp0, B0, sigma0, theta0) and data_raw
+    (per-vial dicts with time, mass [reset to start at 0g], cF_exp [mM,
+    conductivity-derived], cV_avg [mM, ICP-OES scalar]). The vial-1
+    holdup-fill period is automatically split into a leading "extra"
+    startup vial (n_v0=2, n_extra=1) so the model integrates Jw across
+    the holdup but the objective skips its residuals — same convention
+    DATA1 / DATA2 .mat already use.
+
+    Arguments
+    ---------
+    filename : str or Path
+        Path to the .xlsx file (e.g. "NF270_MC2.xlsx").
+    sheet : str, optional
+        Sheet name to load (e.g. "05.07.24_NaCl"). If None, loads the
+        first sheet in the workbook.
+
+    Returns
+    -------
+    dict
+        {'data_stru': data_stru} — wrapped to match loadmat()'s call
+        pattern so calling code reads identically across DATA1, DATA2,
+        and DATA3 workflows.
+    '''
+    print("\nLoading XLSX file =", filename, "\n")
+    if sheet is not None:
+        print("  sheet =", sheet)
+    data_stru = _load_legacy_data_stru_from_excel(filename, selector=sheet)
+    data_stru["source_format"] = "xlsx"
+    return {"data_stru": data_stru}
 
 
 def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=False,LOUD=False,cond=True,preface=False):
@@ -332,11 +405,12 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
 
     # plot mass data/prediction comparison
     fig = plt.figure(figsize=(4,4))
+    n_v0 = int(data_stru['data_config'].get('n_v0', 1))
     for i in range(data_stru['data_config']['n']):
         time = np.asarray(data_stru['data_raw'][i]['time'], dtype=float)
         mass = np.asarray(data_stru['data_raw'][i]['mass'], dtype=float)
         plt.plot((time-t_delay)/60, mass, 'r.', markersize=4)
-        if plot_pred:
+        if plot_pred and i >= n_v0 - 1:
             plt.plot((np.asarray(sim_stru[i]['time'], dtype=float)-t_delay)/60,
                      np.asarray(sim_stru[i]['mV'], dtype=float),
                      'b', linewidth=3, alpha=.6)
@@ -389,6 +463,7 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
         plt.plot([],[],'r^',markersize=8,label='Vial (Prediction)')
         plt.plot([],[],'r-',linewidth=3,alpha=.6,label='Permeate (Prediction)')
 
+    n_v0 = int(data_stru['data_config'].get('n_v0', 1))
     for i in range(data_stru['data_config']['n']):
         time = np.asarray(data_stru['data_raw'][i]['time'], dtype=float)
         c_v_avg = np.asarray(data_stru['data_raw'][i]['cV_avg'], dtype=float)
@@ -415,7 +490,7 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
                 elif len(cF_exp)>1:
                     plt.plot((time-t_delay)/60,
                              np.asarray(cF_exp, dtype=float),'ms',markersize=8)
-        if plot_pred:
+        if plot_pred and i >= n_v0 - 1:
             sim_time = np.asarray(sim_stru[i]['time'], dtype=float)
             plt.plot((sim_time-t_delay)/60,
                      np.asarray(sim_stru[i]['cF'], dtype=float),
@@ -1324,10 +1399,11 @@ def solve_model(
     workflow_family='DATA1',
     solver_max_iter=3000,
     solver_retry_max_iter=5000,
+    mass_litmus_test=False,
 ):
     """
     Solve pyomo model
-    
+
     Arguments:
         data_stru: dict, experimental data dictionary
         mode: str, experiment mode, {DATA, lag, overflow}
@@ -1337,14 +1413,40 @@ def solve_model(
                 'single' - constant B
                 'per vial' - discrete B per vial
                 'convection' - convection-diffussion model
-                0, -0.5, 0.5, 1, 2, 3 - order of dipendence on concentration 
+                0, -0.5, 0.5, 1, 2, 3 - order of dipendence on concentration
         LOUD: boolean, if print out parameter results and store model predictions
-    
+        mass_litmus_test: boolean, if True pin sigma=0 and use a mass-only
+            WSSE objective. Collapses the fit to its simplest form — a
+            one-parameter Lp fit against vial mass slopes, no concentration
+            coupling. If even THIS doesn't match, the issue is upstream of
+            the optimizer (model, data loading, or units).
+
     Returns:
         fit_stru: dict, parameter fit results
         sim_stru: dict, model predictions
-        sim_inter: dict, model predictions for experimental measurements 
+        sim_inter: dict, model predictions for experimental measurements
     """
+
+    # Honor the module-level diagnostic toggle so the runfile can flip it.
+    mass_litmus_test = bool(mass_litmus_test) or bool(NF270_MASS_LITMUS_TEST_ACTIVE)
+
+    # When the litmus test is active, redirect to the closed-form
+    # mass-balance-only solver. That bypasses Pyomo / IPOPT entirely and
+    # eliminates the implementation slop where B was a free Var with no
+    # objective constraint. The fit_stru / sim_stru shape is identical.
+    if mass_litmus_test and not sim_opt:
+        print("###################################################################")
+        print("[mass-litmus test] redirecting to solve_mass_balance_only")
+        print("                   (sigma=0, B dropped, closed-form np regression)")
+        fit_stru, sim_stru = solve_mass_balance_only(
+            data_stru, B_form=B_form, LOUD=LOUD,
+        )
+        # solve_model historically returned (fit_stru, sim_stru, sim_inter)
+        # but many call sites pack it as (fit_stru, sim_stru) and discard
+        # the third. Synthesize a sim_inter with the same shape as sim_stru
+        # so neither pattern breaks.
+        sim_inter = [{"time": s["time"], "mV": s["mV"]} for s in sim_stru]
+        return fit_stru, sim_stru, sim_inter
 
     print("###################################################################")
     print("Creating and solving the Pyomo model with the following settings: ")
@@ -1497,11 +1599,26 @@ def solve_model(
         m.llh1 = m.count_m*log(m.obj_m) + m.count_cv*log(m.obj_cv) + (m.count_cr0+m.count_cr)*log(m.obj_cr)#m.count * log((obj_m+obj_cp+obj_cf0+obj_cf)/m.count)
         m.llh2 = Count_m*log(ob_m/Count_m) + Count_cp*log(ob_cp/Count_cp) + (count_cf0+Count_cf)*log((ob_cf0+ob_cf)/(count_cf0+Count_cf))
         
+        if mass_litmus_test:
+            # Mass-litmus test: collapse the WSSE to mass only. Drop the cV
+            # and cF residual terms; ignore Count_cp / Count_cf to avoid
+            # divide-by-zero. One-parameter Lp fit against vial mass slopes.
+            return 1e4 * (obj_m / max(Count_m, 1))
         return 1e4*(obj_m/Count_m + obj_cp/Count_cp + (obj_cf0+obj_cf)/(count_cf0+Count_cf))
-    
+
     # pyomo model instance
     instance = model_construct_inter(data_stru, mode, theta, sim_opt, B_form, workflow_family=workflow_family)
     #instance.pprint()
+    if mass_litmus_test and not sim_opt and hasattr(instance, "sigma"):
+        # Pin sigma = 0 so the flux equation collapses to Jw = Lp × ΔP
+        # (no osmotic correction). The Var still exists in the constraint
+        # graph; we just fix it.
+        try:
+            instance.sigma.fix(0.0)
+            instance.sigma.setlb(0.0)
+            instance.sigma.setub(0.0)
+        except AttributeError:
+            pass
     if sim_opt:
         instance.Obj_1 = Objective(expr = 1)
         instance.Obj = Expression(rule=obj_rule)
@@ -2137,11 +2254,158 @@ def solve_model_B_fix(
 
 
 # -----------------------------------------------------------------------------
-# Newer Pyomo tools
+# =============================================================================
+# Mass-balance-only solver (mass-litmus test)
 # -----------------------------------------------------------------------------
 #
-# The legacy functions above still work, but the helpers below let us use the
-# current Pyomo ParmEst and Pyomo.DoE APIs in a simple way.
+# Closed-form, numpy-only solver for the simplest possible reduction of the
+# diafiltration model:
+#
+#     sigma = 0      (no rejection)
+#     B     = N/A    (concentration physics removed entirely)
+#     Jw    = Lp × ΔP / 36000                              [algebraic]
+#     dmV/dt = Jw × Am × ρ                                 [vial mass]
+#     dmF/dt = −S₀ − Am × ρ × Jw                           [feed mass]
+#     mV(t) − mV(t_start) = (Lp × ΔP × Am × ρ / 36000) × (t − t_start)
+#
+# The concentration ODEs (dcF/dt, dcH/dt, dcVmV/dt) are dropped from the
+# model entirely — they couple to Jw only through sigma, which is zero here.
+# What remains is a one-parameter (Lp) linear regression problem, convex
+# with a single global minimum, solvable in closed form.
+#
+# No Pyomo, no IPOPT — np.polyfit-equivalent. The fit_stru / sim_stru output
+# shape matches solve_model so render_nf270_fit_v2 (and any DATA1/DATA2
+# renderer) consumes it without changes.
+# =============================================================================
+
+def solve_mass_balance_only(data_stru, *, B_form='single', LOUD=False, **_unused):
+    """Closed-form mass-balance-only solver.
+
+    Builds the same fit_stru / sim_stru shape that solve_model returns,
+    but the underlying model is the stripped-down mass balance:
+        mV(t) = (Lp × ΔP × Am × ρ / 36000) × (t − t_vial_start)
+    Lp is fit by linear least-squares (zero-intercept) against the
+    aggregated (Δt, mass) pairs from every "real" vial (n_vial >= n_v0;
+    extras are skipped). The prediction trace for extra vials is set to
+    zero so the renderer leaves a gap there.
+
+    No concentration variables, no B, no sigma — those fields are present
+    in the returned fit_stru only as None / 0.0 placeholders so the
+    downstream consumer code doesn't KeyError.
+
+    Returns
+    -------
+    fit_stru : dict
+        Parameter fit results with diagnostic_mode='mass_balance_only'.
+    sim_stru : list of dicts
+        One dict per vial with 'time', 'mV', 'cF', 'cH', 'cV' arrays.
+        cF / cH / cV are zero — concentrations weren't fit.
+    """
+    cfg     = data_stru['data_config']
+    delP    = float(cfg['delP'])
+    Am      = float(cfg['Am'])
+    rho     = float(cfg['rho'])
+    n_v0    = int(cfg.get('n_v0', 1))
+    data_raw = data_stru.get('data_raw', [])
+    if not data_raw:
+        raise ValueError("solve_mass_balance_only: data_raw is empty.")
+
+    # ---- Aggregate (Δt, mass) pairs across real vials -------------------
+    dts, ms = [], []
+    for i, row in enumerate(data_raw):
+        if (i + 1) < n_v0:
+            continue
+        t = np.asarray(row.get('time', []), dtype=float).reshape(-1)
+        m = np.asarray(row.get('mass', []), dtype=float).reshape(-1)
+        if t.size == 0 or m.size == 0:
+            continue
+        n = min(t.size, m.size)
+        t = t[:n]; m = m[:n]
+        valid = np.isfinite(t) & np.isfinite(m)
+        if not valid.any():
+            continue
+        t_start = float(t[valid][0])
+        dts.extend((t[valid] - t_start).tolist())
+        ms.extend(m[valid].tolist())
+
+    dts = np.asarray(dts, dtype=float)
+    ms  = np.asarray(ms,  dtype=float)
+    if dts.size < 2:
+        raise ValueError(
+            "solve_mass_balance_only: need at least 2 valid (t, mass) "
+            "points across real vials. Got {}.".format(dts.size))
+
+    # Zero-intercept linear least-squares: slope = Σ(Δt·m) / Σ(Δt²)
+    denom = float(np.sum(dts * dts))
+    if denom <= 0:
+        raise ValueError("solve_mass_balance_only: degenerate Δt window.")
+    slope_g_per_s = float(np.sum(dts * ms) / denom)
+
+    # Lp [L/(m²·hr·bar)] = slope × 36000 / (Am · ρ · ΔP)
+    if Am <= 0 or rho <= 0 or delP <= 0:
+        raise ValueError(
+            f"solve_mass_balance_only: bad physical constants "
+            f"(Am={Am}, rho={rho}, delP={delP}).")
+    Lp = slope_g_per_s * 36000.0 / (Am * rho * delP)
+
+    if LOUD:
+        print("###################################################################")
+        print("Mass-balance-only solver (closed-form, numpy)")
+        print(f"  N points   = {dts.size}")
+        print(f"  slope      = {slope_g_per_s*1e3:.4f} mg/s")
+        print(f"  Lp         = {Lp:.4f} L/m²/hr/bar")
+        print(f"  ΔP / Am / ρ = {delP:.3f} bar / {Am} cm² / {rho} g/cm³")
+
+    # ---- Build sim_stru: predicted mV per vial --------------------------
+    Jw           = Lp * delP / 36000.0      # cm/s
+    flux_g_per_s = Jw * Am * rho            # g/s; equiv to fitted slope
+
+    sim_stru = []
+    for i, row in enumerate(data_raw):
+        t = np.asarray(row.get('time', []), dtype=float).reshape(-1)
+        if t.size == 0:
+            sim_stru.append({"time": np.array([]), "mV": np.array([]),
+                              "cF": np.array([]), "cH": np.array([]),
+                              "cV": np.array([])})
+            continue
+        if (i + 1) < n_v0:
+            # Extra startup vial: emit zeros so the renderer skips the trace.
+            mV = np.zeros_like(t)
+        else:
+            t_start = float(t[0])
+            mV = flux_g_per_s * (t - t_start)
+        sim_stru.append({
+            "time": t.copy(),
+            "mV":   mV,
+            "cF":   np.zeros_like(t),
+            "cH":   np.zeros_like(t),
+            "cV":   np.array([0.0]),
+        })
+
+    # ---- Residual statistics --------------------------------------------
+    pred = flux_g_per_s * dts
+    resid = pred - ms
+    rmse  = float(np.sqrt(np.mean(resid ** 2)))
+    sse   = float(np.sum(resid ** 2))
+
+    fit_stru = {
+        "parameters": {
+            "Lp":    float(Lp),
+            "B":     None,    # not estimated in mass-balance-only mode
+            "sigma": 0.0,     # pinned by construction
+        },
+        "sideparameters":  {},
+        "diagnostic_mode": "mass_balance_only",
+        "solver_status":   "closed_form",
+        "Obj":             float(1e4 * sse / max(dts.size, 1)),
+        "obj_m":           float(sse / max(dts.size, 1)),
+        "obj_cv":          0.0,
+        "obj_cr":          0.0,
+        "rmse_g":          rmse,
+        "n_points":        int(dts.size),
+        "slope_g_per_s":   slope_g_per_s,
+    }
+    return fit_stru, sim_stru
 
 
 def _last_valid_value(values, default=np.nan):
@@ -2360,6 +2624,17 @@ def _normalize_conductivity_measurements(data_stru, *, output_units="mM", model=
     - convert cF_exp using the paper conductivity equation
     - feed the converted concentration into the existing first-principles model
     """
+    if not isinstance(data_stru, dict):
+        return data_stru
+
+    # Only the Excel/NF270 workflow should be routed through the
+    # conductivity inversion path. DATA1/DATA2 MAT files already store
+    # retentate concentration in the expected units, so converting them
+    # again would shrink the measurements by orders of magnitude.
+    source_format = str(data_stru.get("source_format", "")).strip().lower()
+    if source_format not in {"xlsx", "xls", "excel"} and not data_stru.get("sheet_name"):
+        return data_stru
+
     return convert_experimental_conductivity_to_concentration(
         data_stru,
         output_units=output_units,
@@ -2403,8 +2678,11 @@ def _label_parmest_model(model, data_stru, mode="DATA"):
 
     final_t = model.tau.last()
     output_items = []
+    n_v0 = int(data_stru.get("data_config", {}).get("n_v0", 1))
 
     for i in model.n_vial:
+        if i < n_v0:
+            continue
         row = data_stru["data_raw"][i - 1]
         cF_obs = _last_valid_value(row.get("cF_exp"))
         cV_obs = _last_valid_value(row.get("cV_avg"))
@@ -2547,8 +2825,31 @@ def _segment_indices_by_swap(swap_flags: np.ndarray) -> list[tuple[int, int]]:
     return segments
 
 
+_CATION_MW_G_PER_MOL = {
+    "NaCl":  22.99,    # Na
+    "KCl":   39.10,    # K
+    "CaCl2": 40.08,    # Ca
+    "LaCl3": 138.91,   # La
+}
+
+
 def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> dict:
-    """Load an Excel workbook into the legacy data_stru dict used by the refactored workflow."""
+    """Load a DATA3 / NF270 Excel workbook into the legacy data_stru dict.
+
+    The output is structurally identical to the DATA2 .mat data_stru that
+    utility.py and the legacy parameter estimator already understand:
+        - per-vial mass arrays are RESET so each vial starts at ~0g
+        - per-vial cV_avg is the SCALAR ICP-OES concentration (mM), read
+          from the sidebar columns; falls back to NaN when ICP isn't
+          available
+        - the holdup-fill period at the start of the run is split out as
+          a leading "extra" vial (n_v0=2, n_extra=1) when a lag is
+          detected; the model integrates Jw over that vial but the
+          objective skips its residuals
+        - Lp0 is seeded from vial-1 slope (data-driven), not hard-coded
+        - data_config carries every field DATA2's data_config has,
+          including theta0, nc, nr
+    """
     xl = pd.ExcelFile(path)
     sheet_name = selector if isinstance(selector, str) and selector in xl.sheet_names else xl.sheet_names[0]
     sheet_df = pd.read_excel(path, sheet_name=sheet_name, header=None)
@@ -2561,7 +2862,7 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         return np.asarray(pd.to_numeric(series, errors="coerce"), dtype=float)
 
     time_all = _to_float_series(ts["Time (s)"])
-    mass_all = _to_float_series(ts["Mass (g)"])
+    mass_all_cum = _to_float_series(ts["Mass (g)"])     # cumulative balance reading
     pressure_all = _to_float_series(ts["Pressure (psi)"])
     ret_temp_all = _to_float_series(ts["Retentate Temp"])
     ret_cond_all = _to_float_series(ts["Retentate Cond @ Temp (uS/cm)"])
@@ -2605,80 +2906,235 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
                     return float(val)
         return float(default)
 
+    M_F0 = _meta_float("Initial Solution Weight (g)", "Initial Solution Weight:",
+                        "Initial weight of solution (g)", "Initial weight (g)",
+                        default=10.0)
+    final_solution_weight = _meta_float("Final Solution Weight (g)",
+                                         " Final Solution Weight:",
+                                         "Final Solution Weight:",
+                                         "Final weight of solution (g)",
+                                         "Final weight (g)", default=0.0)
+    n_salts = int(_meta_float("Number of Salts:", "Number of Salts (#)", default=1))
+
+    # ------ Read per-vial ICP-OES from sidebar columns 14-22 ------------
+    # Convention from NF270_MC2.xlsx:
+    #   col 15: row label ("Vial 1".."Vial N", "Feed", "Diafiltrate", ...)
+    #   col 17: sample volume (mL) used for ICP
+    #   col 18: nitric acid volume (mL) used to dilute the sample
+    #   col 20: ICP Salt 1 reading (mg/L of cation, on the diluted sample)
+    # cV_avg for vial i, in mM = col20 × (col17+col18)/col17 / cation_MW
+    cation_mw = _CATION_MW_G_PER_MOL.get(salt_name, 22.99)
+    icp_per_vial = {}    # 1-indexed vial label → cV_avg in mM
+    if sheet_df.shape[1] >= 21:
+        for r in range(min(sheet_df.shape[0], 50)):
+            label = sheet_df.iat[r, 14] if 14 < sheet_df.shape[1] else None
+            if not isinstance(label, str):
+                continue
+            m = re.match(r"\s*Vial\s+(\d+)\s*$", label, flags=re.IGNORECASE)
+            if not m:
+                continue
+            vial_num = int(m.group(1))
+            try:
+                samp_vol = float(sheet_df.iat[r, 16])
+                acid_vol = float(sheet_df.iat[r, 17])
+                icp_mg_L = float(sheet_df.iat[r, 19])
+                if not (np.isfinite(samp_vol) and np.isfinite(acid_vol) and
+                        np.isfinite(icp_mg_L) and samp_vol > 0 and cation_mw > 0):
+                    continue
+                dilution = (samp_vol + acid_vol) / samp_vol
+                # mg/L (diluted) × dilution / MW(g/mol) = mmol/L = mM (cation, equivalent for 1:1 salt)
+                cV_mM = icp_mg_L * dilution / cation_mw
+                icp_per_vial[vial_num] = float(cV_mM)
+            except Exception:
+                continue
+
+    # ------ Build per-vial data_raw with MASS RESET PER VIAL ------------
     data_raw = []
     for idx, (a, b) in enumerate(segments, start=1):
+        seg_mass_cum = mass_all_cum[a:b]
+        # Per-vial mass: subtract the cumulative reading at the vial start
+        # so each vial's mV starts at ~0 (DATA2 .mat convention).
+        # Be robust to a NaN at the very first sample by using the first
+        # finite cumulative reading as the offset.
+        if seg_mass_cum.size > 0:
+            finite = np.isfinite(seg_mass_cum)
+            if finite.any():
+                offset = float(seg_mass_cum[finite][0])
+                seg_mass = seg_mass_cum - offset
+            else:
+                seg_mass = seg_mass_cum
+        else:
+            seg_mass = seg_mass_cum
+        cV_scalar = icp_per_vial.get(idx, np.nan)
         row = {
-            "number": idx,
-            "time": time_all[a:b],
-            "mass": mass_all[a:b],
-            "cF_exp": ret_cond_all[a:b],
-            "cV_avg": perm_cond_all[a:b],
-            "pressure": pressure_all[a:b],
-            "retentate_temp": ret_temp_all[a:b],
-            "permeate_temp": perm_temp_all[a:b],
-            "vial_swap": swap_all[a:b],
+            "number":          idx,
+            "time":            time_all[a:b],
+            "mass":            seg_mass,
+            "cF_exp":          ret_cond_all[a:b],
+            "cV_avg":          float(cV_scalar),         # scalar per vial, in mM
+            "cV_perm_cond":    perm_cond_all[a:b],       # per-sample permeate conductivity (uS/cm)
+            "pressure":        pressure_all[a:b],
+            "retentate_temp":  ret_temp_all[a:b],
+            "permeate_temp":   perm_temp_all[a:b],
+            "vial_swap":       swap_all[a:b],
         }
         data_raw.append(row)
 
     data_stru = {
         "dataset": Path(path).stem,
-        "filename": Path(path).name,
+        "filename": str(metadata.get("Experiment Name:", Path(path).name)),
         "mode": "Lag",
         "continuous_cF": True,
         "conductivity_cF": True,
         "conductivity_cF_converted": False,
         "data_config": {
-            "n": len(data_raw),
-            "n_v0": 1,
-            "n_extra": 0,
-            "n_h": 0,
-            "n_A": 0,
-            "delP": delp,
-            "Temp": temp_k,
-            "Am": 4.1,
-            "rho": 1.0,
-            "M_F0": _meta_float("Initial Solution Weight (g)", "Initial weight of solution (g)", "Initial weight (g)", default=10.0),
-            "M_O": _meta_float("Final Solution Weight (g)", "Final weight of solution (g)", "Final weight (g)", default=0.0),
-            "C_D": c_d,
-            "C_D_units": "mM",
-            "C_F0": float(feed_match.group(1)) if feed_match else 0.0,
+            "n":          len(data_raw),
+            "n_v0":       1,
+            "n_extra":    0,
+            "n_h":        0,
+            "n_A":        0,
+            "nr":         0,
+            "nc":         n_salts,
+            "delP":       delp,
+            "Temp":       temp_k,
+            "Am":         4.1,           # cm²
+            "rho":        1.0,           # g/cm³
+            "M_F0":       M_F0,
+            # M_O = mass overflow / removed: M_F0 minus final solution weight, signed.
+            # DATA2 stores it as negative when feed lost mass (lag mode).
+            "M_O":        float(final_solution_weight - M_F0) if final_solution_weight > 0 else 0.0,
+            "C_D":        c_d,
+            "C_D_units":  "mM",
+            "C_F0":       float(feed_match.group(1)) if feed_match else 0.0,
             "C_F0_units": "mM",
-            "namec": salt_name,
-            "ni": 1,
-            "Lp0": 5.0,
-            "B0": 0.5,
-            "sigma0": 0.9,
-            "theta0": np.array([5.0, 0.5, 0.9], dtype=float),
+            "namec":      salt_name,
+            "ni":         1,
+            "Lp0":        5.0,
+            "B0":         0.5,
+            "sigma0":     0.9,
+            "theta0":     np.array([5.0, 0.5, 0.9], dtype=float),
         },
-        "data_raw": data_raw,
+        "data_raw":   data_raw,
         "sheet_name": sheet_name,
     }
     data_stru = _normalize_conductivity_measurements(data_stru)
     if data_stru.get("data_raw"):
         try:
             first_cf = np.asarray(data_stru["data_raw"][0].get("cF_exp", []), dtype=float).reshape(-1)
-            if first_cf.size:
+            if first_cf.size and np.isfinite(first_cf[0]):
                 data_stru["data_config"]["C_F0"] = float(first_cf[0])
         except Exception:
             pass
-    for row in data_stru.get("data_raw", []):
-        raw_perm = row.get("cV_avg")
-        if raw_perm is None:
-            continue
-        try:
-            row["cV_avg_conductivity"] = copy.deepcopy(raw_perm)
-            row["cV_avg"] = list(
-                _conductivity_to_concentration_series(
-                cond_signal=raw_perm,
-                temp_K=temp_k,
-                salt_name=salt_name,
-                model="variant_shedlovsky",
-                model_params={},
-                output_units="mM",
-                )
-            )
-        except Exception:
-            pass
+
+    # ------ Detect holdup and split vial 1 into [extra, real] -----------
+    # Mirrors the DATA1 / DATA2 utility.py n_v0 / n_extra convention. The
+    # parameter estimator integrates Jw across both vials but the objective
+    # skips residuals for vials with index < n_v0.
+    cfg = data_stru["data_config"]
+    cfg["vial1_split_status"] = "skip_no_data"
+    cfg["t_perm_start_s"]     = None
+    cfg["n_holdup_samples"]   = 0
+    if data_raw:
+        v1 = data_raw[0]
+        t = np.asarray(v1["time"], dtype=float).reshape(-1)
+        m = np.asarray(v1["mass"], dtype=float).reshape(-1)
+        nN = min(t.size, m.size)
+        threshold_g = 0.05      # ≈ one drop above baseline
+        min_holdup  = 3
+        min_real    = 10
+        if nN >= (min_holdup + min_real + 1):
+            t = t[:nN]; m = m[:nN]
+            m_base = float(m[0])
+            rose = (m - m_base) >= threshold_g
+            if rose.any():
+                i_start = int(np.argmax(rose))
+                if i_start >= min_holdup and (nN - i_start) >= min_real:
+                    t_perm_start = float(t[i_start])
+                    # Build holdup row (slice every per-sample array; per-vial
+                    # scalars get NaN since no ICP for the holdup).
+                    def _slice_row(orig_row, lo, hi, *, drop_per_vial_scalars):
+                        new = {}
+                        for key, val in orig_row.items():
+                            try:
+                                arr = np.asarray(val)
+                            except Exception:
+                                new[key] = val
+                                continue
+                            if arr.ndim >= 1 and arr.shape[0] == nN:
+                                new[key] = arr[lo:hi].copy()
+                            elif arr.ndim == 0 or arr.shape == () or arr.size == 1:
+                                new[key] = float("nan") if drop_per_vial_scalars else val
+                            else:
+                                new[key] = val
+                        return new
+                    holdup_row = _slice_row(v1, 0, i_start, drop_per_vial_scalars=True)
+                    real_row   = _slice_row(v1, i_start, nN, drop_per_vial_scalars=False)
+                    # Renumber and reset real-vial mass to start at ~0.
+                    holdup_row["number"] = 1
+                    real_row["number"]   = 2
+                    if isinstance(real_row.get("mass"), np.ndarray) and real_row["mass"].size:
+                        real_row["mass"] = real_row["mass"] - real_row["mass"][0]
+                    # Also zero the holdup mass (it's tiny but consistent).
+                    if isinstance(holdup_row.get("mass"), np.ndarray) and holdup_row["mass"].size:
+                        holdup_row["mass"] = holdup_row["mass"] - holdup_row["mass"][0]
+                    # Renumber subsequent vials.
+                    new_data_raw = [holdup_row, real_row]
+                    for j, r in enumerate(data_raw[1:], start=3):
+                        r["number"] = j
+                        new_data_raw.append(r)
+                    data_stru["data_raw"] = new_data_raw
+                    cfg["n"]                  = len(new_data_raw)
+                    cfg["n_v0"]               = 2
+                    cfg["n_extra"]            = 1
+                    cfg["n_h"]                = 1
+                    cfg["n_A"]                = 1
+                    cfg["vial1_split_status"] = "split"
+                    cfg["t_perm_start_s"]     = t_perm_start
+                    cfg["n_holdup_samples"]   = i_start
+                else:
+                    cfg["vial1_split_status"] = "skip_no_lag"
+            else:
+                cfg["vial1_split_status"] = "skip_no_rise"
+
+    # ------ Lp seed from vial-1 slope (data-driven) ---------------------
+    # Use the first REAL vial (index n_v0, 1-indexed) for the slope fit.
+    cfg["Lp0_method"]            = "fallback_no_real_vial"
+    cfg["Lp0_original_default"]  = 5.0
+    real_vial_idx = max(0, int(cfg.get("n_v0", 1)) - 1)
+    if real_vial_idx < len(data_stru["data_raw"]):
+        rv = data_stru["data_raw"][real_vial_idx]
+        t_rv = np.asarray(rv.get("time", []), dtype=float).reshape(-1)
+        m_rv = np.asarray(rv.get("mass", []), dtype=float).reshape(-1)
+        nN = min(t_rv.size, m_rv.size)
+        if nN >= 3:
+            t_rv = t_rv[:nN]; m_rv = m_rv[:nN]
+            m_max = float(np.nanmax(m_rv))
+            if m_max >= 0.10:
+                # Fit slope on the rising portion (mass between 0.1 g and 0.95 × m_max).
+                keep = (m_rv >= 0.05) & (m_rv <= 0.95 * m_max)
+                if int(keep.sum()) >= 3:
+                    try:
+                        slope, _intercept = np.polyfit(t_rv[keep], m_rv[keep], 1)
+                        # Lp [L/m²/hr/bar] = slope × 36000 / (Am · ρ · ΔP)
+                        # where Am in cm², ρ in g/cm³, ΔP in bar.
+                        Am  = float(cfg.get("Am", 4.1))
+                        rho = float(cfg.get("rho", 1.0))
+                        if Am > 0 and rho > 0 and delp > 0 and np.isfinite(slope) and slope > 0:
+                            lp = float(slope) * 36000.0 / (Am * rho * delp)
+                            if 1.0 <= lp <= 50.0:
+                                cfg["Lp0"] = lp
+                                cfg["theta0"] = np.array([lp, cfg["B0"], cfg["sigma0"]], dtype=float)
+                                cfg["Lp0_method"] = "data_driven"
+                            else:
+                                cfg["Lp0_method"] = "fallback_out_of_bounds"
+                        else:
+                            cfg["Lp0_method"] = "fallback_bad_inputs"
+                    except Exception:
+                        cfg["Lp0_method"] = "fallback_bad_slope"
+                else:
+                    cfg["Lp0_method"] = "fallback_too_few_points"
+            else:
+                cfg["Lp0_method"] = "fallback_no_rise"
     return data_stru
 
 
@@ -8905,36 +9361,32 @@ def _detect_perm_start_per_vial(data_raw, *, threshold_g=0.05):
 
 
 def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
-    """NF270 mass + concentration plots with empirical lag correction.
+    """NF270 mass + concentration plots — DATA2 utility.py convention.
 
-    Key behaviors:
-      - Per-vial saw-tooth mass plot (matches DATA3 paper-style figures).
-      - Empirical lag detection: for each vial, find when mass first rises
-        above 0.05 g (≈ one drop). Use vial 1's lag time as the global
-        plot origin so the X axis reads "time since first permeate".
-      - Both data and predictions are masked to start at each vial's
-        empirical permeate-start time. The prediction's accumulated-but-
-        unobserved holdup-fill mass (the ~0.6 g overshoot in vial 1) is
-        re-anchored to zero at that time, so the visible prediction line
-        overlays the data within parameter-fit tolerance.
-      - Concentration plot uses DATA1 Figure 2 / DATA2 Figure 6 conventions:
-          * Conductivity-derived cF_exp  -> magenta dotted line
-          * ICP-OES per-vial cV_avg      -> cyan squares
-          * Predicted cF (retentate)     -> green solid line, overlaid
-          * Predicted cH (permeate)      -> red solid line, overlaid
-          * Predicted cV (vial)          -> red triangles, overlaid
-      - Time origin and per-vial permeate-start times are stamped onto
-        StageResults.meta so the slide footer / coverage report can
-        report them.
+    With the loader splitting vial 1 into [extra holdup] + [real vial 1]
+    and resetting per-vial mass to start at ~0g, the renderer can use the
+    same simple convention DATA1 / DATA2 already use:
 
-    Returns a list of saved figure paths.
+      - Single global t_delay = data_raw[0]['time'][0]
+      - Plot raw mass values for both data and prediction (no per-vial
+        re-anchoring needed — each vial's mass already starts near 0)
+      - Skip the prediction trace for vials with index < n_v0 (extras)
+      - Data points for the extra vial(s) DO appear (red dots) so the
+        viewer sees the holdup-fill period; only the prediction line
+        is hidden because the model isn't expected to fit it.
+
+    Concentration plot mirrors DATA1 Figure 2 / DATA2 Figure 6:
+      * Conductivity-derived retentate cF_exp  → magenta dotted
+      * ICP-OES per-vial cV_avg                → cyan squares
+      * Predicted cF                           → green solid
+      * Predicted cH                           → red solid
+      * Predicted cV (per vial)                → red triangles
     """
     res = _first_result(results)
     res.require("data")
     data_stru = _data_payload(res)
     sim_stru  = res.sim_stru or []
 
-    # Stamp metadata for the slide footer.
     if run_id and isinstance(res.meta, dict):
         family = NF270_RUN_REGISTRY.get(run_id)
         if family:
@@ -8942,64 +9394,49 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
             res.meta.setdefault("nf270_sheet",    family["sheet"])
             res.meta.setdefault("nf270_membrane", family["membrane"])
 
-    # ----- Detect lag per vial from mass data -----------------------------
     data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
-    t_perm_per_vial = _detect_perm_start_per_vial(data_raw)
-    t_origin = t_perm_per_vial[0] if t_perm_per_vial else 0.0
+    if not data_raw:
+        return []
+    cfg = data_stru.get("data_config", {}) if isinstance(data_stru, dict) else {}
+    n_v0 = int(cfg.get("n_v0", 1))   # 1-based: first "real" vial
 
-    # Cross-check with the pressure ramp (informational only; t_origin uses mass).
-    raw0 = data_raw[0] if data_raw else {}
-    pressure0 = _np.asarray(raw0.get("pressure", []), dtype=float)
-    time0_arr = _np.asarray(raw0.get("time", []), dtype=float)
-    t_pressure_up = _detect_t_delay_from_pressure(time0_arr, pressure0)
-
+    # Single global t_delay = first sample of vial 1 (DATA1 convention).
+    t_delay = float(_np.asarray(data_raw[0]["time"], dtype=float).reshape(-1)[0])
     if isinstance(res.meta, dict):
-        res.meta["t_origin_s"] = float(t_origin)
-        res.meta["t_origin_method"] = "first_mass_rise_above_0.05g"
-        res.meta["t_pressure_up_s"] = float(t_pressure_up)
-        res.meta["t_perm_start_per_vial_s"] = list(t_perm_per_vial)
+        res.meta["t_delay_s"] = float(t_delay)
+        for k in ("vial1_split_status", "t_perm_start_s", "n_holdup_samples",
+                  "Lp0", "Lp0_method", "n_v0", "n_extra"):
+            if k in cfg:
+                res.meta.setdefault(k, cfg[k])
 
-    # ----- Resolve output paths --------------------------------------------
     save_dir = _ensure_save_dir(save_path) or Path.cwd()
     dataset_id = data_stru.get("dataset", "unknown") if isinstance(data_stru, dict) else "unknown"
     saved_paths = []
 
-    # ----- Mass plot: per-vial saw-tooth, lag-corrected --------------------
+    # ----- Mass plot: raw values, single t_delay, DATA1 convention -------
     fig_m, ax_m = _plt.subplots(figsize=(5, 4))
-    n_vials = len(data_raw)
 
-    # Plot data (all vials).
+    # Plot data (all vials, including extras so the holdup is visible).
     for i, row in enumerate(data_raw):
-        t = _np.asarray(row.get("time", []), dtype=float)
-        m = _np.asarray(row.get("mass", []), dtype=float)
+        t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+        m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
         if t.size == 0 or m.size == 0:
             continue
-        t_perm_i = t_perm_per_vial[i] if i < len(t_perm_per_vial) else float(t[0])
-        # Mask: only show samples after this vial's permeate-start.
-        keep = t >= t_perm_i
-        if not keep.any():
-            continue
-        mass_anchor = float(_np.interp(float(t_perm_i), t, m)) if t.size >= 2 else float(m[0])
-        t_show = (t[keep] - t_origin) / 60.0
-        m_show = m[keep]
-        ax_m.plot(t_show, m_show, "r.", markersize=3, alpha=0.65,
+        ax_m.plot((t - t_delay) / 60.0, m, "r.", markersize=3, alpha=0.7,
                   label=("Measurements" if i == 0 else None))
 
-    # Plot predictions (per-vial, lag-corrected).
+    # Plot predictions only for real vials (n_vial >= n_v0, 1-based).
     for i, sim in enumerate(sim_stru):
-        t = _np.asarray(sim.get("time", []), dtype=float)
-        m = _np.asarray(sim.get("mV", []), dtype=float)
-        if t.size == 0 or m.size == 0:
+        # i is 0-based index into sim_stru; sim_stru typically aligns 1:1
+        # with data_raw. Skip if this vial is an extra startup vial.
+        if (i + 1) < n_v0:
             continue
-        t_perm_i = t_perm_per_vial[i] if i < len(t_perm_per_vial) else float(t[0])
-        keep = t >= t_perm_i
-        if not keep.any():
+        t = _np.asarray(sim.get("time", []), dtype=float).reshape(-1)
+        mv = _np.asarray(sim.get("mV", []), dtype=float).reshape(-1)
+        if t.size == 0 or mv.size == 0:
             continue
-        t_show = (t[keep] - t_origin) / 60.0
-        m_base = float(m[0])
-        m_show = m[keep] - m_base
-        ax_m.plot(t_show, m_show, "b-", linewidth=2.0, alpha=0.85,
-                  label=("Predictions" if i == 0 else None))
+        ax_m.plot((t - t_delay) / 60.0, mv, "b-", linewidth=2.0, alpha=0.85,
+                  label=("Predictions" if i + 1 == n_v0 else None))
 
     ax_m.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
     ax_m.set_ylabel("Mass [g]", fontsize=14, fontweight="bold")
@@ -9026,7 +9463,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         n = min(t.size, cf.size)
         cF_t.extend(t[:n].tolist()); cF_y.extend(cf[:n].tolist())
     if cF_t:
-        cF_t_arr = (_np.array(cF_t) - t_origin) / 60.0
+        cF_t_arr = (_np.array(cF_t) - t_delay) / 60.0
         cF_y_arr = _np.array(cF_y)
         # sort by time so the dotted line doesn't backtrack across vial boundaries
         order = _np.argsort(cF_t_arr)
@@ -9043,11 +9480,11 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
             continue
         cv_arr = _np.atleast_1d(_np.asarray(cv, dtype=float))
         if cv_arr.size == 1:
-            icp_t.append((float(t[-1]) - t_origin) / 60.0)
+            icp_t.append((float(t[-1]) - t_delay) / 60.0)
             icp_y.append(float(cv_arr.ravel()[0]))
         else:
             n = min(t.size, cv_arr.size)
-            icp_t.append((float(t[n - 1]) - t_origin) / 60.0)
+            icp_t.append((float(t[n - 1]) - t_delay) / 60.0)
             icp_y.append(float(cv_arr[n - 1]))
     if icp_t:
         ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85, zorder=2,
@@ -9074,14 +9511,14 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
             patheffects.Stroke(linewidth=4.5, foreground="white"),
             patheffects.Normal(),
         ]
-        ax_c.plot((_np.array(pred_cF_t) - t_origin) / 60.0,
+        ax_c.plot((_np.array(pred_cF_t) - t_delay) / 60.0,
                   _np.array(pred_cF),
                   "g-", linewidth=3.2, alpha=1.0, zorder=6,
                   path_effects=pred_line_fx,
                   label="Retentate (prediction)")
 
     if pred_cH:
-        ph_t = (_np.array([t for t, _ in pred_cH]) - t_origin) / 60.0
+        ph_t = (_np.array([t for t, _ in pred_cH]) - t_delay) / 60.0
         ph_y = _np.array([y for _, y in pred_cH])
         ax_c.plot(ph_t, ph_y,
                   "r-", linewidth=3.2, alpha=1.0, zorder=6,
@@ -9089,7 +9526,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
                   label="Permeate (prediction)")
 
     if pred_cV_t:
-        ax_c.plot((_np.array(pred_cV_t) - t_origin) / 60.0,
+        ax_c.plot((_np.array(pred_cV_t) - t_delay) / 60.0,
                   _np.array(pred_cV),
                   "r^", markersize=8, alpha=0.9, zorder=7,
                   label="Vial (prediction)")
@@ -9669,355 +10106,3 @@ def _register_nf270_table_entry():
 _register_nf270_campaign()
 _register_nf270_paper_index()
 _register_nf270_table_entry()
-
-try:
-    if "_orig_load_legacy_excel_pre_lp_seed" not in globals():
-        _orig_load_legacy_excel_pre_lp_seed = _load_legacy_data_stru_from_excel  # type: ignore[name-defined]
-
-        import numpy as _np
-
-        def _estimate_lp_seed_from_data_raw(data_raw, *, A_m_cm2, delP_bar,
-                                            rho_g_per_cm3=1.0,
-                                            fallback=5.0,
-                                            threshold_g=0.05,
-                                            min_points=3,
-                                            upper_fraction=0.95,
-                                            lp_lower=1.0,
-                                            lp_upper=50.0):
-            """Return an Lp seed [L/(m²·hr·bar)] derived from vial-1 mass slope."""
-            if not data_raw or A_m_cm2 <= 0 or delP_bar <= 0:
-                return float(fallback), "fallback_bad_inputs"
-
-            row = data_raw[0]
-            t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
-            m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
-            n = min(t.size, m.size)
-            if n < min_points + 1:
-                return float(fallback), "fallback_too_few_points"
-            t = t[:n]
-            m = m[:n]
-            m_base = float(m[0])
-            rose = (m - m_base) >= threshold_g
-            if not rose.any():
-                return float(fallback), "fallback_no_rise"
-
-            i_start = int(_np.argmax(rose))
-            m_rise = m - m_base
-            m_max = float(_np.nanmax(m_rise[i_start:]))
-            if m_max < 2.0 * threshold_g:
-                return float(fallback), "fallback_too_few_points"
-
-            keep = (m_rise >= threshold_g) & (m_rise <= upper_fraction * m_max)
-            keep[:i_start] = False
-            if int(keep.sum()) < min_points:
-                return float(fallback), "fallback_too_few_points"
-
-            t_fit = t[keep]
-            m_fit = m_rise[keep]
-            try:
-                slope, _intercept = _np.polyfit(t_fit, m_fit, 1)
-            except Exception:
-                return float(fallback), "fallback_bad_slope"
-            if not _np.isfinite(slope) or slope <= 0:
-                return float(fallback), "fallback_bad_slope"
-
-            lp = float(slope) * 36000.0 / (float(A_m_cm2) * float(rho_g_per_cm3) * float(delP_bar))
-            if (not _np.isfinite(lp)) or lp < lp_lower or lp > lp_upper:
-                return float(fallback), "fallback_out_of_bounds"
-            return float(lp), "data_driven"
-
-        def _load_legacy_data_stru_from_excel(*args, **kwargs):  # noqa: F811
-            """Wrapper: call the original loader, then refine ``Lp0`` from the vial-1 mass slope."""
-            data_stru = _orig_load_legacy_excel_pre_lp_seed(*args, **kwargs)
-            cfg = data_stru.get("data_config", {}) if isinstance(data_stru, dict) else {}
-            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
-
-            try:
-                lp_seed, lp_method = _estimate_lp_seed_from_data_raw(
-                    data_raw,
-                    A_m_cm2=float(cfg.get("Am", 4.1)),
-                    delP_bar=float(cfg.get("delP", 0.0)),
-                    rho_g_per_cm3=float(cfg.get("rho", 1.0)),
-                    fallback=float(cfg.get("Lp0", 5.0)),
-                )
-            except Exception:
-                lp_seed = float(cfg.get("Lp0", 5.0))
-                lp_method = "fallback_exception"
-
-            cfg["Lp0_original_default"] = float(cfg.get("Lp0", 5.0))
-            cfg["Lp0"] = float(lp_seed)
-            cfg["Lp0_method"] = str(lp_method)
-
-            try:
-                theta0 = cfg.get("theta0")
-                if theta0 is not None:
-                    arr = _np.asarray(theta0, dtype=float)
-                    if arr.size >= 1:
-                        arr = arr.copy()
-                        arr[0] = float(lp_seed)
-                        cfg["theta0"] = arr
-            except Exception:
-                pass
-
-            return data_stru
-
-        globals()["_load_legacy_data_stru_from_excel"] = _load_legacy_data_stru_from_excel
-        try:
-            for _name in ("_estimate_lp_seed_from_data_raw",):
-                if _name not in __all__:
-                    __all__.append(_name)
-        except NameError:
-            pass
-
-        # =============================================================================
-        # =============================================================================
-        #
-        #   NF270 / DATA3 VIAL-1 TRIM (data2-style fix)  (nf270 vial1 trim patch v1)
-        #
-        # Mirrors the DATA2 lag-mode convention by trimming vial 1's data_raw window
-        # to start at the empirical permeate-start time. This trims the holdup-fill
-        # samples from the first NF270 vial so the fit sees the same effective window
-        # that DATA2 already uses.
-        #
-        # The model still uses the physical mass axis. We simply remove the pre-drop
-        # startup segment from vial 1 at load time, then plot the raw mass values
-        # against the trimmed time axis.
-        #
-        # =============================================================================
-        # =============================================================================
-
-        def _trim_vial1_to_perm_start(data_stru, *, threshold_g=0.05,
-                                       min_samples_kept=10):
-            """Trim vial 1 in-place so the fit starts at empirical permeate start."""
-            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
-            if not data_raw:
-                return "skip_no_data", None, 0
-
-            row = data_raw[0]
-            t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
-            m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
-            n = min(t.size, m.size)
-            if n < min_samples_kept + 1:
-                return "skip_too_few_samples", None, 0
-
-            t = t[:n]
-            m = m[:n]
-            m_base = float(m[0])
-            rose = (m - m_base) >= threshold_g
-            if not rose.any():
-                return "skip_no_rise", None, 0
-
-            i_start = int(_np.argmax(rose))
-            if (n - i_start) < min_samples_kept:
-                return "skip_window_too_small", float(t[i_start]), 0
-            if i_start == 0:
-                return "skip_no_lag", float(t[0]), 0
-
-            t_perm_start = float(t[i_start])
-            new_row = {}
-            for key, val in row.items():
-                try:
-                    arr = _np.asarray(val)
-                    if arr.ndim >= 1 and arr.shape[0] == n:
-                        new_row[key] = arr[i_start:].copy()
-                        continue
-                except Exception:
-                    pass
-                new_row[key] = val
-            data_raw[0] = new_row
-            return "trimmed", t_perm_start, int(i_start)
-
-        def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):  # noqa: F811
-            """NF270 mass + concentration plots with empirical vial-1 trimming."""
-            res = _first_result(results)
-            res.require("data")
-            data_stru = _data_payload(res)
-            sim_stru = res.sim_stru or []
-            if isinstance(sim_stru, dict):
-                sim_stru = [sim_stru[key] for key in sorted(sim_stru)]
-
-            if run_id and isinstance(res.meta, dict):
-                family = NF270_RUN_REGISTRY.get(run_id)
-                if family:
-                    res.meta.setdefault("nf270_workbook", family["workbook"])
-                    res.meta.setdefault("nf270_sheet", family["sheet"])
-                    res.meta.setdefault("nf270_membrane", family["membrane"])
-
-            data_raw = data_stru.get("data_raw", []) if isinstance(data_stru, dict) else []
-            if not data_raw:
-                return []
-
-            t_perm_per_vial = _detect_perm_start_per_vial(data_raw)
-            t_delay = float(_np.asarray(data_raw[0]["time"], dtype=float).reshape(-1)[0])
-            if isinstance(res.meta, dict):
-                res.meta["t_delay_s"] = float(t_delay)
-                res.meta["t_perm_start_per_vial_s"] = list(t_perm_per_vial)
-                cfg = data_stru.get("data_config", {})
-                for k in ("vial1_trim_status", "vial1_trim_t_perm_start_s",
-                          "vial1_trim_n_dropped", "Lp0", "Lp0_method"):
-                    if k in cfg:
-                        res.meta.setdefault(k, cfg[k])
-
-            save_dir = _ensure_save_dir(save_path) or Path.cwd()
-            dataset_id = data_stru.get("dataset", "unknown") if isinstance(data_stru, dict) else "unknown"
-            saved_paths = []
-
-            # ---- Mass plot: per-vial zeroed scale ----------------------------
-            fig_m, ax_m = _plt.subplots(figsize=(5, 4))
-            for i, row in enumerate(data_raw):
-                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
-                m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
-                if t.size == 0 or m.size == 0:
-                    continue
-                m_rel = m - float(m[0])
-                ax_m.plot((t - t_delay) / 60.0, m_rel, "r.", markersize=3, alpha=0.7,
-                          label=("Measurements" if i == 0 else None))
-            for i, sim in enumerate(sim_stru):
-                t = _np.asarray(sim.get("time", []), dtype=float).reshape(-1)
-                mv = _np.asarray(sim.get("mV", []), dtype=float).reshape(-1)
-                if t.size == 0 or mv.size == 0:
-                    continue
-                t_perm_i = t_perm_per_vial[i] if i < len(t_perm_per_vial) else float(t[0])
-                mv_rel = mv - float(mv[0])
-                keep = t >= t_perm_i
-                if keep.any():
-                    t_flat = _np.array([float(t[0]), float(t_perm_i)], dtype=float)
-                    y_flat = _np.array([0.0, 0.0], dtype=float)
-                    t_post = t[keep]
-                    y_post = mv_rel[keep]
-                    t_plot = _np.concatenate([t_flat, t_post])
-                    y_plot = _np.concatenate([y_flat, y_post])
-                else:
-                    t_plot = t
-                    y_plot = _np.zeros_like(t)
-                ax_m.plot((t_plot - t_delay) / 60.0, y_plot, "b-",
-                          linewidth=2.8, alpha=0.95, zorder=6,
-                          label=("Predictions" if i == 0 else None))
-
-            ax_m.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
-            ax_m.set_ylabel("Mass [g]", fontsize=14, fontweight="bold")
-            ax_m.tick_params(direction="in")
-            ax_m.legend(fontsize=10, loc="best")
-            ax_m.set_xlim(left=0)
-            ax_m.set_ylim(bottom=0)
-            fig_m.tight_layout()
-            mass_path = save_dir / f"mass-{dataset_id}.png"
-            fig_m.savefig(mass_path, dpi=300, bbox_inches="tight")
-            _plt.close(fig_m)
-            saved_paths.append(mass_path)
-
-            # ---- Concentration plot: same DATA1/DATA2-style convention -----
-            fig_c, ax_c = _plt.subplots(figsize=(5, 4))
-
-            cF_t, cF_y = [], []
-            for row in data_raw:
-                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
-                cf = _np.asarray(row.get("cF_exp", []), dtype=float).reshape(-1)
-                if t.size == 0 or cf.size == 0:
-                    continue
-                n = min(t.size, cf.size)
-                cF_t.extend(t[:n].tolist())
-                cF_y.extend(cf[:n].tolist())
-            if cF_t:
-                cF_t_arr = (_np.array(cF_t) - t_delay) / 60.0
-                cF_y_arr = _np.array(cF_y)
-                ax_c.plot(cF_t_arr, cF_y_arr, "m:", linewidth=1.5, alpha=0.75,
-                          label="Retentate (conductivity)")
-
-            icp_t, icp_y = [], []
-            for row in data_raw:
-                t = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
-                cv = row.get("cV_avg")
-                if cv is None:
-                    continue
-                cv_arr = _np.asarray(cv, dtype=float).reshape(-1)
-                if t.size == 0 or cv_arr.size == 0:
-                    continue
-                n = min(t.size, cv_arr.size)
-                icp_t.append((float(t[n - 1]) - t_delay) / 60.0)
-                icp_y.append(float(cv_arr[n - 1]))
-            if icp_t:
-                ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85, zorder=2,
-                          label="Vial (ICP-OES)")
-
-            pred_cF_t, pred_cF = [], []
-            pred_cH = []
-            pred_cV_t, pred_cV = [], []
-            for sim in sim_stru:
-                t = _np.asarray(sim.get("time", []), dtype=float).reshape(-1)
-                if t.size == 0:
-                    continue
-                cF = _np.asarray(sim.get("cF", []), dtype=float).reshape(-1)
-                cH = _np.asarray(sim.get("cH", []), dtype=float).reshape(-1)
-                cV = _np.asarray(sim.get("cV", []), dtype=float).reshape(-1)
-                if cF.size:
-                    pred_cF_t.extend(t.tolist())
-                    pred_cF.extend(cF.tolist())
-                if cH.size:
-                    pred_cH.extend([(float(tt), float(val)) for tt, val in zip(t, cH)])
-                if cV.size:
-                    pred_cV_t.append(float(t[-1]))
-                    pred_cV.append(float(cV[-1]))
-
-            if pred_cF_t:
-                pred_line_fx = [
-                    patheffects.Stroke(linewidth=4.5, foreground="white"),
-                    patheffects.Normal(),
-                ]
-                ax_c.plot((_np.array(pred_cF_t) - t_delay) / 60.0,
-                          _np.array(pred_cF),
-                          "g-", linewidth=3.2, alpha=1.0, zorder=6,
-                          path_effects=pred_line_fx,
-                          label="Retentate (prediction)")
-
-            if pred_cH:
-                ph_t = (_np.array([t for t, _ in pred_cH]) - t_delay) / 60.0
-                ph_y = _np.array([y for _, y in pred_cH])
-                ax_c.plot(ph_t, ph_y,
-                          "r-", linewidth=3.2, alpha=1.0, zorder=6,
-                          path_effects=pred_line_fx,
-                          label="Permeate (prediction)")
-
-            if pred_cV_t:
-                ax_c.plot((_np.array(pred_cV_t) - t_delay) / 60.0,
-                          _np.array(pred_cV),
-                          "r^", markersize=8, alpha=0.9, zorder=7,
-                          label="Vial (prediction)")
-
-            ax_c.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
-            ax_c.set_ylabel("Concentration [mM]", fontsize=14, fontweight="bold")
-            ax_c.tick_params(direction="in")
-            ax_c.legend(fontsize=10, loc="best")
-            ax_c.set_xlim(left=0)
-            ax_c.set_ylim(bottom=0)
-            fig_c.tight_layout()
-            conc_path = save_dir / f"concentration-{dataset_id}.png"
-            fig_c.savefig(conc_path, dpi=300, bbox_inches="tight")
-            _plt.close(fig_c)
-            saved_paths.append(conc_path)
-            return saved_paths
-
-        globals()["_trim_vial1_to_perm_start"] = _trim_vial1_to_perm_start
-        globals()["render_nf270_fit_v2"] = render_nf270_fit_v2
-        try:
-            for _name in ("_trim_vial1_to_perm_start",):
-                if _name not in __all__:
-                    __all__.append(_name)
-        except NameError:
-            pass
-except Exception:
-    pass
-
-try:
-    for _name in (
-        "NF270_RUN_REGISTRY",
-        "NF270_RUN_QUALITY",
-        "NF270_SINGLE_SALT_RUNS",
-        "NF270_FAST_SUBSET",
-        "render_nf270_fit",
-        "render_nf270_parameters_table",
-    ):
-        if _name not in __all__:
-            __all__.append(_name)
-except NameError:
-    pass
