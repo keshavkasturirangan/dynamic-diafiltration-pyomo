@@ -1,0 +1,21 @@
+b_form,metric,paper_value,unified_value,status,warning
+"I={0,-0.5}",WLS objective,88.23,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,-0.5}",complexity k,8.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,-0.5}",Delta,1740.82,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,-0.5}",Akaike weight,0.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,-0.5}",rank,4.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,0.5}",WLS objective,83.83,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,0.5}",complexity k,8.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,0.5}",Delta,830.96,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,0.5}",Akaike weight,3.6200000000000004e-181,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,0.5}",rank,2.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1}",WLS objective,82.04,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1}",complexity k,8.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1}",Delta,0.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1}",Akaike weight,1.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1}",rank,1.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1,2}",WLS objective,79.23,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1,2}",complexity k,9.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1,2}",Delta,968.13,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1,2}",Akaike weight,5.94e-211,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+"I={0,1,2}",rank,3.0,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).

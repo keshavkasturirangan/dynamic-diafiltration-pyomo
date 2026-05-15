@@ -1,0 +1,5 @@
+run_id,variant,data_file,B,Lp,sigma
+501.1,,/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data/data_stru-dataset501.1.mat,0.6711889754309195,4.370215971021172,0.9999991659638737
+501.11,,/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data/data_stru-dataset501.11.mat,0.6715069468838083,4.297870034584913,0.8288117294415268
+511.11,,/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data/data_stru-dataset511.11.mat,0.30966385542253755,3.2506806633352987,0.999999999976011
+511.12,,/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data/data_stru-dataset511.12.mat,0.29488950569933514,3.8994072433389944,0.9999999963565619

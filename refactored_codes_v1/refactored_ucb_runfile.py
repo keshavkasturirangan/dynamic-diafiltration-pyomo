@@ -208,6 +208,8 @@ def pick_subset(root: str):
         return None
     if root == "DATA3":
         print("\nSubset within NF270 campaign:")
+        # Option 2 is the full single-salt sweep; option 4 is the quick
+        # smoke test when you only want to confirm the pipeline is alive.
         print("  1. All 26 green-flagged sheets")
         print("  2. Single-salt only (11 sheets — 6 NaCl, 3 CaCl2, 2 LaCl3)")
         print("  3. One specific sheet (you'll be prompted)")
@@ -373,6 +375,15 @@ def _dispatch_paper_campaign(root: str, subset, trunk: dict, branches: set[str])
     _print_outputs(root, results)
     _print_coverage(root, save_dir)
 
+    if root == "DATA1" and _prompt_yes_no("Run the direct DATA1 contour-grid branch as well?", "n"):
+        direct_dir = save_dir / "direct_contours"
+        direct_outputs = ucb.run_data1_direct_contour_branch(data_root=data_root, save_dir=direct_dir)
+        print(f"\n[DATA1 direct contours] files written: {len(direct_outputs)}")
+        for path in direct_outputs[:12]:
+            print(f"  + {path}")
+        if len(direct_outputs) > 12:
+            print("  (truncated)")
+
 
 def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
     """DATA3 / NF270 — also through materialize_all."""
@@ -401,6 +412,35 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
         extra_opts["compute_doe"] = True
     if trunk.get("litmus"):
         extra_opts["mass_litmus_test"] = True
+
+    if trunk.get("name") == "simulate":
+        nfe_default = 80
+    elif subset == NF270_SINGLE_SALT_RUNS:
+        # The full single-salt sweep is the heaviest NF270 path, so give it a
+        # slightly lighter default mesh to keep the overnight batch tractable.
+        nfe_default = 100
+    elif subset == NF270_FAST_SUBSET:
+        nfe_default = 80
+    else:
+        nfe_default = 150
+    nfe = _prompt("Finite-difference nodes (nfe)", str(nfe_default))
+    try:
+        nfe = max(20, int(nfe))
+    except ValueError:
+        nfe = nfe_default
+    # Forward the mesh choice and any multistart override into the manifest
+    # driven dispatcher without rewriting the underlying campaign recipe.
+    request_overrides = {"nfe": nfe}
+    if trunk.get("multistart"):
+        ms_raw = _prompt("Multistart LHS starts (5-14)", "5")
+        try:
+            ms = max(5, min(14, int(ms_raw)))
+        except ValueError:
+            ms = 5
+        request_overrides["multistart_iterations"] = ms
+        print(f"  multistart: {ms} Latin-hypercube starts")
+    extra_opts["request_overrides"] = request_overrides
+    print(f"  mesh nfe:   {nfe} finite-difference nodes")
 
     # Toggle the module-level mass-litmus flag for the duration of this run.
     prior_litmus = getattr(ucb, "NF270_MASS_LITMUS_TEST_ACTIVE", False)
@@ -442,6 +482,22 @@ def _dispatch_custom(trunk: dict, branches: set[str]) -> None:
     workflow_family = _prompt("Workflow family (DATA1/DATA2/DATA3)",
                                "DATA3" if is_xlsx else "DATA2").strip().upper()
     B_form = _prompt("B form (single / pervial / convection / 0..3)", "single")
+    # DATA3 xlsx sheets usually need a lighter default mesh than the legacy
+    # .mat paths, which keeps the one-off custom workflow responsive.
+    nfe_default = "150" if is_xlsx and workflow_family == "DATA3" else "300"
+    nfe_raw = _prompt("Finite-difference nodes (nfe)", nfe_default)
+    try:
+        nfe = max(20, int(nfe_raw))
+    except ValueError:
+        nfe = int(nfe_default)
+    multistart_iterations = 10
+    if trunk.get("multistart"):
+        ms_raw = _prompt("Multistart LHS starts (5-14)", "5")
+        try:
+            multistart_iterations = max(5, min(14, int(ms_raw)))
+        except ValueError:
+            multistart_iterations = 5
+        print(f"Multistart LHS starts: {multistart_iterations}")
 
     use_parmest = (trunk.get("name") != "simulate")
     uq_method = "fim" if trunk.get("fim") else None
@@ -461,7 +517,9 @@ def _dispatch_custom(trunk: dict, branches: set[str]) -> None:
         file_path,
         mode=mode, workflow_family=workflow_family, B_form=B_form,
         selector=selector, use_parmest=use_parmest,
-        uncertainty_method=uq_method,
+        uncertainty_method=uq_method, nfe=nfe,
+        multistart=trunk.get("multistart", False),
+        multistart_iterations=multistart_iterations,
     )
     if is_xlsx and workflow_family == "DATA3":
         figs = ucb.run_data3_time_series_plots(

@@ -53,14 +53,52 @@ def _has_casadi():
 
 def _preferred_ipopt_linear_solver():
     """Prefer HSL when present, otherwise fall back to the portable MUMPS build."""
-    return "ma97" if ctypes.util.find_library("hsl") else "mumps"
+    # Keep this overridable from the environment so a machine-specific solver
+    # can be selected without touching the code.
+    override = os.environ.get("DIAFILTRATION_IPOPT_LINEAR_SOLVER", "").strip().lower()
+    if override in {"ma97", "ma57", "mumps"}:
+        return override
+    # The packaged Ipopt build in this environment advertises HSL support, but
+    # ctypes lookup is not always reliable. Prefer the sparse HSL solvers when
+    # a user has not explicitly overridden the choice; fall back to MUMPS if
+    # the solver binary does not accept the requested linear solver at runtime.
+    if ctypes.util.find_library("hsl"):
+        return "ma97"
+    return "mumps"
 
 
 def _build_ipopt_solver():
     """Create an Ipopt solver configured for the current machine."""
     solver = SolverFactory("ipopt")
-    solver.options["linear_solver"] = _preferred_ipopt_linear_solver()
+    linear_solver = _preferred_ipopt_linear_solver()
+    solver.options["linear_solver"] = linear_solver
     return solver
+
+
+def _resolve_ipopt_cpu_time_limit(*, solver_max_cpu_time=None, multistart=False):
+    """Resolve an optional Ipopt CPU-time cap.
+
+    Multistart fits are exploratory by nature, so they get a modest default
+    cap unless the caller or environment overrides it.
+    """
+    if solver_max_cpu_time is not None:
+        try:
+            value = float(solver_max_cpu_time)
+            return value if value > 0 else None
+        except Exception:
+            return None
+
+    env_value = os.environ.get("DIAFILTRATION_IPOPT_MAX_CPU_TIME", "").strip()
+    if env_value:
+        try:
+            value = float(env_value)
+            return value if value > 0 else None
+        except Exception:
+            pass
+
+    if multistart:
+        return 600.0
+    return None
 
 
 def _canonical_mode(mode):
@@ -183,11 +221,20 @@ def _data3_diffusivity_cm2_s(namec):
 
 
 def _load_conductivity_paper():
-    """Load the local copy of `conductivity_paper.py` next to this library."""
+    """Load the original paper conductivity model used by the DATA3 workflow."""
     import importlib.util
     from importlib.machinery import SourceFileLoader
 
-    paper_path = Path(__file__).resolve().parent / "conductivity_paper.py"
+    paper_path = (
+        Path(__file__).resolve().parents[1]
+        / "UnifiedFramework"
+        / "DATA3"
+        / "ExperimentalDataAnalysis"
+        / "UnifiedCode"
+        / "conductivity_paper.py"
+    )
+    if not paper_path.exists():
+        raise FileNotFoundError(f"Conductivity paper source not found: {paper_path}")
     spec = importlib.util.spec_from_loader(
         "conductivity_paper",
         SourceFileLoader("conductivity_paper", str(paper_path)),
@@ -973,8 +1020,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     nu = 8.927e-3 #[cm^2/s]
     # diameter of stirred cell
     b = 2.2860 #[cm]
-    # average velocity within the system
-    v = 350/60 * np.pi * b #[cm/s]
+    # Average velocity within the system. DATA3 workbooks can supply the
+    # stir speed in the notes; otherwise we keep the historical 350 RPM default.
+    rpm = data_stru['data_config'].get('stir_rpm', data_stru['data_config'].get('rpm', 350.0))
+    try:
+        rpm = float(rpm)
+    except Exception:
+        rpm = 350.0
+    v = rpm / 60 * np.pi * b #[cm/s]
     # diffusion coefficient
     if str(workflow_family).upper() == "DATA3":
         D = _data3_diffusivity_cm2_s(data_stru['data_config'].get('namec'))
@@ -1397,9 +1450,14 @@ def solve_model(
     B_form='single',
     LOUD=False,
     workflow_family='DATA1',
+    nfe=300,
     solver_max_iter=3000,
     solver_retry_max_iter=5000,
+    solver_max_cpu_time=None,
     mass_litmus_test=False,
+    multistart=False,
+    multistart_iterations=10,
+    multistart_seed=13,
 ):
     """
     Solve pyomo model
@@ -1448,6 +1506,23 @@ def solve_model(
         sim_inter = [{"time": s["time"], "mV": s["mV"]} for s in sim_stru]
         return fit_stru, sim_stru, sim_inter
 
+    if bool(multistart) and not sim_opt:
+        return _solve_model_multistart(
+            data_stru,
+            mode,
+            theta=theta,
+            B_form=B_form,
+            LOUD=LOUD,
+            workflow_family=workflow_family,
+            nfe=nfe,
+            solver_max_iter=solver_max_iter,
+            solver_retry_max_iter=solver_retry_max_iter,
+            solver_max_cpu_time=solver_max_cpu_time,
+            mass_litmus_test=mass_litmus_test,
+            multistart_iterations=multistart_iterations,
+            multistart_seed=multistart_seed,
+        )
+
     print("###################################################################")
     print("Creating and solving the Pyomo model with the following settings: ")
     print("mode =", mode)
@@ -1476,6 +1551,11 @@ def solve_model(
         """
         pyomo Objective function (residual calculated using interpolation from model)
         """
+        # Keep the DATA2-style 0.01 g mass weight unless a caller has
+        # explicitly injected a different value into data_config.
+        mass_scale = float(data_stru["data_config"].get("mass_scale_g", 0.01))
+        if not np.isfinite(mass_scale) or mass_scale <= 0:
+            mass_scale = 0.01
         obj_m = 0
         obj_cp = 0
         obj_cf0 = 0
@@ -1520,8 +1600,8 @@ def solve_model(
                 if not np.isnan(mv_meas[i]):
                     res_m = mv_pred[i]-mv_meas[i]            
                     count_m += 1
-                    res_m_.append(res_m/0.01)
-                    obj_mi += (res_m/0.01)**2 # 0.01g error             
+                    res_m_.append(res_m/mass_scale)
+                    obj_mi += (res_m/mass_scale)**2
                     ob_mi += res_m**2
             if n_vial >= data_stru['data_config']['n_v0']: 
                 Count_m += count_m
@@ -1579,7 +1659,19 @@ def solve_model(
                     count_cf0 += count_cf
                     obj_cf0 += obj_cfi#/count_cf/collect_vial
                     ob_cf0 += ob_cfi
-        
+
+        final_tube_meas = data_stru["data_config"].get("cF_final_meas", np.nan)
+        if not np.isfinite(final_tube_meas):
+            final_tube_meas = data_stru["data_config"].get("icp_final_tube_mM", np.nan)
+        if np.isfinite(final_tube_meas):
+            final_scale = _abs_scale(final_tube_meas, 0.003, 0.003)
+            res_cf_final = m.cF[m.n_vial.last(), m.tau.last()] - final_tube_meas
+            res_cf_assemble.append(res_cf_final / final_scale)
+            obj_cf += (res_cf_final / final_scale) ** 2
+            final_denom = final_tube_meas if np.isfinite(final_tube_meas) and abs(final_tube_meas) > 0 else final_scale
+            ob_cf += (res_cf_final / final_denom) ** 2
+            Count_cf += 1
+
         m.count_m = Count_m
         m.count_cv = Count_cp
         m.count_cr = Count_cf
@@ -1631,14 +1723,21 @@ def solve_model(
         sim = Simulator(instance, package='casadi') 
         tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
         # Discretize the model using finite_difference
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
+        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
         # Initialize the discretized model using the simulator profiles
         sim.initialize_model()
     except Exception as e:
         print(f"Initialization failed: {e}. Applying discretization without initialization.")
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
+        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
 
     solver = _build_ipopt_solver()
+    cpu_time_limit = _resolve_ipopt_cpu_time_limit(
+        solver_max_cpu_time=solver_max_cpu_time,
+        multistart=multistart,
+    )
+    if cpu_time_limit is not None:
+        solver.options["max_cpu_time"] = cpu_time_limit
+        print(f"max_cpu_time={cpu_time_limit}")
     solver.options["max_iter"] = solver_max_iter
     #solver.options["halt_on_ampl_error"] = "yes" # option 1
     #solver.options["print_level"] = 1 # option 2
@@ -1779,7 +1878,7 @@ def nested_dict_update(dict_nest,new_value,i=0):
     return dict_nest
 
 
-def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form='single', workflow_family='DATA1'):
+def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form='single', workflow_family='DATA1', nfe=300):
     """
     Calculate FIM
     
@@ -1809,6 +1908,7 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
             sim_opt=sim_opt_flag,
             B_form=B_form,
             workflow_family=workflow_family,
+            nfe=nfe,
         )
         if workflow_tag == "DATA2":
             solve_kwargs["solver_max_iter"] = 3000
@@ -1989,8 +2089,10 @@ def solve_model_B_fix(
     sigma_fixed=True,
     LOUD=False,
     workflow_family='DATA1',
+    nfe=300,
     solver_max_iter=3000,
     solver_retry_max_iter=5000,
+    solver_max_cpu_time=None,
 ):
     """
     Solve pyomo model
@@ -2046,6 +2148,13 @@ def solve_model_B_fix(
         """
         pyomo Objective function (residual calculated using interpolation from model)
         """
+        # Salt-aware mass normalization.  The current loader keeps the
+        # DATA2-style 0.01 g weight in data_config, so the fit stays aligned
+        # with the published convention unless a caller deliberately overrides
+        # it for an experiment.
+        mass_scale = float(data_stru["data_config"].get("mass_scale_g", 0.01))
+        if not np.isfinite(mass_scale) or mass_scale <= 0:
+            mass_scale = 0.01
         obj_m = 0
         obj_cp = 0
         obj_cf0 = 0
@@ -2057,7 +2166,7 @@ def solve_model_B_fix(
         res_m_assemble = []
         res_cp_assemble = []
         res_cf_assemble = []
-        
+
         collect_vial = data_stru['data_config']['n'] - data_stru['data_config']['n_extra']
         Count_m = 0
         Count_cp = 0
@@ -2065,18 +2174,18 @@ def solve_model_B_fix(
         count_cf0 = 0
         t_delay = _data1_time_origin(data_stru)
         TF_list = [data_stru['data_raw'][i]['time'][-1]-t_delay for i in range(data_stru['data_config']['n'])]
-        TF_dict = dict(zip(m.n_vial,TF_list)) # unscaled time elapse for each vial 
+        TF_dict = dict(zip(m.n_vial,TF_list)) # unscaled time elapse for each vial
         TI_list = [data_stru['data_raw'][i]['time'][0]-t_delay for i in range(data_stru['data_config']['n'])]
         TI_dict = dict(zip(m.n_vial,TI_list)) # unscaled initial time for each vial
-    
+
         for n_vial in m.n_vial:
             t_meas = _data1_shifted_time(data_stru, n_vial-1)
             mv_meas = np.asarray(data_stru['data_raw'][n_vial-1]['mass'], dtype=float)
             cp_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg'], dtype=float)
             cf_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cF_exp'], dtype=float)
-    
+
             t_meas_scaled = [(t-TI_dict[n_vial])/(TF_dict[n_vial]-TI_dict[n_vial]) for t in t_meas]
-            
+
             mv_pred=[]
             res_m_=[]
             obj_mi = 0
@@ -2085,12 +2194,12 @@ def solve_model_B_fix(
             for i in range(0,len(t_meas_scaled)):
                 mv_inter = interpolation(m,m.mV,n_vial,t_meas_scaled[i])
                 mv_pred.append(mv_inter)
-                
+
                 if not np.isnan(mv_meas[i]):
-                    res_m = mv_pred[i]-mv_meas[i]            
+                    res_m = mv_pred[i]-mv_meas[i]
                     count_m += 1
-                    res_m_.append(res_m/0.01)
-                    obj_mi += (res_m/0.01)**2 # 0.01g error             
+                    res_m_.append(res_m/mass_scale)
+                    obj_mi += (res_m/mass_scale)**2  # salt-aware mass weight
                     ob_mi += res_m**2
             if n_vial >= data_stru['data_config']['n_v0']: 
                 Count_m += count_m
@@ -2192,13 +2301,20 @@ def solve_model_B_fix(
         sim = Simulator(instance, package='casadi') 
         tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
         # Discretize the model using finite difference
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
+        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
         # Initialize the discretized model using the simulator profiles
         sim.initialize_model()
     except:
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=300, scheme='BACKWARD')
+        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
 
     solver = _build_ipopt_solver()
+    cpu_time_limit = _resolve_ipopt_cpu_time_limit(
+        solver_max_cpu_time=solver_max_cpu_time,
+        multistart=False,
+    )
+    if cpu_time_limit is not None:
+        solver.options["max_cpu_time"] = cpu_time_limit
+        print(f"max_cpu_time={cpu_time_limit}")
     solver.options["max_iter"] = solver_max_iter
 
     results = solver.solve(instance,tee=True)
@@ -2694,6 +2810,13 @@ def _label_parmest_model(model, data_stru, mode="DATA"):
         if hasattr(model, "mF"):
             output_items.append((model.mF[i, final_t], mass_obs, _abs_scale(mass_obs, 0.01, 0.01)))
 
+    final_tube_meas = _last_valid_value(data_stru.get("data_config", {}).get("cF_final_meas"))
+    if final_tube_meas is not None and np.isfinite(final_tube_meas):
+        model.cF_terminal_obs = Expression(expr=model.cF[model.n_vial.last(), final_t])
+        output_items.append(
+            (model.cF_terminal_obs, final_tube_meas, _abs_scale(final_tube_meas, 0.003, 0.003))
+        )
+
     for expr, obs, err in output_items:
         model.experiment_outputs[expr] = obs
         model.measurement_error[expr] = err
@@ -2832,6 +2955,58 @@ _CATION_MW_G_PER_MOL = {
     "LaCl3": 138.91,   # La
 }
 
+# ---------------------------------------------------------------------------
+# Salt-aware mass-residual uncertainty (used by legacy diagnostics)
+# ---------------------------------------------------------------------------
+# The WSSE objective now keeps the DATA2-style 0.01 g default in the loader.
+# This helper remains available for older notebooks / diagnostics that want
+# to inspect the balance-noise + model-misfit decomposition explicitly.
+MASS_BALANCE_SIGMA_G = 0.01         # analytical balance precision, g/reading
+MASS_MODEL_FIT_TOLERANCE = 0.05     # expected model misfit, fraction of |signal|
+
+
+def _data3_mass_scale_g(M_F0, final_solution_weight):
+    """Per-sheet mass uncertainty for legacy diagnostics.
+
+    Combines balance precision (instrument noise floor, constant across salts)
+    with a model-misfit budget proportional to the per-sheet mass-loss signal
+    |Final Solution Weight - M_F0|, in quadrature.  The loader does not use
+    this value as the default WSSE weight anymore; it is retained for
+    compatibility with old plots and reports.
+
+    Returns
+    -------
+    mass_scale_g : float
+        sigma on a single mass measurement, in grams.
+    components : dict
+        Breakdown of the two contributions, useful for plot annotation /
+        diagnostics:
+            {"signal_g": float, "sigma_balance_g": float,
+             "sigma_model_g": float, "sigma_total_g": float,
+             "model_fraction": float}
+    """
+    try:
+        M_F0_f = float(M_F0)
+    except Exception:
+        M_F0_f = 0.0
+    try:
+        final_f = float(final_solution_weight)
+    except Exception:
+        final_f = 0.0
+    # Use the observed per-sheet mass loss as the signal term for the
+    # salt-specific model-misfit budget.
+    signal = abs(final_f - M_F0_f) if final_f > 0 else 0.0
+    sigma_balance = float(MASS_BALANCE_SIGMA_G)
+    sigma_model = float(MASS_MODEL_FIT_TOLERANCE) * signal
+    sigma_total = float(np.sqrt(sigma_balance ** 2 + sigma_model ** 2))
+    return sigma_total, {
+        "signal_g":         signal,
+        "sigma_balance_g":  sigma_balance,
+        "sigma_model_g":    sigma_model,
+        "sigma_total_g":    sigma_total,
+        "model_fraction":   float(MASS_MODEL_FIT_TOLERANCE),
+    }
+
 
 def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> dict:
     """Load a DATA3 / NF270 Excel workbook into the legacy data_stru dict.
@@ -2878,26 +3053,17 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     temp_k = float(np.nanmean(ret_temp_all) + 273.15) if np.isfinite(np.nanmean(ret_temp_all)) else 298.15
     delp_psi = float(np.nanmean(pressure_all)) if np.isfinite(np.nanmean(pressure_all)) else 0.0
     delp = delp_psi * 0.0689475729
-    c_d = 0.0
-    feed_match = re.search(r"Feed:\s*([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
-    diafiltrate_match = re.search(r"Diafiltrate:\s*([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
-    if diafiltrate_match:
+    rpm_match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*RPM\b", note_text, flags=re.IGNORECASE)
+    rpm_note = float(rpm_match.group(1)) if rpm_match else 350.0
+    feed_match = re.search(r"Feed[\s\-:]+([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
+    diafiltrate_match = re.search(r"Diafiltrate[\s\-:]+([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE)
+    note_mM_tokens = []
+    for token in re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE):
         try:
-            c_d = float(diafiltrate_match.group(1))
+            note_mM_tokens.append(float(token))
         except Exception:
-            c_d = 0.0
-    elif feed_match:
-        try:
-            c_d = float(feed_match.group(1))
-        except Exception:
-            c_d = 0.0
-    else:
-        for token in re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*mM", note_text, flags=re.IGNORECASE):
-            try:
-                c_d = float(token)
-                break
-            except Exception:
-                pass
+            continue
+    first_note_mM = note_mM_tokens[0] if note_mM_tokens else np.nan
     def _meta_float(*keys, default):
         for key in keys:
             if key in metadata:
@@ -2905,6 +3071,51 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
                 if pd.notna(val):
                     return float(val)
         return float(default)
+
+    def _parse_sidebar_icp_rows():
+        """Collect the sidebar ICP rows so cross-checks stay available downstream."""
+        rows = {}
+        per_vial = {}
+        if sheet_df.shape[1] < 20:
+            return rows, per_vial
+
+        for r in range(min(sheet_df.shape[0], 80)):
+            label = sheet_df.iat[r, 14] if 14 < sheet_df.shape[1] else None
+            if not isinstance(label, str):
+                continue
+            label_norm = re.sub(r"\s+", " ", label).strip()
+            try:
+                samp_vol = float(pd.to_numeric(sheet_df.iat[r, 16], errors="coerce"))
+                acid_vol = float(pd.to_numeric(sheet_df.iat[r, 17], errors="coerce"))
+                icp_mg_L = float(pd.to_numeric(sheet_df.iat[r, 19], errors="coerce"))
+            except Exception:
+                continue
+            if not (np.isfinite(samp_vol) and np.isfinite(acid_vol) and np.isfinite(icp_mg_L)):
+                continue
+            if samp_vol <= 0:
+                continue
+
+            cation_mw = _CATION_MW_G_PER_MOL.get(salt_name, 22.99)
+            if cation_mw <= 0:
+                continue
+
+            dilution = (samp_vol + acid_vol) / samp_vol
+            cV_mM = icp_mg_L * dilution / cation_mw
+            record = {
+                "label": label_norm,
+                "sample_volume_mL": float(samp_vol),
+                "nitric_acid_volume_mL": float(acid_vol),
+                "icp_cation_mg_L": float(icp_mg_L),
+                "cation_mw_g_per_mol": float(cation_mw),
+                "dilution_factor": float(dilution),
+                "cV_avg_mM": float(cV_mM),
+            }
+            rows[label_norm] = record
+            vial_match = re.match(r"Vial\s+(\d+)\s*$", label_norm, flags=re.IGNORECASE)
+            if vial_match:
+                per_vial[int(vial_match.group(1))] = float(cV_mM)
+
+        return rows, per_vial
 
     M_F0 = _meta_float("Initial Solution Weight (g)", "Initial Solution Weight:",
                         "Initial weight of solution (g)", "Initial weight (g)",
@@ -2922,31 +3133,30 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     #   col 17: sample volume (mL) used for ICP
     #   col 18: nitric acid volume (mL) used to dilute the sample
     #   col 20: ICP Salt 1 reading (mg/L of cation, on the diluted sample)
-    # cV_avg for vial i, in mM = col20 × (col17+col18)/col17 / cation_MW
-    cation_mw = _CATION_MW_G_PER_MOL.get(salt_name, 22.99)
-    icp_per_vial = {}    # 1-indexed vial label → cV_avg in mM
-    if sheet_df.shape[1] >= 21:
-        for r in range(min(sheet_df.shape[0], 50)):
-            label = sheet_df.iat[r, 14] if 14 < sheet_df.shape[1] else None
-            if not isinstance(label, str):
-                continue
-            m = re.match(r"\s*Vial\s+(\d+)\s*$", label, flags=re.IGNORECASE)
-            if not m:
-                continue
-            vial_num = int(m.group(1))
-            try:
-                samp_vol = float(sheet_df.iat[r, 16])
-                acid_vol = float(sheet_df.iat[r, 17])
-                icp_mg_L = float(sheet_df.iat[r, 19])
-                if not (np.isfinite(samp_vol) and np.isfinite(acid_vol) and
-                        np.isfinite(icp_mg_L) and samp_vol > 0 and cation_mw > 0):
-                    continue
-                dilution = (samp_vol + acid_vol) / samp_vol
-                # mg/L (diluted) × dilution / MW(g/mol) = mmol/L = mM (cation, equivalent for 1:1 salt)
-                cV_mM = icp_mg_L * dilution / cation_mw
-                icp_per_vial[vial_num] = float(cV_mM)
-            except Exception:
-                continue
+    # cV_avg for any sidebar row in mM = col20 × (col17+col18)/col17 / cation_MW
+    sidebar_icp_rows, icp_per_vial = _parse_sidebar_icp_rows()
+
+    def _sidebar_mM(label: str):
+        rec = sidebar_icp_rows.get(label)
+        if not rec:
+            return np.nan
+        value = rec.get("cV_avg_mM", np.nan)
+        return float(value) if np.isfinite(value) else np.nan
+
+    feed_icp_mM = _sidebar_mM("Feed")
+    diafiltrate_icp_mM = _sidebar_mM("Diafiltrate")
+    retentate_icp_mM = _sidebar_mM("Retentate")
+    final_tube_icp_mM = _sidebar_mM("Final Tube")
+    feed_note_mM = float(feed_match.group(1)) if feed_match else np.nan
+    diafiltrate_note_mM = float(diafiltrate_match.group(1)) if diafiltrate_match else np.nan
+    c_f0_value = feed_icp_mM if np.isfinite(feed_icp_mM) else (
+        feed_note_mM if np.isfinite(feed_note_mM) else first_note_mM
+    )
+    c_d_value = diafiltrate_icp_mM if np.isfinite(diafiltrate_icp_mM) else (
+        diafiltrate_note_mM if np.isfinite(diafiltrate_note_mM) else (
+            feed_note_mM if np.isfinite(feed_note_mM) else first_note_mM
+        )
+    )
 
     # ------ Build per-vial data_raw with MASS RESET PER VIAL ------------
     data_raw = []
@@ -2980,6 +3190,12 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         }
         data_raw.append(row)
 
+    # Keep the DATA2-style 0.01 g mass weight for parity.  The more
+    # elaborate quadrature helper remains available for older diagnostics,
+    # but the loader itself no longer uses it as the objective weight.
+    _mass_scale_g_val = 0.01
+    _mass_scale_components = {}
+
     data_stru = {
         "dataset": Path(path).stem,
         "filename": str(metadata.get("Experiment Name:", Path(path).name)),
@@ -2997,15 +3213,33 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
             "nc":         n_salts,
             "delP":       delp,
             "Temp":       temp_k,
+            "rpm":        rpm_note,
+            "stir_rpm":   rpm_note,
+            "rpm_source": "note_text" if rpm_match else "default_350RPM",
             "Am":         4.1,           # cm²
             "rho":        1.0,           # g/cm³
             "M_F0":       M_F0,
             # M_O = mass overflow / removed: M_F0 minus final solution weight, signed.
             # DATA2 stores it as negative when feed lost mass (lag mode).
             "M_O":        float(final_solution_weight - M_F0) if final_solution_weight > 0 else 0.0,
-            "C_D":        c_d,
+            # WSSE mass-residual uncertainty for this sheet.  DATA3 keeps
+            # the DATA2-style 0.01 g weight unless a caller overrides it.
+            "mass_scale_g":          _mass_scale_g_val,
+            "mass_scale_source":     "legacy balance-only (DATA2 parity)",
+            "mass_scale_components": _mass_scale_components,
+            "C_D":        c_d_value if np.isfinite(c_d_value) else 0.0,
+            "C_D_source": "sidebar_icp:Diafiltrate" if np.isfinite(diafiltrate_icp_mM) else (
+                "note_text:Diafiltrate" if np.isfinite(diafiltrate_note_mM) else (
+                    "note_text:first_mM" if np.isfinite(first_note_mM) else "unavailable"
+                )
+            ),
             "C_D_units":  "mM",
-            "C_F0":       float(feed_match.group(1)) if feed_match else 0.0,
+            "C_F0":       c_f0_value if np.isfinite(c_f0_value) else 0.0,
+            "C_F0_source": "sidebar_icp:Feed" if np.isfinite(feed_icp_mM) else (
+                "note_text:Feed" if np.isfinite(feed_note_mM) else (
+                    "note_text:first_mM" if np.isfinite(first_note_mM) else "first_cF_exp_fallback"
+                )
+            ),
             "C_F0_units": "mM",
             "namec":      salt_name,
             "ni":         1,
@@ -3013,6 +3247,14 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
             "B0":         0.5,
             "sigma0":     0.9,
             "theta0":     np.array([5.0, 0.5, 0.9], dtype=float),
+            "icp_sidebar_rows": sidebar_icp_rows,
+            "cF_feed_icp_mM": feed_icp_mM,
+            "cF_diafiltrate_icp_mM": diafiltrate_icp_mM,
+            "cF_retentate_icp_mM": retentate_icp_mM,
+            "cF_final_icp_mM": final_tube_icp_mM,
+            "icp_final_tube_mM": final_tube_icp_mM,
+            "cF_final_meas": final_tube_icp_mM,
+            "note_text": note_text,
         },
         "data_raw":   data_raw,
         "sheet_name": sheet_name,
@@ -3021,8 +3263,13 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     if data_stru.get("data_raw"):
         try:
             first_cf = np.asarray(data_stru["data_raw"][0].get("cF_exp", []), dtype=float).reshape(-1)
-            if first_cf.size and np.isfinite(first_cf[0]):
+            if data_stru["data_config"].get("C_F0_source") == "first_cF_exp_fallback":
+                if first_cf.size and np.isfinite(first_cf[0]):
+                    data_stru["data_config"]["C_F0"] = float(first_cf[0])
+            elif (not np.isfinite(data_stru["data_config"].get("C_F0", np.nan))
+                    and first_cf.size and np.isfinite(first_cf[0])):
                 data_stru["data_config"]["C_F0"] = float(first_cf[0])
+                data_stru["data_config"]["C_F0_source"] = "first_cF_exp_fallback"
         except Exception:
             pass
 
@@ -3311,7 +3558,7 @@ def load_experimental_data(mat_file_path, results=None, selector=None):
     return results
 
 
-def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single"):
+def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single", nfe=300):
     """Stage 2: build the first-principles Pyomo model."""
     if "data" not in results:
         raise RuntimeError("Stage 1 must run before Stage 2.")
@@ -3330,6 +3577,7 @@ def build_model(results, mode="DATA", workflow_family="DATA1", B_form="single"):
         "mode": mode,
         "workflow_family": workflow_family,
         "B_form": B_form,
+        "nfe": int(nfe),
         "is_batch": bool(results.get("is_batch")),
     }
     return results
@@ -3341,6 +3589,7 @@ def estimate_parameters(
     use_parmest=False,
     multistart=False,
     multistart_iterations=10,
+    nfe=300,
     tee=False,
 ):
     """Stage 3: estimate parameters with ParmEst or the legacy solver path."""
@@ -3363,6 +3612,7 @@ def estimate_parameters(
             mode=mode,
             theta=None,
             B_form=B_form,
+            nfe=nfe,
             workflow_family=workflow_family,
             tee=tee,
         )
@@ -3378,6 +3628,9 @@ def estimate_parameters(
             sim_opt=False,
             B_form=B_form,
             workflow_family=workflow_family,
+            nfe=nfe,
+            multistart=multistart,
+            multistart_iterations=multistart_iterations,
         )
     else:
         fit_stru, sim_stru, sim_inter = solve_model(
@@ -3387,13 +3640,19 @@ def estimate_parameters(
             sim_opt=False,
             B_form=B_form,
             workflow_family=workflow_family,
+            nfe=nfe,
+            multistart=multistart,
+            multistart_iterations=multistart_iterations,
         )
         results["parameters"] = fit_stru.get("parameters", {}) if fit_stru else {}
 
     results["fit_stru"] = fit_stru
     results["sim_stru"] = sim_stru
     results["sim_inter"] = sim_inter
-    results["multistart"] = {
+    results["multistart"] = fit_stru.get("multistart", {
+        "enabled": bool(multistart),
+        "iterations": int(multistart_iterations),
+    }) if isinstance(fit_stru, dict) else {
         "enabled": bool(multistart),
         "iterations": int(multistart_iterations),
     }
@@ -3407,6 +3666,7 @@ def quantify_uncertainty(
     cov_method="finite_difference",
     fim_step=1e-8,
     fim_formula="backward",
+    nfe=300,
 ):
     """Stage 4: quantify uncertainty with covariance or FIM."""
     if "parameters" not in results:
@@ -3434,6 +3694,7 @@ def quantify_uncertainty(
             formula=fim_formula,
             B_form=B_form,
             workflow_family=workflow_family,
+            nfe=nfe,
         )
         results["uncertainty"] = {
             "method": "calc_FIM",
@@ -3470,6 +3731,7 @@ def run_workflow(
     use_parmest=False,
     multistart=False,
     multistart_iterations=10,
+    nfe=300,
     uncertainty_method="fim",
     cov_method="finite_difference",
     fim_step=1e-8,
@@ -3486,12 +3748,13 @@ def run_workflow(
 
     results = {}
     results = load_experimental_data(mat_file_path, results, selector=selector)
-    results = build_model(results, mode=mode, workflow_family=workflow_family, B_form=B_form)
+    results = build_model(results, mode=mode, workflow_family=workflow_family, B_form=B_form, nfe=nfe)
     results = estimate_parameters(
         results,
         use_parmest=use_parmest,
         multistart=multistart,
         multistart_iterations=multistart_iterations,
+        nfe=nfe,
     )
     results = quantify_uncertainty(
         results,
@@ -3499,6 +3762,7 @@ def run_workflow(
         cov_method=cov_method,
         fim_step=fim_step,
         fim_formula=fim_formula,
+        nfe=nfe,
     )
     if not skip_mbdoe:
         results = design_next_experiment(results)
@@ -3516,6 +3780,28 @@ def _sanitize_filename_component(value):
     return token.strip("._-") or "data3"
 
 
+def _plot_time_minutes(time_array, *, t_delay, extra_offset=0.0):
+    """Convert a raw second-based time array into shifted minutes."""
+    return (np.asarray(time_array, dtype=float) - float(t_delay) - float(extra_offset)) / 60.0
+
+
+def _normalize_sim_stru(sim_stru):
+    """Return simulation results as an ordered list of per-vial dicts."""
+    if isinstance(sim_stru, dict):
+        items = []
+        for key, value in sim_stru.items():
+            try:
+                sort_key = int(key)
+            except Exception:
+                sort_key = str(key)
+            items.append((sort_key, value))
+        items.sort(key=lambda item: item[0])
+        return [value for _, value in items if isinstance(value, dict)]
+    if isinstance(sim_stru, (list, tuple)):
+        return [value for value in sim_stru if isinstance(value, dict)]
+    return []
+
+
 def run_data3_time_series_plots(results, save_dir=None, show=False):
     """Create DATA3-only mass and concentration time-series plots from a staged workflow result."""
     settings = results.get("model_settings", {})
@@ -3528,7 +3814,7 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
     if not isinstance(data_payload, dict):
         return []
 
-    sim_stru = results.get("sim_stru") or []
+    sim_stru = _normalize_sim_stru(results.get("sim_stru") or [])
     save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3537,6 +3823,7 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
     prefix = f"{file_slug}_{sheet_slug}"
     t_delay = _data1_time_origin(data_payload)
     n_vials = int(data_payload.get("data_config", {}).get("n", len(data_payload.get("data_raw", []))))
+    n_v0 = int(data_payload.get("data_config", {}).get("n_v0", 1))
     outputs = []
 
     # Mass vs time
@@ -3547,13 +3834,13 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
         mass = np.asarray(row.get("mass", []), dtype=float)
         if time.size and mass.size:
             mass_rel = mass - mass[0]
-            mass_ax.plot((time - t_delay) / 60.0, mass_rel, "r.", markersize=4)
-        if i < len(sim_stru):
+            mass_ax.plot(_plot_time_minutes(time, t_delay=t_delay), mass_rel, "r.", markersize=4)
+        if i < len(sim_stru) and (i + 1) >= n_v0:
             sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
             sim_mass = np.asarray(sim_stru[i].get("mV", []), dtype=float)
             if sim_time.size and sim_mass.size:
                 sim_mass_rel = sim_mass - sim_mass[0]
-                mass_ax.plot((sim_time - t_delay) / 60.0, sim_mass_rel, "b", linewidth=3, alpha=0.6)
+                mass_ax.plot(_plot_time_minutes(sim_time, t_delay=t_delay), sim_mass_rel, "b", linewidth=3, alpha=0.6)
     mass_ax.plot([], [], "r.", markersize=4, label="Measurements")
     mass_ax.plot([], [], "b", linewidth=3, alpha=0.6, label="Predictions")
     mass_ax.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
@@ -3564,6 +3851,37 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
     mass_ax.set_xlim(left=0)
     mass_ax.set_ylim(bottom=0)
     mass_ax.legend(fontsize=10, loc="best")
+    # Annotate the per-sheet WSSE mass-residual uncertainty.  The current
+    # loader keeps the DATA2-style 0.01 g convention, but if a caller has
+    # injected decomposition metadata we still render it here for context.
+    _cfg_for_annot = data_payload.get("data_config", {}) if isinstance(data_payload, dict) else {}
+    _mass_scale_g = float(_cfg_for_annot.get("mass_scale_g", 0.01))
+    if not np.isfinite(_mass_scale_g) or _mass_scale_g <= 0:
+        _mass_scale_g = 0.01
+    _components = _cfg_for_annot.get("mass_scale_components") or {}
+    if _components:
+        _sig = float(_components.get("signal_g", 0.0))
+        _sb  = float(_components.get("sigma_balance_g", MASS_BALANCE_SIGMA_G))
+        _sm  = float(_components.get("sigma_model_g", 0.0))
+        _frac = float(_components.get("model_fraction", MASS_MODEL_FIT_TOLERANCE))
+        _ann_text = (
+            f"WSSE mass σ = {_mass_scale_g:.3g} g\n"
+            f"  σ_balance = {_sb:.3g} g\n"
+            f"  σ_model  = {_frac:.2g} × |Δm| = {_sm:.3g} g\n"
+            f"  |Δm|      = {_sig:.3g} g"
+        )
+    else:
+        _ann_text = f"WSSE mass σ = {_mass_scale_g:.3g} g (legacy balance-only)"
+    mass_ax.text(
+        0.02, 0.97,
+        _ann_text,
+        transform=mass_ax.transAxes,
+        fontsize=8,
+        verticalalignment="top",
+        horizontalalignment="left",
+        family="monospace",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
+    )
     mass_path = save_dir / f"mass-{prefix}.png"
     mass_fig.savefig(mass_path, dpi=300, bbox_inches="tight")
     outputs.append(str(mass_path))
@@ -3573,47 +3891,118 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
 
     # Concentration vs time
     conc_fig, conc_ax = plt.subplots(figsize=(4, 4))
-    for i in range(min(n_vials, len(data_payload.get("data_raw", [])))):
-        row = data_payload["data_raw"][i]
-        time = np.asarray(row.get("time", []), dtype=float)
-        if not time.size:
+    data_raw = data_payload.get("data_raw", [])
+    seen_ret_meas = False
+    seen_perm_meas = False
+    seen_ret_pred = False
+    seen_perm_pred = False
+    seen_vial_pred = False
+    for i, row in enumerate(data_raw):
+        time = np.asarray(row.get("time", []), dtype=float).reshape(-1)
+        if time.size == 0:
             continue
-
-        cF_exp = np.asarray(row.get("cF_exp", []), dtype=float)
+        cF_exp = np.asarray(row.get("cF_exp", []), dtype=float).reshape(-1)
         cV_avg = np.asarray(row.get("cV_avg", []), dtype=float)
+        cV_avg_arr = np.atleast_1d(cV_avg).astype(float, copy=False)
 
         if cF_exp.size:
-            if cF_exp.ndim == 0 or cF_exp.size == 1:
-                conc_ax.plot((time[-1] - t_delay) / 60.0, float(cF_exp.reshape(-1)[0]), "ms", markersize=8, clip_on=False)
+            if cF_exp.size == 1:
+                conc_ax.plot(
+                    _plot_time_minutes(time[-1], t_delay=t_delay),
+                    float(cF_exp[0]),
+                    "ms",
+                    markersize=8,
+                    clip_on=False,
+                    label="Retentate (Measurement)" if not seen_ret_meas else None,
+                )
             else:
                 n = min(len(time), len(cF_exp))
-                conc_ax.plot((time[:n] - t_delay) / 60.0, cF_exp[:n], "ms", markersize=8, clip_on=False)
+                conc_ax.plot(
+                    _plot_time_minutes(time[:n], t_delay=t_delay),
+                    cF_exp[:n],
+                    "ms",
+                    markersize=8,
+                    clip_on=False,
+                    label="Retentate (Measurement)" if not seen_ret_meas else None,
+                )
+            seen_ret_meas = True
 
-        if cV_avg.size:
-            if cV_avg.ndim == 0 or cV_avg.size == 1:
-                conc_ax.plot((time[-1] - t_delay) / 60.0, float(cV_avg.reshape(-1)[0]), "cs", markersize=8, clip_on=False)
+        if cV_avg_arr.size:
+            if cV_avg_arr.ndim == 0 or cV_avg_arr.size == 1:
+                conc_ax.plot(
+                    _plot_time_minutes(time[-1], t_delay=t_delay),
+                    float(cV_avg_arr.reshape(-1)[0]),
+                    "cs",
+                    markersize=8,
+                    clip_on=False,
+                    label="Permeate (Measurement)" if not seen_perm_meas else None,
+                )
             else:
-                n = min(len(time), len(cV_avg))
-                conc_ax.plot((time[:n] - t_delay) / 60.0, cV_avg[:n], "cs", markersize=8, clip_on=False)
+                n = min(len(time), len(cV_avg_arr))
+                conc_ax.plot(
+                    _plot_time_minutes(time[:n], t_delay=t_delay),
+                    cV_avg_arr[:n],
+                    "cs",
+                    markersize=8,
+                    clip_on=False,
+                    label="Permeate (Measurement)" if not seen_perm_meas else None,
+                )
+            seen_perm_meas = True
 
-        if i < len(sim_stru):
-            sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
-            if sim_time.size:
-                cF = np.asarray(sim_stru[i].get("cF", []), dtype=float)
-                cH = np.asarray(sim_stru[i].get("cH", []), dtype=float)
-                cV = np.asarray(sim_stru[i].get("cV", []), dtype=float)
-                if cF.size:
-                    conc_ax.plot((sim_time - t_delay) / 60.0, cF, "g", linewidth=3, alpha=0.6)
-                if cH.size:
-                    conc_ax.plot((sim_time - t_delay) / 60.0, cH, "r-", linewidth=3, alpha=0.6)
-                if cV.size:
-                    conc_ax.plot((sim_time - t_delay) / 60.0, cV, "r^", markersize=8, alpha=0.6)
+        if i >= len(sim_stru) or (i + 1) < n_v0:
+            continue
 
-    conc_ax.plot([], [], "ms", markersize=8, clip_on=False, label="Retentate (Measurement)")
-    conc_ax.plot([], [], "g", linewidth=3, label="Retentate (Prediction)")
-    conc_ax.plot([], [], "cs", markersize=8, label="Vial (Measurement)")
-    conc_ax.plot([], [], "r^", markersize=8, label="Vial (Prediction)")
-    conc_ax.plot([], [], "r-", linewidth=3, alpha=0.6, label="Permeate (Prediction)")
+        sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float).reshape(-1)
+        if sim_time.size == 0:
+            continue
+        cF = np.asarray(sim_stru[i].get("cF", []), dtype=float).reshape(-1)
+        cH = np.asarray(sim_stru[i].get("cH", []), dtype=float).reshape(-1)
+        cV = np.asarray(sim_stru[i].get("cV", []), dtype=float).reshape(-1)
+        if cF.size:
+            conc_ax.plot(
+                _plot_time_minutes(sim_time, t_delay=t_delay),
+                cF,
+                color="g",
+                linewidth=3,
+                alpha=0.9,
+                label="Retentate (Prediction)" if not seen_ret_pred else None,
+            )
+            seen_ret_pred = True
+        if cH.size:
+            conc_ax.plot(
+                _plot_time_minutes(sim_time, t_delay=t_delay),
+                cH,
+                color="r",
+                linestyle="-",
+                linewidth=3,
+                alpha=0.9,
+                label="Permeate (Prediction)" if not seen_perm_pred else None,
+            )
+            seen_perm_pred = True
+        if cV.size:
+            if cV_avg_arr.ndim == 0 or cV_avg_arr.size == 1:
+                conc_ax.plot(
+                    _plot_time_minutes(sim_time[-1], t_delay=t_delay),
+                    float(cV[-1]),
+                    "r^",
+                    markersize=8,
+                    alpha=0.95,
+                    label="Vial (Prediction)" if not seen_vial_pred else None,
+                )
+            else:
+                valid = ~np.isnan(cV_avg_arr[: min(len(time), len(cV_avg_arr))])
+                if np.any(valid):
+                    time_shifted = time[: min(len(time), len(cV_avg_arr))]
+                    interp_cv = interpolate.interp1d(sim_time, cV, fill_value="extrapolate")
+                    conc_ax.plot(
+                        _plot_time_minutes(time_shifted[valid], t_delay=t_delay),
+                        interp_cv(time_shifted[valid]),
+                        "r^",
+                        markersize=8,
+                        alpha=0.95,
+                        label="Vial (Prediction)" if not seen_vial_pred else None,
+                    )
+            seen_vial_pred = True
     conc_ax.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
     conc_ax.set_ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
     conc_ax.tick_params(direction="in")
@@ -3782,9 +4171,15 @@ def _plot_contour_data1_legacy(df, output_prefix, save_dir, show_title=False, pr
     f_rc = df.Obj_retentate_concentration.values
     ind_rc = np.argmin(f_rc)
 
-    F_m = np.reshape(f_m, (50, 50))
-    F_pc = np.reshape(f_pc, (50, 50))
-    F_rc = np.reshape(f_rc, (50, 50))
+    grid_size = int(round(np.sqrt(len(f_m))))
+    if grid_size * grid_size != len(f_m):
+        raise ValueError(
+            f"Contour dataframe must contain a square grid; got {len(f_m)} rows."
+        )
+
+    F_m = np.reshape(f_m, (grid_size, grid_size))
+    F_pc = np.reshape(f_pc, (grid_size, grid_size))
+    F_rc = np.reshape(f_rc, (grid_size, grid_size))
 
     if "B" in df:
         xx = df.B.values
@@ -3809,8 +4204,8 @@ def _plot_contour_data1_legacy(df, output_prefix, save_dir, show_title=False, pr
         ylabelstr = r"L$\mathbf{_p}$ [L $\mathbf{ \cdot}$ m$\mathbf{^{-2} \cdot}$h$\mathbf{^{-1} \cdot}$bar$\mathbf{^{-1}}$]"
 
     yy = df.Lp.values
-    X = np.reshape(xx, (50, 50))
-    Y = np.reshape(yy, (50, 50))
+    X = np.reshape(xx, (grid_size, grid_size))
+    Y = np.reshape(yy, (grid_size, grid_size))
 
     panel_specs = [
         ("mass", F_m, ind_m, "Log$\\mathbf{_e}$ transformed \n Mass Objective"),
@@ -5049,6 +5444,201 @@ def run_data1_figure6_workflow(data_root=None, save_dir=None):
             outputs.append(str(composite))
     except Exception:
         pass
+
+    return outputs
+
+
+def _data1_contour_theta_from_fit(fit_stru):
+    """Extract a flat theta dictionary from a legacy DATA1 fit bundle."""
+    if not isinstance(fit_stru, dict):
+        return {}
+
+    theta = {}
+
+    def _as_float(value):
+        if isinstance(value, dict):
+            if not value:
+                return None
+            try:
+                value = next(iter(value.values()))
+            except Exception:
+                return None
+        arr = np.asarray(value, dtype=float)
+        if arr.size == 0:
+            return None
+        return float(arr.reshape(-1)[0])
+
+    params = fit_stru.get("parameters", {})
+    if isinstance(params, dict):
+        search_spaces = [params, fit_stru]
+    else:
+        search_spaces = [fit_stru]
+
+    for key in ("Lp", "B", "sigma", "beta_0", "beta_1", "beta_2", "beta_3", "S0", "S"):
+        for space in search_spaces:
+            if key not in space:
+                continue
+            val = _as_float(space[key])
+            if val is not None:
+                theta[key] = val
+                break
+
+    if "B" not in theta:
+        if "beta_0" in theta:
+            theta["B"] = float(theta["beta_0"])
+        elif "beta_1" in theta:
+            theta["B"] = float(theta["beta_1"])
+
+    theta.setdefault("sigma", 1.0)
+    theta.setdefault("Lp", 1.0)
+    return theta
+
+
+def _data1_direct_contour_grid(exp, theta_base, x_name, x_values, lp_values):
+    """Evaluate one DATA1 contour grid using the unified direct simulator."""
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebase_library import (
+        evaluate_data1_paper_contour_objectives_v24,
+        simulate_data1_vialwise_trajectories_v24,
+    )
+
+    rows = []
+    for x_val in x_values:
+        for lp_val in lp_values:
+            theta = dict(theta_base)
+            theta[x_name] = float(x_val)
+            theta["Lp"] = float(lp_val)
+            sim = simulate_data1_vialwise_trajectories_v24(exp, theta)
+            scores = evaluate_data1_paper_contour_objectives_v24(exp, sim).as_dict()
+            rows.append(
+                {
+                    x_name: float(x_val),
+                    "Lp": float(lp_val),
+                    "Obj_mass": float(scores["mass_log10"]),
+                    "Obj_concentration": float(scores["permeate_log10"]),
+                    "Obj_retentate_concentration": float(scores["retentate_log10"]),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def run_data1_direct_contour_branch(data_root=None, save_dir=None, grid_density=50):
+    """Regenerate the DATA1 contour-grid branch directly from the unified evaluator.
+
+    This is the DATA1-only analogue of the legacy MATLAB ``calc_contour_2d.m``
+    path: each contour panel is computed on a parameter grid, written to CSV,
+    and then rendered with the notebook-style contour panel helper.
+    """
+    root = _resolve_data1_figure2_root(data_root)
+    save_dir = Path(save_dir) if save_dir is not None else root / "data1_direct_contours"
+    if save_dir.suffix:
+        save_dir = save_dir.parent
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    from UnifiedFramework.DATA3.ExperimentalDataAnalysis.UnifiedCode.unified_codebase_library import (
+        load_experiment_easy,
+    )
+
+    page_specs = [
+        ("figure_5_direct", [
+            ("A", "511.12 concpolar"),
+            ("B", "511.11 concpolar"),
+            ("C", "511.12"),
+        ], "sigma"),
+        ("figure_6_direct", [
+            ("A", "511.12 concpolar"),
+            ("B", "511.11 concpolar"),
+            ("C", "511.12"),
+        ], "B"),
+        ("figure_s3_direct", [
+            ("A", "511.12 concpolar"),
+            ("B", "511.11 concpolar"),
+            ("C", "511.12"),
+            ("D", "511.11"),
+        ], "sigma"),
+        ("figure_s4_direct", [
+            ("A", "511.12 concpolar"),
+            ("B", "511.11 concpolar"),
+            ("C", "511.12"),
+            ("D", "511.11"),
+        ], "B"),
+        ("figure_s5_direct", [
+            ("A", "501.1 concpolar"),
+            ("B", "501.11 concpolar"),
+            ("C", "501.1"),
+            ("D", "501.11"),
+        ], "sigma"),
+        ("figure_s6_direct", [
+            ("A", "501.1 concpolar"),
+            ("B", "501.11 concpolar"),
+            ("C", "501.1"),
+            ("D", "501.11"),
+        ], "B"),
+    ]
+
+    outputs = []
+    x_ranges = {
+        "sigma": (0.0, 1.0),
+        "B": (0.0, 2.0),
+    }
+    lp_range = (0.5, 7.4)
+
+    for page_name, cases, x_name in page_specs:
+        row_groups = []
+        row_labels = []
+        for label, folder in cases:
+            run_id = folder.split()[0]
+            data_path = root / f"data_stru-dataset{run_id}.mat"
+            fit_path = root / folder / "fit_stru.mat"
+            if not data_path.exists() or not fit_path.exists():
+                continue
+
+            exp, _ = load_experiment_easy(str(data_path), selector="data_stru")
+            fit_bundle = loadmat(str(fit_path)).get("fit_stru")
+            theta_base = _data1_contour_theta_from_fit(fit_bundle)
+            if not theta_base:
+                continue
+
+            x_lb, x_ub = x_ranges[x_name]
+            x_values = np.linspace(x_lb, x_ub, int(grid_density))
+            lp_values = np.linspace(lp_range[0], lp_range[1], int(grid_density))
+            df = _data1_direct_contour_grid(exp, theta_base, x_name, x_values, lp_values)
+
+            prefix = f"{page_name}_{label.lower()}"
+            csv_path = save_dir / f"{prefix}.csv"
+            df.to_csv(csv_path, index=False)
+            outputs.append(str(csv_path))
+
+            panel_paths = _plot_contour_data1_legacy(
+                df, prefix, save_dir, show_title=False, preface=False
+            )
+            outputs.extend(panel_paths)
+            row_groups.append([Path(path) for path in panel_paths])
+            row_labels.append(label)
+
+        composite_name = page_name
+        composite = _compose_data1_panel_grid(
+            row_groups,
+            save_dir / f"{composite_name}.png",
+            row_labels=row_labels,
+            label_mode="per_row",
+            panel_margin=12,
+            row_margin=18,
+            outer_margin=22,
+        )
+        if composite is not None:
+            outputs.append(composite)
 
     return outputs
 
@@ -6557,48 +7147,234 @@ def _safe_solve_case(label, solve_fn, *args, **kwargs):
         return None, None, None
 
 
-def _theta_variants_for_multistart(theta):
-    """Generate a tiny set of nearby starting guesses for hard DATA2 fits."""
+def _lhs_unit_hypercube(n_samples, n_dim, seed=13):
+    """Generate Latin-hypercube points in [0, 1]^n_dim."""
+    n_samples = int(n_samples)
+    n_dim = int(n_dim)
+    if n_samples <= 0 or n_dim <= 0:
+        return np.empty((0, max(n_dim, 0)), dtype=float)
+    rng = np.random.default_rng(int(seed))
+    samples = np.empty((n_samples, n_dim), dtype=float)
+    for j in range(n_dim):
+        samples[:, j] = (rng.permutation(n_samples) + rng.random(n_samples)) / float(n_samples)
+    return samples
+
+
+def _multistart_theta_defaults(theta, workflow_family="DATA1", B_form="single"):
+    """Build a baseline theta dictionary for multistart restarts."""
+    if isinstance(theta, dict):
+        base = copy.deepcopy(theta)
+    else:
+        base = {}
+
+    wf = str(workflow_family).upper()
+    if not base:
+        if wf == "DATA2" and "CROSS_VERIFICATION_BASE_THETA" in globals():
+            base = copy.deepcopy(CROSS_VERIFICATION_BASE_THETA)
+        else:
+            base = {"Lp": 11.0, "B": 1e-6, "sigma": 1.0}
+
+    # Keep the standard single-salt start values available even if the
+    # caller only supplied a partial theta dictionary.
+    base.setdefault("Lp", 11.0)
+    b_form_str = B_form.lower() if isinstance(B_form, str) else None
+    if b_form_str == "single":
+        base.setdefault("B", 1e-6)
+    base.setdefault("sigma", 1.0)
+    if b_form_str is None or (b_form_str not in {"single", "pervial"} and "convection" not in b_form_str):
+        base.setdefault("beta_0", float(base.get("B", 1e-6) if isinstance(base.get("B", 1e-6), (int, float, np.floating)) else 1e-6))
+        base.setdefault("beta_1", 0.01)
+        base.setdefault("beta_2", 0.0)
+        base.setdefault("beta_3", 0.0)
+    elif b_form_str and "convection" in b_form_str:
+        base.setdefault("beta_0", float(base.get("B", 1e-6) if isinstance(base.get("B", 1e-6), (int, float, np.floating)) else 1e-6))
+        base.setdefault("beta_1", 0.5)
+    return base
+
+
+def _multistart_theta_specs(theta, workflow_family="DATA1", B_form="single"):
+    """Return sampling ranges for the scalar parameters we want to restart."""
+    specs = {}
+    # Only perturb scalar decision variables; structured theta entries stay
+    # fixed so restarts do not invent parameters the model never solves for.
+    if "Lp" in theta and np.isscalar(theta["Lp"]):
+        # Keep DATA3 restarts clustered near the published Lp basin.
+        specs["Lp"] = ("linear", 4.8, 5.2)
+
+    b_form_str = B_form.lower() if isinstance(B_form, str) else None
+    if b_form_str == "single" or b_form_str == "pervial" or b_form_str is None:
+        if "B" in theta and np.isscalar(theta["B"]):
+            specs["B"] = ("log", 1e-6, 5.0)
+    elif b_form_str and "convection" in b_form_str:
+        if "beta_0" in theta and np.isscalar(theta["beta_0"]):
+            specs["beta_0"] = ("log", 1e-6, 5.0)
+        if "beta_1" in theta and np.isscalar(theta["beta_1"]):
+            specs["beta_1"] = ("linear", 0.0, 1.0)
+    else:
+        if "beta_0" in theta and np.isscalar(theta["beta_0"]):
+            specs["beta_0"] = ("log", 1e-6, 5.0)
+        for key in ("beta_1", "beta_2", "beta_3"):
+            if key in theta and np.isscalar(theta[key]):
+                val = float(theta[key]) if theta.get(key) is not None else 0.0
+                span = max(1.0, abs(val))
+                specs[key] = ("linear", -2.0 * span, 2.0 * span)
+
+    if "sigma" in theta and np.isscalar(theta["sigma"]):
+        specs["sigma"] = ("linear", 0.10, 0.95)
+
+    return specs
+
+
+def _theta_variants_for_multistart(theta, n_starts=10, seed=13, workflow_family="DATA1", B_form="single"):
+    """Generate Latin-hypercube starting guesses for hard fits."""
     if theta is None:
         return [None]
     if not isinstance(theta, dict):
         return [theta]
 
-    variants = [copy.deepcopy(theta)]
-    if "Lp" in theta:
-        for scale in (0.85, 1.0, 1.15):
-            trial = copy.deepcopy(theta)
-            trial["Lp"] = float(theta["Lp"]) * scale
-            variants.append(trial)
-    if "B" in theta:
-        for scale in (0.85, 1.0, 1.15):
-            trial = copy.deepcopy(theta)
-            trial["B"] = float(theta["B"]) * scale
-            variants.append(trial)
-    if "beta_0" in theta:
-        for scale in (0.9, 1.0, 1.1):
-            trial = copy.deepcopy(theta)
-            trial["beta_0"] = float(theta["beta_0"]) * scale
-            variants.append(trial)
-    if "beta_1" in theta:
-        for scale in (0.9, 1.0, 1.1):
-            trial = copy.deepcopy(theta)
-            trial["beta_1"] = float(theta["beta_1"]) * scale
-            variants.append(trial)
-    if "sigma" in theta:
-        for candidate in (0.95, 1.0):
-            trial = copy.deepcopy(theta)
-            trial["sigma"] = candidate
-            variants.append(trial)
+    base = _multistart_theta_defaults(theta, workflow_family=workflow_family, B_form=B_form)
+    if str(workflow_family).upper() == "DATA3" and "Lp" in base and np.isscalar(base["Lp"]):
+        base["Lp"] = 5.0
+    specs = _multistart_theta_specs(base, workflow_family=workflow_family, B_form=B_form)
+    if int(n_starts) <= 0 or not specs:
+        return [base]
+
+    keys = list(specs.keys())
+    lhs = _lhs_unit_hypercube(int(n_starts), len(keys), seed=seed)
+    # Preserve the original seed as the first candidate, then append the LHS
+    # restarts so the deterministic baseline is always tried once.
+    variants = [copy.deepcopy(base)]
+    for row in lhs:
+        trial = copy.deepcopy(base)
+        for idx, key in enumerate(keys):
+            kind, low, high = specs[key]
+            if not np.isfinite(low) or not np.isfinite(high) or high <= low:
+                continue
+            if kind == "log":
+                trial[key] = float(10 ** (math.log10(low) + row[idx] * (math.log10(high) - math.log10(low))))
+            else:
+                trial[key] = float(low + row[idx] * (high - low))
+        variants.append(trial)
     return variants
+
+
+def _solve_model_multistart(
+    data_stru,
+    mode,
+    *,
+    theta=None,
+    B_form="single",
+    LOUD=False,
+    workflow_family="DATA1",
+    nfe=300,
+    solver_max_iter=3000,
+    solver_retry_max_iter=5000,
+    solver_max_cpu_time=None,
+    mass_litmus_test=False,
+    multistart_iterations=10,
+    multistart_seed=13,
+):
+    """Run solve_model from a Latin-hypercube set of starting thetas."""
+    if theta is None or not isinstance(theta, dict):
+        theta = _multistart_theta_defaults(None, workflow_family=workflow_family, B_form=B_form)
+    candidates = _theta_variants_for_multistart(
+        theta,
+        n_starts=multistart_iterations,
+        seed=multistart_seed,
+        workflow_family=workflow_family,
+        B_form=B_form,
+    )
+    cpu_time_limit = _resolve_ipopt_cpu_time_limit(
+        solver_max_cpu_time=solver_max_cpu_time,
+        multistart=True,
+    )
+    print("###################################################################")
+    print(f"[multistart] running {max(len(candidates) - 1, 0)} Latin-hypercube restarts")
+    print("             Lp is sampled on [4.8, 5.2] and seeded at 5.0 for DATA3.")
+    print("             B (or beta coefficients) and sigma are LHS-sampled")
+    print("             when they are scalar decision parameters in the model.")
+    if cpu_time_limit is not None:
+        print(f"             Ipopt max_cpu_time = {cpu_time_limit}")
+
+    best = None
+    best_score = None
+    trial_summaries = []
+    for idx, trial_theta in enumerate(candidates):
+        label = f"{str(workflow_family).upper()} multistart trial {idx + 1}/{len(candidates)}"
+        fit_stru, sim_stru, sim_inter = _safe_solve_case(
+            label,
+            solve_model,
+            data_stru,
+            mode,
+            theta=trial_theta,
+            sim_opt=False,
+            B_form=B_form,
+            LOUD=LOUD,
+            workflow_family=workflow_family,
+            nfe=nfe,
+            solver_max_iter=solver_max_iter,
+            solver_retry_max_iter=solver_retry_max_iter,
+            solver_max_cpu_time=cpu_time_limit,
+            mass_litmus_test=mass_litmus_test,
+            multistart=False,
+        )
+        score = np.inf
+        if isinstance(fit_stru, dict):
+            score = fit_stru.get("Obj_tru", fit_stru.get("Obj", np.inf))
+            try:
+                score = float(score)
+            except Exception:
+                score = np.inf
+        trial_summaries.append({
+            "index": idx,
+            "theta": copy.deepcopy(trial_theta) if isinstance(trial_theta, dict) else trial_theta,
+            "score": score,
+            "status": "ok" if fit_stru is not None else "fail",
+        })
+        if fit_stru is None or sim_stru is None or sim_inter is None:
+            continue
+        if best is None or score < best_score:
+            best = (fit_stru, sim_stru, sim_inter)
+            best_score = score
+
+    if best is None:
+        return None, None, None
+
+    fit_stru, sim_stru, sim_inter = best
+    if isinstance(fit_stru, dict):
+        fit_stru["multistart"] = {
+            "enabled": True,
+            "strategy": "lhs",
+            "iterations": int(multistart_iterations),
+            "seed": int(multistart_seed),
+            "n_trials": len(candidates),
+            "best_score": best_score,
+            "trials": trial_summaries,
+        }
+    return fit_stru, sim_stru, sim_inter
 
 
 def _safe_solve_case_multistart(label, solve_fn, *args, **kwargs):
     """Try a tiny multistart sweep before giving up on a hard DATA2 fit."""
     theta = kwargs.get("theta")
-    for trial_theta in _theta_variants_for_multistart(theta):
+    n_starts = int(kwargs.pop("multistart_iterations", 1))
+    seed = int(kwargs.pop("multistart_seed", 13))
+    workflow_family = kwargs.get("workflow_family", "DATA1")
+    B_form = kwargs.get("B_form", "single")
+    cpu_time_limit = _resolve_ipopt_cpu_time_limit(multistart=True)
+    if n_starts <= 1:
+        return _safe_solve_case(label, solve_fn, *args, **kwargs)
+    for trial_theta in _theta_variants_for_multistart(
+        theta,
+        n_starts=n_starts,
+        seed=seed,
+        workflow_family=workflow_family,
+        B_form=B_form,
+    ):
         trial_kwargs = dict(kwargs)
         trial_kwargs["theta"] = trial_theta
+        if cpu_time_limit is not None and "solver_max_cpu_time" not in trial_kwargs:
+            trial_kwargs["solver_max_cpu_time"] = cpu_time_limit
         fit_stru, sim_stru, sim_inter = _safe_solve_case(label, solve_fn, *args, **trial_kwargs)
         if fit_stru is not None and sim_stru is not None and sim_inter is not None:
             return fit_stru, sim_stru, sim_inter
@@ -7516,6 +8292,7 @@ class RunRequest:
     use_parmest: bool = False
     multistart: bool = False
     multistart_iterations: int = 10
+    nfe: int = 300
     uncertainty_method: str = ""
     selector: Any = None
 
@@ -7576,16 +8353,16 @@ def stage_load(file_path, *, selector=None):
     return StageResults.from_dict(payload)
 
 
-def stage_build(results, *, mode="DATA", workflow_family="DATA1", B_form="single"):
+def stage_build(results, *, mode="DATA", workflow_family="DATA1", B_form="single", nfe=300):
     """Stage 2: build the Pyomo model on top of an already-loaded payload."""
     results.require("data")
     payload = results.to_dict()
-    payload = build_model(payload, mode=mode, workflow_family=workflow_family, B_form=B_form)
+    payload = build_model(payload, mode=mode, workflow_family=workflow_family, B_form=B_form, nfe=nfe)
     return StageResults.from_dict(payload)
 
 
 def stage_estimate(results, *, use_parmest=False, multistart=False,
-                   multistart_iterations=10, tee=False):
+                   multistart_iterations=10, nfe=300, tee=False):
     """Stage 3: estimate parameters by re-fitting the model."""
     results.require("data")
     payload = results.to_dict()
@@ -7594,6 +8371,7 @@ def stage_estimate(results, *, use_parmest=False, multistart=False,
         use_parmest=use_parmest,
         multistart=multistart,
         multistart_iterations=multistart_iterations,
+        nfe=nfe,
         tee=tee,
     )
     return StageResults.from_dict(payload)
@@ -7625,7 +8403,7 @@ def stage_load_cached_fit(results, *, fit_path):
 
 
 def stage_quantify(results, *, method="fim", cov_method="finite_difference",
-                   fim_step=1e-8, fim_formula="backward"):
+                   fim_step=1e-8, fim_formula="backward", nfe=300):
     """Stage 4: FIM or covariance-based uncertainty."""
     results.require("parameters")
     payload = results.to_dict()
@@ -7635,6 +8413,7 @@ def stage_quantify(results, *, method="fim", cov_method="finite_difference",
         cov_method=cov_method,
         fim_step=fim_step,
         fim_formula=fim_formula,
+        nfe=nfe,
     )
     return StageResults.from_dict(payload)
 
@@ -7660,6 +8439,7 @@ def run_pipeline(
     use_parmest=False,
     multistart=False,
     multistart_iterations=10,
+    nfe=300,
     uncertainty_method="fim",
     cov_method="finite_difference",
     fim_step=1e-8,
@@ -7685,19 +8465,21 @@ def run_pipeline(
 
     if cached_fit_path is None:
         results = stage_build(
-            results, mode=mode, workflow_family=workflow_family, B_form=B_form
+            results, mode=mode, workflow_family=workflow_family, B_form=B_form, nfe=nfe
         )
         results = stage_estimate(
             results,
             use_parmest=use_parmest,
             multistart=multistart,
             multistart_iterations=multistart_iterations,
+            nfe=nfe,
         )
     else:
         results.model_settings = {
             "mode": mode,
             "workflow_family": workflow_family,
             "B_form": B_form,
+            "nfe": int(nfe),
             "is_batch": bool(results.is_batch),
         }
         results = stage_load_cached_fit(results, fit_path=cached_fit_path)
@@ -7709,6 +8491,7 @@ def run_pipeline(
             cov_method=cov_method,
             fim_step=fim_step,
             fim_formula=fim_formula,
+            nfe=nfe,
         )
 
     if not skip_mbdoe:
@@ -7735,6 +8518,7 @@ def materialize_run(req, *, data_root=None):
             use_parmest=req.use_parmest,
             multistart=req.multistart,
             multistart_iterations=req.multistart_iterations,
+            nfe=req.nfe,
             uncertainty_method=req.uncertainty_method or None,
         )
 
@@ -7749,6 +8533,7 @@ def materialize_run(req, *, data_root=None):
         use_parmest=req.use_parmest,
         multistart=req.multistart,
         multistart_iterations=req.multistart_iterations,
+        nfe=req.nfe,
         uncertainty_method=req.uncertainty_method or None,
         cached_fit_path=cached_fit_path,
     )
@@ -9385,7 +10170,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
     res = _first_result(results)
     res.require("data")
     data_stru = _data_payload(res)
-    sim_stru  = res.sim_stru or []
+    sim_stru  = _normalize_sim_stru(res.sim_stru or [])
 
     if run_id and isinstance(res.meta, dict):
         family = NF270_RUN_REGISTRY.get(run_id)
@@ -9399,7 +10184,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         return []
     cfg = data_stru.get("data_config", {}) if isinstance(data_stru, dict) else {}
     n_v0 = int(cfg.get("n_v0", 1))   # 1-based: first "real" vial
-
+    t_perm_start_s = cfg.get("t_perm_start_s", None)
     # Single global t_delay = first sample of vial 1 (DATA1 convention).
     t_delay = float(_np.asarray(data_raw[0]["time"], dtype=float).reshape(-1)[0])
     if isinstance(res.meta, dict):
@@ -9422,7 +10207,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         m = _np.asarray(row.get("mass", []), dtype=float).reshape(-1)
         if t.size == 0 or m.size == 0:
             continue
-        ax_m.plot((t - t_delay) / 60.0, m, "r.", markersize=3, alpha=0.7,
+        ax_m.plot((t - t_delay) / 60.0, m - m[0], "r.", markersize=3, alpha=0.7,
                   label=("Measurements" if i == 0 else None))
 
     # Plot predictions only for real vials (n_vial >= n_v0, 1-based).
@@ -9435,7 +10220,7 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
         mv = _np.asarray(sim.get("mV", []), dtype=float).reshape(-1)
         if t.size == 0 or mv.size == 0:
             continue
-        ax_m.plot((t - t_delay) / 60.0, mv, "b-", linewidth=2.0, alpha=0.85,
+        ax_m.plot((t - t_delay) / 60.0, mv - mv[0], "b-", linewidth=2.0, alpha=0.85,
                   label=("Predictions" if i + 1 == n_v0 else None))
 
     ax_m.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
@@ -9452,84 +10237,130 @@ def render_nf270_fit_v2(results, *, save_path=None, run_id=None, **_unused):
 
     # ----- Concentration plot ----------------------------------------------
     fig_c, ax_c = _plt.subplots(figsize=(5, 4))
-
-    # (1) Conductivity-derived retentate cF_exp - magenta dotted line.
-    cF_t, cF_y = [], []
-    for row in data_stru.get("data_raw", []):
-        t = _np.asarray(row.get("time", []), dtype=float)
-        cf = _np.asarray(row.get("cF_exp", []), dtype=float).reshape(-1)
-        if t.size == 0 or cf.size == 0:
+    data_raw = data_stru.get("data_raw", [])
+    seen_ret_meas = False
+    seen_perm_meas = False
+    seen_ret_pred = False
+    seen_perm_pred = False
+    seen_vial_pred = False
+    for i, row in enumerate(data_raw):
+        time = _np.asarray(row.get("time", []), dtype=float).reshape(-1)
+        if time.size == 0:
             continue
-        n = min(t.size, cf.size)
-        cF_t.extend(t[:n].tolist()); cF_y.extend(cf[:n].tolist())
-    if cF_t:
-        cF_t_arr = (_np.array(cF_t) - t_delay) / 60.0
-        cF_y_arr = _np.array(cF_y)
-        # sort by time so the dotted line doesn't backtrack across vial boundaries
-        order = _np.argsort(cF_t_arr)
-        ax_c.plot(cF_t_arr[order], cF_y_arr[order],
-                  "m:", linewidth=1.5, alpha=0.75,
-                  label="Retentate (conductivity)")
+        cF_exp = _np.asarray(row.get("cF_exp", []), dtype=float).reshape(-1)
+        cV_avg = _np.asarray(row.get("cV_avg", []), dtype=float)
+        cV_avg_arr = _np.atleast_1d(cV_avg).astype(float, copy=False)
 
-    # (2) ICP-OES per-vial cV_avg - cyan squares.
-    icp_t, icp_y = [], []
-    for row in data_stru.get("data_raw", []):
-        t = _np.asarray(row.get("time", []), dtype=float)
-        cv = row.get("cV_avg")
-        if cv is None or t.size == 0:
+        if cF_exp.size:
+            if cF_exp.size == 1:
+                ax_c.plot(
+                    _plot_time_minutes(time[-1], t_delay=t_delay),
+                    float(cF_exp[0]),
+                    "m:",
+                    linewidth=1.5,
+                    alpha=0.75,
+                    label="Retentate (conductivity)" if not seen_ret_meas else None,
+                )
+            else:
+                n = min(len(time), len(cF_exp))
+                ax_c.plot(
+                    _plot_time_minutes(time[:n], t_delay=t_delay),
+                    cF_exp[:n],
+                    "m:",
+                    linewidth=1.5,
+                    alpha=0.75,
+                    label="Retentate (conductivity)" if not seen_ret_meas else None,
+                )
+            seen_ret_meas = True
+
+        if cV_avg_arr.size:
+            if cV_avg_arr.ndim == 0 or cV_avg_arr.size == 1:
+                ax_c.plot(
+                    _plot_time_minutes(time[-1], t_delay=t_delay),
+                    float(cV_avg_arr.reshape(-1)[0]),
+                    "cs",
+                    markersize=8,
+                    alpha=0.85,
+                    zorder=2,
+                    label="Permeate (Measurement)" if not seen_perm_meas else None,
+                )
+            else:
+                n = min(len(time), len(cV_avg_arr))
+                ax_c.plot(
+                    _plot_time_minutes(time[:n], t_delay=t_delay),
+                    cV_avg_arr[:n],
+                    "cs",
+                    markersize=8,
+                    alpha=0.85,
+                    zorder=2,
+                    label="Permeate (Measurement)" if not seen_perm_meas else None,
+                )
+            seen_perm_meas = True
+
+        if (i + 1) < n_v0 or i >= len(sim_stru):
             continue
-        cv_arr = _np.atleast_1d(_np.asarray(cv, dtype=float))
-        if cv_arr.size == 1:
-            icp_t.append((float(t[-1]) - t_delay) / 60.0)
-            icp_y.append(float(cv_arr.ravel()[0]))
-        else:
-            n = min(t.size, cv_arr.size)
-            icp_t.append((float(t[n - 1]) - t_delay) / 60.0)
-            icp_y.append(float(cv_arr[n - 1]))
-    if icp_t:
-        ax_c.plot(icp_t, icp_y, "cs", markersize=8, alpha=0.85, zorder=2,
-                  label="Vial (ICP-OES)")
-
-    # (3) Predicted retentate, permeate, vial.
-    pred_cF_t, pred_cF, pred_cH, pred_cV_t, pred_cV = [], [], [], [], []
-    for sim in sim_stru:
-        t = _np.asarray(sim.get("time", []), dtype=float)
-        if t.size == 0:
+        sim_time = _np.asarray(sim_stru[i].get("time", []), dtype=float).reshape(-1)
+        if sim_time.size == 0:
             continue
-        cf = _np.asarray(sim.get("cF", []), dtype=float)
-        ch = _np.asarray(sim.get("cH", []), dtype=float)
-        cv = _np.asarray(sim.get("cV", []), dtype=float)
-        if cf.size:
-            pred_cF_t.extend(t.tolist()); pred_cF.extend(cf.tolist())
-        if ch.size:
-            pred_cH.extend(list(zip(t.tolist(), ch.tolist())))
-        if cv.size:
-            pred_cV_t.append(float(t[-1])); pred_cV.append(float(cv[-1]))
-
-    if pred_cF_t:
+        cF = _np.asarray(sim_stru[i].get("cF", []), dtype=float).reshape(-1)
+        cH = _np.asarray(sim_stru[i].get("cH", []), dtype=float).reshape(-1)
+        cV = _np.asarray(sim_stru[i].get("cV", []), dtype=float).reshape(-1)
         pred_line_fx = [
             patheffects.Stroke(linewidth=4.5, foreground="white"),
             patheffects.Normal(),
         ]
-        ax_c.plot((_np.array(pred_cF_t) - t_delay) / 60.0,
-                  _np.array(pred_cF),
-                  "g-", linewidth=3.2, alpha=1.0, zorder=6,
-                  path_effects=pred_line_fx,
-                  label="Retentate (prediction)")
-
-    if pred_cH:
-        ph_t = (_np.array([t for t, _ in pred_cH]) - t_delay) / 60.0
-        ph_y = _np.array([y for _, y in pred_cH])
-        ax_c.plot(ph_t, ph_y,
-                  "r-", linewidth=3.2, alpha=1.0, zorder=6,
-                  path_effects=pred_line_fx,
-                  label="Permeate (prediction)")
-
-    if pred_cV_t:
-        ax_c.plot((_np.array(pred_cV_t) - t_delay) / 60.0,
-                  _np.array(pred_cV),
-                  "r^", markersize=8, alpha=0.9, zorder=7,
-                  label="Vial (prediction)")
+        if cF.size:
+            ax_c.plot(
+                _plot_time_minutes(sim_time, t_delay=t_delay),
+                cF,
+                color="g",
+                linestyle="-",
+                linewidth=3.2,
+                alpha=1.0,
+                zorder=6,
+                path_effects=pred_line_fx,
+                label="Retentate (prediction)" if not seen_ret_pred else None,
+            )
+            seen_ret_pred = True
+        if cH.size:
+            ax_c.plot(
+                _plot_time_minutes(sim_time, t_delay=t_delay),
+                cH,
+                color="r",
+                linestyle="-",
+                linewidth=3.2,
+                alpha=1.0,
+                zorder=6,
+                path_effects=pred_line_fx,
+                label="Permeate (prediction)" if not seen_perm_pred else None,
+            )
+            seen_perm_pred = True
+        if cV.size:
+            if cV_avg_arr.ndim == 0 or cV_avg_arr.size == 1:
+                ax_c.plot(
+                    _plot_time_minutes(sim_time[-1], t_delay=t_delay),
+                    float(cV[-1]),
+                    "r^",
+                    markersize=8,
+                    alpha=0.95,
+                    zorder=7,
+                    label="Vial (prediction)" if not seen_vial_pred else None,
+                )
+            else:
+                valid = ~_np.isnan(cV_avg_arr[: min(len(time), len(cV_avg_arr))])
+                if _np.any(valid):
+                    time_shifted = time[: min(len(time), len(cV_avg_arr))]
+                    interp_cv = interpolate.interp1d(sim_time, cV, fill_value="extrapolate")
+                    ax_c.plot(
+                        _plot_time_minutes(time_shifted[valid], t_delay=t_delay),
+                        interp_cv(time_shifted[valid]),
+                        "r^",
+                        markersize=8,
+                        alpha=0.95,
+                        zorder=7,
+                        label="Vial (prediction)" if not seen_vial_pred else None,
+                    )
+            seen_vial_pred = True
 
     ax_c.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
     ax_c.set_ylabel("Concentration [mM]", fontsize=14, fontweight="bold")
