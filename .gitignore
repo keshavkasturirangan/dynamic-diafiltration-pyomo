@@ -28,3 +28,16 @@ published_works/*.pdf
 results/reproduction/*-paper-pdf-extract/
 results/reproduction/*/pdf_extract/
 results/reproduction/*/notebook_extract/
+
+# Microsoft Office lock files (created when Excel/Word workbook is open)
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.doc
+
+# Claude Code session state (worktree copies, agent metadata)
+.claude/
+
+# Stray simulation output CSVs (model writes to cwd by default — should land
+# in results/ directories, not at repo root or alongside source code).
+sim_data-*.csv
