@@ -303,12 +303,13 @@ def pick_branches() -> set[str]:
     print("  p   Parameter table")
     print("  f   FIM heatmap / sigma-sensitivity contour")
     print("  d   DoE next-experiment recommendations")
+    print("  o   Objective-contour panels (DATA3/NF270 only — B-Lp and sigma-Lp)")
     print("  all all of the above")
     raw = _prompt("Branches", "all").strip().lower()
     if raw in ("all", "*", ""):
-        return {"m", "c", "p", "f", "d"}
+        return {"m", "c", "p", "f", "d", "o"}
     parts = [p.strip() for p in raw.replace(",", " ").split() if p.strip()]
-    valid = {"m", "c", "p", "f", "d"}
+    valid = {"m", "c", "p", "f", "d", "o"}
     chosen = {p for p in parts if p in valid}
     return chosen or {"m", "c"}
 
@@ -458,6 +459,29 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
 
     _print_outputs("NF270", results)
     _print_coverage("NF270", save_dir)
+
+    # Objective-contour branch — DATA1-style B-Lp and sigma-Lp panels per sheet.
+    # All the work (registry filtering, per-sheet loop, fit, grid sweep, plot)
+    # lives in ucb.run_nf270_contour_branch. The runfile just prompts for the
+    # interactive grid-density choice and hands off.
+    if "o" in branches:
+        if not hasattr(ucb, "run_nf270_contour_branch"):
+            print("\n[contour] library is missing run_nf270_contour_branch; skipping.")
+        else:
+            grid_raw = _prompt(
+                "Contour grid density (20 fast | 30 medium | 50 paper)", "20"
+            )
+            try:
+                grid_density = max(8, int(grid_raw))
+            except ValueError:
+                grid_density = 20
+            ucb.run_nf270_contour_branch(
+                subset,
+                save_dir=save_dir.parent / "contour_panels",
+                grid_density=grid_density,
+                nfe=nfe,
+                data_root=NF270_ROOT,
+            )
 
 
 def _dispatch_custom(trunk: dict, branches: set[str]) -> None:
