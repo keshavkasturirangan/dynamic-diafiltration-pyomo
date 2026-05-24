@@ -22,15 +22,7 @@ from pyomo.dae import *
 import idaes.core.util.scaling as iscale
 
 
-FIGURES_DIR = os.path.join("UnifiedFramework", "DATA3", "figures")
-
-
-def _figure_output_base(name):
-    os.makedirs(FIGURES_DIR, exist_ok=True)
-    return os.path.join(FIGURES_DIR, name)
-
-
-def loadmat(filename):# for fun!
+def loadmat(filename):
     '''
     Read in nested structure(mat file) generated from MATLAB and output dictionaries.
 
@@ -135,7 +127,7 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
     #plt.show()
     
     if LOUD:
-        fname = _figure_output_base('mass-dat'+str(data_stru['dataset']))
+        fname = 'figures/mass-dat'+str(data_stru['dataset'])
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
 
     # plot concentration data/prediction comparison
@@ -180,7 +172,7 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
     #plt.show()
     
     if LOUD:
-        fname = _figure_output_base('concentration-dat'+str(data_stru['dataset']))
+        fname = 'figures/concentration-dat'+str(data_stru['dataset'])
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
         
     # plot mass of stirred cell
@@ -219,7 +211,7 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
             plt.legend(fontsize=12.5,loc='best')#bbox_to_anchor=(1.02, 0.3),borderaxespad=0,ncol=3)
         #plt.show()
         if LOUD:
-            fname = _figure_output_base('stirc_mass-dat'+str(data_stru['dataset']))
+            fname = 'figures/stirc_mass-dat'+str(data_stru['dataset'])
             fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
 
 
