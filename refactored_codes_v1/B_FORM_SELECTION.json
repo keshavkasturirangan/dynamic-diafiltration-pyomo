@@ -1,0 +1,94 @@
+{
+  "MC2.05.07.24_CaCl2": {
+    "fits": {
+      "convection": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "pervial": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "power-law (B_form=1)": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "single": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      }
+    },
+    "regime": "concentration",
+    "salt": "CaCl2",
+    "winner": null
+  },
+  "MC3.07.22.24_SNaCl": {
+    "fits": {
+      "convection": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "pervial": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "power-law (B_form=1)": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "single": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      }
+    },
+    "regime": "dilution",
+    "salt": "NaCl",
+    "winner": null
+  },
+  "MC4.07.11.24_SLaCl3": {
+    "fits": {
+      "convection": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "pervial": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "power-law (B_form=1)": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "single": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      }
+    },
+    "regime": "concentration",
+    "salt": "LaCl3",
+    "winner": null
+  },
+  "MC5.07.23.24_NaCl": {
+    "fits": {
+      "convection": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "pervial": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "power-law (B_form=1)": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      },
+      "single": {
+        "error": "KeyError: 'S0'",
+        "fit_time_s": 0.0
+      }
+    },
+    "regime": "concentration",
+    "salt": "NaCl",
+    "winner": null
+  }
+}

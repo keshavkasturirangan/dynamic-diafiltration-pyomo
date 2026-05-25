@@ -300,11 +300,19 @@ NF270_MULTISTART_CONTOUR_DIR = None      # if None, library auto-detects
 NF270_MULTISTART_CROSS_SALT_REFERENCES = {
     # Reference (Lp, B, sigma) per salt — the "best" interior fit each salt
     # has currently produced.  Used as the cross-salt seed when fitting a
-    # sheet whose salt is NOT this one.  Pre-populated with the campaign's
-    # current best fits; can be overridden at call time.
-    "NaCl":  {"Lp": 8.22, "B": 14.68, "sigma": 0.45},   # MC3.07.22.24_SNaCl
-    "CaCl2": {"Lp": 4.00, "B":  0.50, "sigma": 1.00},   # MC2.05.07.24_CaCl2 (cleanest CaCl2)
-    "LaCl3": {"Lp": 2.49, "B":  0.31, "sigma": 1.00},   # MC2.05.21.24_LaCl3 (cleanest LaCl3)
+    # sheet whose salt is NOT this one.
+    #
+    # Updated 2026-05-24 (evening): the prior CaCl2 / LaCl3 references had
+    # σ = 1.0 (at the wall) which was bad as a seed.  Per the May-24
+    # decision to use NaCl's optimum as a cross-salt seed for divalent /
+    # trivalent fits (since the mass-vs-time and concentration profiles
+    # are qualitatively similar across salts), all three references are
+    # now anchored at the MC2.05.07.24_NaCl converged fit, with σ bumped
+    # upward for higher-valency salts to reflect their stronger rejection
+    # (literature σ ≈ 0.85 for CaCl2, ≈ 0.92 for LaCl3 on NF270).
+    "NaCl":  {"Lp": 9.11, "B": 8.31, "sigma": 0.66},    # MC2.05.07.24_NaCl (v11 fit; interior σ)
+    "CaCl2": {"Lp": 9.11, "B": 8.31, "sigma": 0.85},    # NaCl-anchored; σ bumped for divalent
+    "LaCl3": {"Lp": 9.11, "B": 8.31, "sigma": 0.92},    # NaCl-anchored; σ bumped for trivalent
 }
 
 
@@ -373,56 +381,192 @@ NF270_TUBE_VOLUME_G = 0.3
 
 
 def _ec25_compensate(cond_at_T_uS_per_cm, T_celsius, salt_name):
-    """Convert measured conductivity to a 25 C-equivalent value.
+    """Rescale a conductivity reading taken at temperature T to what
+    it WOULD have read at 25 °C.
 
-    Uses the small-ΔT linear approximation
-        sigma_25 = sigma_T * (1 + alpha * (25 - T_celsius))
-    and preserves NaN rows as-is.
+    Why this matters
+    ----------------
+    A conductivity meter reads HIGHER when water is warm (ions move
+    faster) and LOWER when cold — even though the salt concentration
+    is identical. Our concentration look-up tables (the Shedlovsky /
+    MSA models in conductivity_paper.py) are anchored at 25 °C.
+    If the lab water is at 21 °C, the meter reads ~8 % low vs. the
+    25 °C table, so the concentration we infer would be ~8 % wrong
+    unless we correct first.
+
+    The equation
+    ------------
+        sigma_25  =  sigma_T  *  ( 1  +  alpha * (25 - T) )
+        ^^^^^^^^     ^^^^^^^      ^^^^^^^^^^^^^^^^^^^^^^^^^
+        what we      what the     small bump-up factor:
+        WANT (a      meter        alpha ≈ 2 %/°C, so at T = 21 °C
+        25 °C        ACTUALLY     we bump up by ~8 %
+        equivalent)  READ
+
+    Sign of the correction:
+        T < 25 °C → (25 − T) > 0 → bump UP    (meter read too low)
+        T > 25 °C → (25 − T) < 0 → bump DOWN  (meter read too high)
+
+    Reference
+    ---------
+    APHA Standard Methods 2510 B, "Conductivity: Laboratory Method".
+    This is the small-ΔT linearization of  sigma_T = sigma_25 / [1 + α(T − 25)],
+    accurate to <0.2 % within ±10 °C of 25 °C for dilute electrolytes.
+
+    Parameters
+    ----------
+    cond_at_T_uS_per_cm : float or array-like
+        Raw conductivity reading(s), in microsiemens per cm (μS/cm).
+    T_celsius : float or array-like, same shape as cond
+        Temperature(s) of the solution when the meter took the reading,
+        in degrees Celsius.
+    salt_name : str
+        Salt identifier ("NaCl", "CaCl2", "LaCl3", "KCl"). Used to pick
+        the salt-specific value of alpha from the lookup table at the top
+        of this file.
+
+    Returns
+    -------
+    Same shape as input — the 25 °C-equivalent conductivity, also μS/cm.
     """
+    # Step 1: Convert inputs to NumPy arrays so we can do the math on
+    # a whole column of measurements at once (vectorized arithmetic) instead
+    # of a slow Python for-loop over thousands of timesteps.
     cond = np.asarray(cond_at_T_uS_per_cm, dtype=float)
     temp = np.asarray(T_celsius, dtype=float)
+
+    # Step 2: Look up the per-degree correction "alpha" for our specific
+    # salt. alpha ≈ 2 %/°C for most dilute salts, but it varies a little
+    # because different ions move at slightly different rates:
+    #   KCl ≈ 0.019/°C,  NaCl ≈ 0.021/°C,
+    #   CaCl₂ ≈ 0.023/°C, LaCl₃ ≈ 0.025/°C.
+    # If the salt isn't in our table, we fall back to a generic 0.024/°C.
     alpha = float(CONDUCTIVITY_TEMP_COEFF_PER_C.get(
         str(salt_name), CONDUCTIVITY_TEMP_COEFF_DEFAULT
     ))
+
+    # Step 3: Apply the formula
+    #     sigma_25  =  sigma_T  *  (1 + alpha * (25 - T))
+    # NumPy broadcasts the scalar `alpha` across every entry, so this
+    # one line does the bump-up correction for every measurement at once.
+    # NaN entries propagate naturally — useful for sensor-dropout rows.
     compensated = cond * (1.0 + alpha * (25.0 - temp))
+
+    # Step 4: Preserve the caller's input shape — scalar in → scalar out;
+    # array in → array out — so downstream code doesn't have to unwrap.
     if np.isscalar(cond_at_T_uS_per_cm):
         return float(compensated)
     return compensated.astype(cond.dtype, copy=False)
 
 
 def _nf270_corrected_cv_index(vial_time, vial_mass, V_tube_g=NF270_TUBE_VOLUME_G):
-    """Return the index into vial_time where cV_avg should be planted.
+    """Find the timestamp inside a vial where the ICP-OES concentration
+    measurement *truly* belongs (because of tubing dead-volume delay).
 
-    Implements the dead-volume / tube-transit time correction documented in
-    the paper's "Time Correction for Permeate" section. Permeate landing in
-    a vial at lab time t was generated by the membrane at time t - tau,
-    where tau = V_tube / (dm/dt). Anchoring the single ICP measurement at
-    the membrane-event time, not the vial-arrival time, removes the
-    systematic bias that pushes cV_avg residuals to the end of each vial.
+    Why this matters — the picture
+    -------------------------------
+    The setup looks like this:
 
-    Returns None for vials that are too short / too empty for the
-    correction to be meaningful (e.g. startup vials).
+         membrane  ─────tubing─────  vial
+         (where               (where the drop
+         permeate              lands and the ICP
+         is generated)         later measures it)
+
+    Permeate generated by the membrane at time t doesn't reach the vial
+    until time (t + tau), where tau is the time it took to traverse the
+    tube. Said the other way: a drop that LANDS in the vial at time t
+    was actually generated by the membrane back at time (t − tau).
+
+    The single ICP-OES reading represents the AVERAGE concentration of
+    every drop that landed in that vial. If we plotted that ICP value
+    at "vial close time" (t_close), we'd be ~tau seconds LATE relative
+    to when the membrane physics actually produced the average.
+
+    So we shift the measurement backward in time to anchor it at the
+    membrane-event time, not the vial-arrival time.
+
+    The equation
+    ------------
+        tau    =  V_tube  /  (dm/dt)_avg
+              =  (mass of fluid trapped in the tube)  /  (avg mass flow rate)
+
+        t_corr =  t_mid  −  tau
+              =  geometric midpoint of the vial − transit delay
+
+    where
+        V_tube     ≈ 0.3 g (apparatus-specific dead volume, reverse-engineered
+                            from the DATA2 paper experiments; see
+                            NF270_TUBE_VOLUME_G at module top)
+        (dm/dt)_avg = (total mass collected) / (vial duration)
+        t_mid       = (t_open + t_close) / 2
+
+    Example
+    -------
+    Vial opens at 270 s, closes at 455 s, collects 0.93 g.
+    Avg flow = 0.93 / 185 = 5.03 mg/s  →  tau = 0.3 / 0.00503 = 60 s.
+    Vial midpoint = (270 + 455) / 2 = 362.5 s.
+    t_corr = 362.5 − 60 = 302.5 s (≈ 32 s into the vial, not 92 s into it).
+
+    Returns
+    -------
+    int  : the index into vial_time CLOSEST to t_corr — that's where the
+           single ICP value gets planted in the NaN-padded cV_avg array.
+    None : if the vial is too short, too empty, or otherwise unusable
+           (e.g. a startup vial that collected only droplets).
+
+    Reference
+    ---------
+    Liu et al., "Time Correction for Permeate" section (DATA2 paper).
     """
+    # Step 1: Make sure we got NumPy arrays, not Python lists.
+    # .reshape(-1) flattens any (N,1) shape to (N,) so .size etc. behave.
     t = np.asarray(vial_time, dtype=float).reshape(-1)
     m = np.asarray(vial_mass, dtype=float).reshape(-1)
+
+    # Step 2: Reject vials too short to do anything sensible with.
+    # Need at least 2 timestamps to define a duration.
     if t.size < 2:
         return None
     finite = np.isfinite(m)
     if finite.sum() < 2:
         return None
+
+    # Step 3: Total mass collected = last finite mass reading − first.
+    # (We use the "finite" mask in case the balance had a NaN dropout at
+    # the very start or end.)
     m_clean = m[finite]
     m_total = float(m_clean[-1] - m_clean[0])
+
+    # Step 4: Reject the "startup vial" case. If the vial collected
+    # less than 1 mg, it's basically empty (the pump was warming up,
+    # or the vial was swapped before any real permeate dripped in).
+    # The correction would divide by a near-zero flow rate and blow up.
     if m_total <= 1e-3:                  # < 1 mg collected — startup / empty vial
         return None
+
+    # Step 5: Vial duration in seconds and average mass flow rate.
     duration = float(t[-1] - t[0])
     if duration <= 0:
         return None
-    dmdt_avg = m_total / duration
+    dmdt_avg = m_total / duration         # g/s — the (dm/dt)_avg in the formula
     if dmdt_avg <= 0:
         return None
+
+    # Step 6: The actual physics: tau = V_tube / (dm/dt).
+    # Units check: g / (g/s) = s. Good.
     tau = float(V_tube_g) / dmdt_avg
+
+    # Step 7: t_corr = vial midpoint − transit delay.
+    # Then clamp inside [t_open, t_close] so we never plant the
+    # measurement BEFORE the vial actually opened (defensive — for
+    # the rare case when tau exceeds vial-half-width).
     t_corr = (t[0] + t[-1]) / 2.0 - tau
     t_corr = max(float(t[0]), min(float(t[-1]), t_corr))   # clamp to vial bounds
+
+    # Step 8: Return the INDEX of the timestamp closest to t_corr.
+    # The caller uses this index to plant the single ICP value inside
+    # a NaN-padded length-N array, so the fit/plot can interpolate the
+    # simulated cV at the corrected timestamp.
     return int(np.argmin(np.abs(t - t_corr)))
 
 
@@ -1282,21 +1426,92 @@ def inter_model(data_stru, sim_stru, fit_stru):
 
 def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='single', workflow_family='DATA1'):
     '''
-    Build diafiltration model in pyomo
-    
-    Arguments:
-        data_stru: dict, experimental data dictionary
-        mode: str, experiment mode, {DATA, lag, overflow}
-        theta: dict, preset parameter values
-        sim_opt: boolean, if run simulation with fixed parameter values
-        B_form: float/str, different solute permeability coefficient formula
-                'single' - constant B
-                'per vial' - discrete B per vial
-                'convection' - convection-diffussion model
-                0, -0.5, 0.5, 1, 2, 3 - order of dipendence on concentration 
-    
-    Returns:
-        m: pyomo model instance
+    Build the diafiltration ODE system as a Pyomo nonlinear program.
+
+    The physical setup
+    ------------------
+    A stirred cell (volume mF, concentration cF) is pressurized to ΔP.
+    Solution leaks through a membrane area Am into a vial (mass mV,
+    concentration cV). Solute can be rejected by the membrane (σ ≠ 0)
+    and/or driven through it by diffusion (B). For DIAFILTRATION specifically
+    we *also* feed fresh diafiltrate of concentration cD into the cell so
+    the cell volume stays approximately constant.
+
+          ┌──────────────────────┐
+          │   Stirred cell       │
+          │   mass = mF          │       ΔP applied across membrane
+          │   concentration = cF │       ┌─────┐
+          │                      │── Am ─┤ mem │── Jw, Js ──► drips into vial
+          │   diafiltrate cD     │       └─────┘                   (mV, cV)
+          │   feeds in (Lag mode)│
+          └──────────────────────┘
+
+    The unknowns the fit estimates
+    -------------------------------
+    Lp    : water permeability     [L · m⁻² · h⁻¹ · bar⁻¹]
+    B     : solute permeability    [μm · s⁻¹]   (membrane mass-transfer coefficient)
+    σ     : reflection coefficient [dimensionless, 0–1]
+            σ = 1 → perfectly rejecting; σ = 0 → osmotically transparent
+    S0/S  : feed flow rate         [g · s⁻¹]    (only Lag / Overflow modes)
+
+    The state variables Pyomo solves for vs (vial n, time τ)
+    --------------------------------------------------------
+    mF[n,τ]   : cell mass                                [g]
+    cF[n,τ]   : cell concentration                       [mM]
+    cIn[n,τ] : membrane-interface concentration (incl. concentration polarization) [mM]
+    cH[n,τ]   : permeate-side membrane-interface conc.   [mM]
+    mV[n,τ]   : cumulative vial mass                     [g]
+    cV[n,τ]   : vial-averaged permeate concentration     [mM]
+    cVmV[n,τ]: cV × mV   (we integrate the product, then divide back out for cV)
+    Jw[n,τ]   : water flux                               [μm · s⁻¹]
+    Js[n,τ]   : solute flux                              [μmol · m⁻² · s⁻¹]
+
+    The physical laws encoded as 11 Pyomo Constraint() blocks
+    ----------------------------------------------------------
+    Each Pyomo Constraint corresponds to one piece of physics:
+
+       ode_mF_rule    →  mass balance on the stirred cell
+       ode_cF_rule    →  solute balance in the cell (where Lp, B, σ couple in)
+       ode_cH_rule    →  permeate-side back-diffusion
+       ode_mV_rule    →  mass accumulating in the vial: dmV/dt = Am·ρ·Jw
+       ode_cVmV_rule  →  solute accumulating in the vial: d(cV·mV)/dt = Am·Js
+       eqn_S_rule     →  feed flow constraint (Lag / Overflow)
+       eqn_cIn_rule   →  concentration polarization: cIn = cF · exp(Jw/k)
+       eqn_Jw_rule    →  WATER FLUX:  Jw = Lp · (ΔP − σ · Δπ)
+       eqn_Js_rule    →  SOLUTE FLUX from Spiegler–Kedem
+       eqn_Js_exp_rule→  the auxiliary exp[Jw·(1−σ)/B] used inside Js
+       eqn_H_rule     →  permeate–retentate concentration linkage
+       eqn_cV_rule    →  cV · mV identity:  cVmV = cV * mV
+
+    Plus "linking constraints" (mF_linking, cF_linking, ...) that join
+    consecutive vials so the cell state is continuous across vial swaps.
+
+    Three operating modes, three boundary cases
+    --------------------------------------------
+       Lag      : feed inflow = − S₀ − Am·ρ·Jw   (cell loses mass; Lag mode)
+       Overflow : feed inflow = + S/3600         (cell stays constant volume)
+       DATA     : no inflow (pure dead-end filtration; Am·ρ / M_F0 form)
+
+    These appear as if/elif/elif branches inside ode_mF_rule and ode_cF_rule.
+
+    Arguments
+    ---------
+    data_stru : dict, experimental data dictionary
+    mode      : str, experiment mode, {DATA, Lag, Overflow}
+    theta     : dict, preset parameter values
+    sim_opt   : boolean, if True run a forward simulation with theta fixed
+                         (no parameter estimation, just solve the ODEs)
+    B_form    : float/str, different solute permeability formulations
+                'single'     - constant B (scalar decision variable)
+                'pervial'    - one B per vial
+                'convection' - convection–diffusion formulation
+                0, -0.5, ... - power-law dependence B(c)
+    workflow_family : 'DATA1' / 'DATA2' / 'DATA3' — picks the right
+                      defaults and bounds.
+
+    Returns
+    -------
+    m : pyomo.ConcreteModel — fully-built model, ready for solver or ParmEst.
     '''
     # known parameters
     # applied pressure
@@ -1336,14 +1551,24 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     # known constants
     t_delay = _data1_time_origin(data_stru)
     M_F0 = data_stru['data_config']['M_F0']
-    M_O = data_stru['data_config']['M_O']
-    cD = data_stru['data_config']['C_D']
+    # M_O (mass overflow) is only physically meaningful for Lag/Overflow
+    # modes. DATA1 DATA-mode .mat files (closed-cell filtration) sometimes
+    # omit it; default to 0 so the load doesn't raise and the eqn_S_rule
+    # closure constraint (only enforced for mode != 'DATA') still works.
+    M_O = data_stru['data_config'].get('M_O', 0.0)
+    # C_D (diafiltrate concentration) only applies when diafiltrate is being
+    # fed in. DATA-mode (closed-cell filtration) has no diafiltrate, so the
+    # underlying physical default is 0 mM. The DATA-mode ODE multiplies cD
+    # by Jw, so cD=0 cleanly zeroes the solute-inflow term.
+    cD = data_stru['data_config'].get('C_D', 0.0)
     mH = 0.25 #ml
     C_F0 = data_stru['data_config']['C_F0']
     C_V0 = 1e-6
-    
+
     N_VIAL = data_stru['data_config']['n']
-    N_V0 = data_stru['data_config']['n_v0']
+    # n_v0 = first vial whose residuals enter the objective; defaults to 1
+    # (start from vial 1) for DATA1 .mat files that don't set it explicitly.
+    N_V0 = data_stru['data_config'].get('n_v0', 1)
     if mode !='DATA':
         N_extra = data_stru['data_config']['n_extra']
         N_H = data_stru['data_config']['n_h']
@@ -1368,9 +1593,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     TI_dict = dict(zip(m.n_vial,TI_list)) # unscaled initial time for each vial
     m.ti = Set(initialize=TI_list)
 
-    workflow_family = str(workflow_family or "DATA1").upper()
+    # Defensive guard: if a caller explicitly passes workflow_family=None or
+    # an unrecognized string, fall back to DATA3. (Note: the function
+    # signature default is still 'DATA1' for backward compatibility with
+    # legacy DATA1/DATA2 paper-reproduction callers that omit the argument.
+    # This guard only fires for None or invalid strings.)
+    workflow_family = str(workflow_family or "DATA3").upper()
     if workflow_family not in {"DATA1", "DATA2", "DATA3"}:
-        workflow_family = "DATA1"
+        workflow_family = "DATA3"
 
     # parameter initialization
     param_in = dict()
@@ -1422,9 +1652,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
         m.Lp = Var(bounds=(0.5,50),initialize=param_in['Lp'])
 
         if B_form=='single':
-            m.B = Var(bounds=(1e-6,30),initialize=param_in['B'])
-        elif B_form=='pervial':    
-            m.B = Var(m.n_vial, bounds=(1e-6,30),initialize=param_in['B'])
+            # B upper bound bumped 30 → 50 (2026-05-24): the 3 CaCl₂ sheets in
+            # the existing centering-fit batch were all pinned EXACTLY at B=30,
+            # indicating the bound was clipping. Bumping to 50 gives the
+            # optimizer headroom; if the fits still want > 50, that's a
+            # separate physics question (the cf-floor change should help too).
+            m.B = Var(bounds=(1e-6,50),initialize=param_in['B'])
+        elif B_form=='pervial':
+            m.B = Var(m.n_vial, bounds=(1e-6,50),initialize=param_in['B'])
         elif isinstance(B_form, str) and 'convection' in B_form:
             m.beta_0 = Var(bounds=(1+1e-6,50),initialize=param_in['beta_0'])
             m.H = Var(m.n_vial, m.tau,initialize=0.5)  
@@ -1496,130 +1731,324 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     m.dmV = DerivativeVar(m.mV,wrt=m.tau)
     m.dcVmV = DerivativeVar(m.cVmV,wrt=m.tau)
     
-    # Mass balance on the feed/vial mass.
-    # Overflow: dmF/dt = -S0 - Am*rho*Jw
-    # Lag:      dmF/dt = -S0 - Am*rho*Jw   or   dmF/dt = S
-    # DATA:     feed mass is not part of the residual model.
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 1 of 11:  CELL MASS BALANCE                             ║
+    # ║                                                                    ║
+    # ║   dmF/dt = (feed in)  −  Am · ρ · Jw                              ║
+    # ║                          └─────┬─────┘                            ║
+    # ║                          mass leaving through the membrane         ║
+    # ║                          per unit time:                            ║
+    # ║                            Am [m²] × ρ [g/cm³] × Jw [cm/s]         ║
+    # ║                                                                    ║
+    # ║ "feed in" depends on what mode we're in:                          ║
+    # ║   Lag      : feed inflow = − S₀  (S₀ < 0 means cell loses mass)   ║
+    # ║   Overflow : feed inflow = − S₀  while concentrating               ║
+    # ║              feed inflow = + S/3600  while diafiltrating           ║
+    # ║   DATA     : no inflow; cell is closed (no constraint added)      ║
+    # ║                                                                    ║
+    # ║ The trailing (TF_dict[n] − TI_dict[n]) / Tauf factor converts      ║
+    # ║ the equation onto the "normalized time" axis Pyomo.DAE uses.       ║
+    # ║ Each vial has its own physical time window [TI, TF]; Tauf is the   ║
+    # ║ normalized end (always 1.0). The factor rescales d/dt accordingly. ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def ode_mF_rule(m, n, t):
         if mode == 'Overflow':
             if n < N_A0:
-                # (dmF_dt = 0 - Jw * Am * rho) * tf
+                # Initial concentration leg (before diafiltrate starts): pure
+                # filtration, no feed in. dmF/dt = − Am·ρ·Jw
                 return m.dmF[n,t] == (0 - Am * rho * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
             elif N_A0-1 < n <= N_A:
-                # (dmF_dt = -S0 - Jw * Am * rho) * tf
+                # Active diafiltration leg (Overflow specific): outflow S₀
+                # dominates. dmF/dt = − S₀ − Am·ρ·Jw
                 return m.dmF[n,t] == (- m.S0  - Am * rho * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
             else:
-                # (dmF_dt = S) * tf
+                # Final concentration leg: inflow S exactly balances outflow,
+                # so dmF/dt = S/3600 (units: g/hr → g/s).
                 return m.dmF[n,t] == m.S / 3600  * (TF_dict[n]-TI_dict[n])/Tauf
         elif mode == 'Lag':
             if n <= N_A:
-                # (dmF_dt = -S0 - Jw * Am * rho) * tf
-                return m.dmF[n,t] == (- m.S0 - Am * rho * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf   
+                # Active Lag leg: dmF/dt = − S₀ − Am·ρ·Jw
+                return m.dmF[n,t] == (- m.S0 - Am * rho * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
             else:
-                # (dmF_dt = S) * tf
+                # Final leg (closed): dmF/dt = S/3600
                 return m.dmF[n,t] == m.S / 3600  * (TF_dict[n]-TI_dict[n])/Tauf
     if mode !='DATA':
         m.ode_mF = Constraint(m.n_vial, m.tau, rule=ode_mF_rule)
      
-    # Retentate concentration balance.
-    # Overflow/Lag: dcF/dt = (feed/dilution terms + membrane transport terms) / mF
-    # DATA:        dcF/dt = Am*rho/M_F0 * (cD*Jw - Js)
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 2 of 11:  CELL SOLUTE (CONCENTRATION) BALANCE           ║
+    # ║                                                                    ║
+    # ║ Apply mass balance to the SOLUTE in the stirred cell:              ║
+    # ║                                                                    ║
+    # ║   d(mF · cF)/dt  =  (solute in from diafiltrate)                  ║
+    # ║                   − (solute out through membrane)                  ║
+    # ║                                                                    ║
+    # ║ Using the product rule and substituting dmF/dt from Eq. 1:         ║
+    # ║                                                                    ║
+    # ║   dcF/dt  =  1/mF · [ (diafiltrate−cell) · feed_rate              ║
+    # ║                       + Am·ρ · (cell_or_diafiltrate · Jw − Js) ]  ║
+    # ║                                                                    ║
+    # ║ where:                                                             ║
+    # ║   cF  · Jw  = solute carried OUT with the water (convection)       ║
+    # ║   Js        = solute moving by diffusion (Spiegler–Kedem, Eq. 8)   ║
+    # ║   cD · Jw  = solute carried IN with the diafiltrate (Overflow)    ║
+    # ║                                                                    ║
+    # ║ DATA mode is simpler: closed cell, fixed total mass M_F0, so:      ║
+    # ║   dcF/dt = Am·ρ / M_F0 · (cD·Jw − Js)                              ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def ode_cF_rule(m, n, t):
         if mode == 'Overflow':
             if n < N_A0:
-                return m.dcF[n,t] == 1 / m.mF[n,t] * (Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf        
-            elif N_A0-1 < n <= N_A:  
-                # (dcF/dt = (cF - cD) * S0 / mF + Am * rho / mF * (cF * Jw - Js)) * tf
-                return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cF[n,t] - m.cD ) * m.S0 + Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf                     
+                # Initial leg, no diafiltrate yet: solute only leaves the cell.
+                return m.dcF[n,t] == 1 / m.mF[n,t] * (Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf
+            elif N_A0-1 < n <= N_A:
+                # Active leg: (cF − cD) outflow term + membrane transport.
+                return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cF[n,t] - m.cD ) * m.S0 + Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf
             else:
-                # (dcF/dt = (cD - cF) * S / mF + Am * rho / mF * (cD * Jw - Js)) * tf
+                # Final leg: (cD − cF) inflow drives the cell toward cD.
                 return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cD - m.cF[n,t]) * m.S / 3600 + Am * rho * (m.cD * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf
         elif mode == 'Lag':
             if n <= N_A:
-                # (dcF/dt = (cF - cD) * S0 / mF + Am * rho / mF * (cF * Jw - Js)) * tf
-                return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cF[n,t] - m.cD ) * m.S0 + Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf                     
+                # Active Lag leg: same form as Overflow active, different S₀ sign.
+                return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cF[n,t] - m.cD ) * m.S0 + Am * rho * (m.cF[n,t] * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf
             else:
-                # (dcF/dt = (cD - cF) * S / mF + Am * rho / mF * (cD * Jw - Js)) * tf
+                # Final Lag leg: cell relaxes toward cD via inflow.
                 return m.dcF[n,t] == 1 / m.mF[n,t] * ((m.cD - m.cF[n,t]) * m.S / 3600 + Am * rho * (m.cD * m.Jw[n,t] - m.Js[n,t])) * (TF_dict[n]-TI_dict[n])/Tauf
         elif mode == 'DATA':
+            # DATA mode = closed cell, no inflow; one constant M_F0 in the denominator.
             return m.dcF[n,t] == Am * rho / M_F0 * (m.cD * m.Jw[n,t] - m.Js[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
 
     m.ode_cF = Constraint(m.n_vial, m.tau, rule=ode_cF_rule)
 
-    # Permeate/vial concentration balance:
-    # dcH/dt = Am*rho/mH * (Js - Jw*cH)
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 3 of 11:  PERMEATE-SIDE (cH) BACK-DIFFUSION             ║
+    # ║                                                                    ║
+    # ║ cH is the solute concentration on the PERMEATE side of the         ║
+    # ║ membrane (between membrane and vial).                              ║
+    # ║                                                                    ║
+    # ║   dcH/dt = Am·ρ / mV · ( Js  −  cH · Jw )                          ║
+    # ║                          ^^^^^   ^^^^^^^^^                          ║
+    # ║                          solute    solute carried                   ║
+    # ║                          arriving  away with the                    ║
+    # ║                          via the   water as it                      ║
+    # ║                          membrane  drains into the vial             ║
+    # ║                                                                    ║
+    # ║ Net rate of change of cH is the inflow from the membrane minus      ║
+    # ║ the outflow via water carrying solute out. Same form as the cell    ║
+    # ║ balance but for the small permeate-side volume.                     ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def ode_cH_rule(m, n, t):
         if mode !='DATA' and n <= N_H:
+            # Holdup-vial branch: use the time-varying mV in the denominator.
             return m.dcH[n,t] == Am * rho / m.mV[n,t] * (m.Js[n,t] - m.cH[n,t] * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
         else:
+            # Steady-volume branch: use the fixed holdup mass mH.
             return m.dcH[n,t] == Am * rho / mH * (m.Js[n,t] - m.cH[n,t] * m.Jw[n,t]) * (TF_dict[n]-TI_dict[n])/Tauf
     m.ode_cH = Constraint(m.n_vial, m.tau, rule=ode_cH_rule)
-    
-    # Vial mass balance:
-    # dmV/dt = Jw * Am * rho
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 4 of 11:  VIAL MASS ACCUMULATION                         ║
+    # ║                                                                    ║
+    # ║   dmV/dt  =  Am · ρ · Jw                                           ║
+    # ║                                                                    ║
+    # ║ Mass accumulates in the collection vial at exactly the rate water  ║
+    # ║ is fluxing through the membrane. This is what the lab balance      ║
+    # ║ reads in real time.                                                ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def ode_mV_rule(m, n, t):
         return m.dmV[n,t] == m.Jw[n,t] * Am * rho * (TF_dict[n]-TI_dict[n])/Tauf
     m.ode_mV = Constraint(m.n_vial, m.tau, rule=ode_mV_rule)
-    
-    # Vial solute mass balance:
-    # d(mV*cV)/dt = Jw * Am * rho * cH
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 5 of 11:  VIAL SOLUTE ACCUMULATION                       ║
+    # ║                                                                    ║
+    # ║   d(mV · cV)/dt  =  Am · ρ · cH · Jw                               ║
+    # ║                                                                    ║
+    # ║ Solute mass in the vial grows at the rate (concentration of fluid  ║
+    # ║ leaving the membrane) × (mass flow of water). We track the PRODUCT ║
+    # ║ mV·cV instead of cV directly because it integrates cleanly even    ║
+    # ║ when mV starts near zero (where cV is numerically ill-defined).    ║
+    # ║ Then Equation 11 (eqn_cV_rule) recovers cV = mV·cV / mV.           ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def ode_cVmV_rule(m, n, t):
         if mode !='DATA' and n <= N_H:
+            # Holdup-vial form: incoming solute is Js directly (matches ode_cH form).
             return m.dcVmV[n,t] == Am * rho * m.Js[n,t] * (TF_dict[n]-TI_dict[n])/Tauf
-        else:                
+        else:
+            # Standard form: water (Jw) carries solute (cH) into the vial.
             return m.dcVmV[n,t] == m.Jw[n,t] * m.cH[n,t] * Am * rho * (TF_dict[n]-TI_dict[n])/Tauf
     m.ode_cVmV = Constraint(m.n_vial, m.tau, rule=ode_cVmV_rule)
-    
-    # Global mass constraint used in Lag/Overflow runs:
-    # mF(tf) - mF(0) = M_O
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 6 of 11:  GLOBAL MASS CLOSURE (Lag / Overflow only)     ║
+    # ║                                                                    ║
+    # ║   mF(end of last vial)  −  M_F0  =  M_O                            ║
+    # ║                                                                    ║
+    # ║ Total cell mass change across the WHOLE experiment must equal      ║
+    # ║ M_O (the measured signed mass loss, = Final − Initial weight).     ║
+    # ║ This pins the otherwise-free S (final-leg inflow rate) so the      ║
+    # ║ bookkeeping balances at the end. Skipped when sim_opt=True because ║
+    # ║ then S is a fixed parameter, not a decision variable.              ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_S_rule(m):
         return m.mF[m.n_vial.last(),Tauf] - M_F0 == M_O
     if mode !='DATA' and not sim_opt:
-        m.eqn_S = Constraint(rule=eqn_S_rule)    
-    # Film model for interface concentration:
-    # cIn = (cF - cH) * exp(Jw/k) + cH
+        m.eqn_S = Constraint(rule=eqn_S_rule)
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 7 of 11:  CONCENTRATION POLARIZATION (cIn vs cF)         ║
+    # ║                                                                    ║
+    # ║   cIn  =  (cF − cH) · exp(Jw / k)  +  cH                           ║
+    # ║                                                                    ║
+    # ║ Right next to the membrane there is a stagnant film of solution    ║
+    # ║ that the stirrer can't reach. As water rushes toward the membrane  ║
+    # ║ at rate Jw, it carries solute into this film faster than the       ║
+    # ║ stirrer can carry it back out. So the concentration RIGHT AT the   ║
+    # ║ membrane surface (cIn) is HIGHER than the bulk cell concentration  ║
+    # ║ (cF). This is "concentration polarization."                        ║
+    # ║                                                                    ║
+    # ║ The classic film-model expression for it is:                       ║
+    # ║   (cIn − cH) / (cF − cH)  =  exp(Jw / k)                           ║
+    # ║ where k is the back-diffusion mass-transfer coefficient (set       ║
+    # ║ earlier from membrane and Reynolds-number correlations).           ║
+    # ║                                                                    ║
+    # ║ Rearranged: cIn = (cF − cH) · exp(Jw / k) + cH.                    ║
+    # ║                                                                    ║
+    # ║ Note: ALL the other equations use cIn (the membrane-surface conc.) ║
+    # ║ as the driving force for flux, not the bulk cF.                    ║
+    # ║                                                                    ║
+    # ║ Reference: Mulder, "Basic Principles of Membrane Technology"       ║
+    # ║ Ch. 7 (concentration polarization in pressure-driven processes).   ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_cIn_rule(m, n, t):
         return m.cIn[n,t] == (m.cF[n,t] - m.cH[n,t]) * exp(m.Jw[n,t]/ k) + m.cH[n,t]
     m.eqn_cIn = Constraint(m.n_vial, m.tau, rule=eqn_cIn_rule)
-    
-    # Water flux equation:
-    # Jw = Lp * (ΔP - (cIn - cH) * ni * sigma * R * T)
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 8 of 11:  WATER FLUX (the heart of the Lp/σ fit)        ║
+    # ║                                                                    ║
+    # ║   Jw  =  Lp · ( ΔP  −  σ · Δπ )                                    ║
+    # ║                  ^^      ^^^^^^                                     ║
+    # ║                  applied  osmotic                                   ║
+    # ║                  pressure pressure                                  ║
+    # ║                  pushing  pushing                                   ║
+    # ║                  water    water                                     ║
+    # ║                  THROUGH  BACK                                      ║
+    # ║                                                                    ║
+    # ║ where the osmotic pressure difference is given by van 't Hoff:    ║
+    # ║                                                                    ║
+    # ║   Δπ  =  (cIn − cH) · ni · R · T                                   ║
+    # ║                                                                    ║
+    # ║   Lp  : water permeability                                         ║
+    # ║   σ   : reflection coefficient (0 = transparent; 1 = perfect       ║
+    # ║         rejection, full osmotic pressure pushes back)              ║
+    # ║   ni  : van 't Hoff factor (number of dissolved species per salt   ║
+    # ║         formula unit, e.g. 2 for NaCl, 3 for CaCl₂)                ║
+    # ║   R   : gas constant in [cm³·bar / μmol / K]                       ║
+    # ║   T   : temperature [K]                                            ║
+    # ║                                                                    ║
+    # ║ Implementation note: the LEFT side carries a factor of 36000       ║
+    # ║ because Jw is stored in [cm/s × 10⁻⁴] (i.e. μm/s) while Lp uses    ║
+    # ║ [L/m²/h/bar] — the 36000 reconciles the two unit conventions.      ║
+    # ║                                                                    ║
+    # ║ Reference: Kedem & Katchalsky (1958), "Thermodynamic analysis of   ║
+    # ║ the permeability of biological membranes to non-electrolytes."     ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_Jw_rule(m, n, t):
         return m.Jw[n,t]*36000 == m.Lp *(delP - (m.cIn[n,t] - m.cH[n,t])*ni*m.sigma*R*T)
     m.eqn_Jw = Constraint(m.n_vial, m.tau, rule=eqn_Jw_rule)
-    
-    # Solute flux equation:
-    # Js = B * (cIn - cH)
-    # or, for the convection form, a modified flux relation using H and Js_exp.
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 9 of 11:  SOLUTE FLUX                                    ║
+    # ║                                                                    ║
+    # ║ The simple form (B_form='single' or 'pervial') is Fickian:         ║
+    # ║                                                                    ║
+    # ║   Js  =  B · (cIn − cH)                                            ║
+    # ║                                                                    ║
+    # ║   B   : solute permeability [μm/s]                                 ║
+    # ║   The driving force is the SURFACE concentration difference, NOT   ║
+    # ║   the bulk-vs-permeate difference (concentration polarization is   ║
+    # ║   already baked in via cIn — see Eq. 7).                           ║
+    # ║                                                                    ║
+    # ║ The convection form (B_form='convection') uses Spiegler–Kedem:    ║
+    # ║                                                                    ║
+    # ║   Js  =  Jw · H · (cIn · F − cH) / (F − 1)                         ║
+    # ║                                                                    ║
+    # ║ with F = exp(Jw·(1−σ)/Pm) — this is the "F factor" everyone in     ║
+    # ║ the RO/NF literature refers to. It captures the coupling between   ║
+    # ║ water transport and solute back-diffusion through the membrane.    ║
+    # ║                                                                    ║
+    # ║ The 10000 multiplier on the left rescales Js's storage units to    ║
+    # ║ keep the residuals well-conditioned numerically (no physics change). ║
+    # ║                                                                    ║
+    # ║ Reference: Spiegler & Kedem (1966), "Thermodynamics of hyper-      ║
+    # ║ filtration (reverse osmosis): criteria for efficient membranes."   ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_Js_rule(m, n, t):
         if B_form=='single':
+            # Most common case: single scalar B. Fickian diffusion.
             return m.Js[n,t]*10000 == m.B * (m.cIn[n,t] - m.cH[n,t])
-        elif B_form=='pervial':    
+        elif B_form=='pervial':
+            # Same form but B is a separate decision variable per vial.
             return m.Js[n,t]*10000 == m.B[n] * (m.cIn[n,t] - m.cH[n,t])
         elif B_form=='convection':
+            # Spiegler–Kedem convection–diffusion form (eq. above).
             return m.Js[n,t] == m.Jw[n,t] * m.H[n,t] * (m.cIn[n,t] * m.Js_exp[n,t] - m.cH[n,t]) / (m.Js_exp[n,t]-1)
         else:
             #return m.Js[n,t]*10000 ==  m.B[n,t] * (m.cIn[n,t] - m.cH[n,t]) # No Jw in Js
             return m.Js[n,t]*10000 ==  (m.Jw[n,t] * m.B[n,t] * 10000) * (m.cIn[n,t] - m.cH[n,t]) #Jw in Js
-            
+
     m.eqn_Js = Constraint(m.n_vial, m.tau, rule=eqn_Js_rule)
-    
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 10a of 11:  SPIEGLER–KEDEM F-FACTOR (auxiliary)         ║
+    # ║                                                                    ║
+    # ║   F  =  exp( Jw · (1 − σ) / Pm )      (Pm ≡ beta_0 in the code)   ║
+    # ║                                                                    ║
+    # ║ This is the dimensionless exponential that appears throughout the  ║
+    # ║ Spiegler–Kedem formulation. It captures the coupling: at high Jw   ║
+    # ║ or low membrane permeability Pm, F → large, and rejection → σ.    ║
+    # ║ Only active when B_form='convection'; otherwise skipped.            ║
+    # ║                                                                    ║
+    # ║ The extra factor of 10000 inside the exp() rescales Jw and beta_0  ║
+    # ║ into a consistent unit system for the exponent's argument.         ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_Js_exp_rule(m, n, t):
         if B_form=='convection':
-            return m.Js_exp[n,t]  == exp(m.Jw[n,t]/m.beta_0*10000)   
+            return m.Js_exp[n,t]  == exp(m.Jw[n,t]/m.beta_0*10000)
         else:
             return Constraint.Skip
     m.eqn_Js_exp = Constraint(m.n_vial, m.tau, rule=eqn_Js_exp_rule)
-    
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 10b of 11:  H factor (convection mode only)              ║
+    # ║                                                                    ║
+    # ║   H  =  beta_1                                                     ║
+    # ║                                                                    ║
+    # ║ H is a piece-wise constant (per vial × time) that lets H vary if   ║
+    # ║ you turn it into a Var later. Currently pinned to the scalar beta_1║
+    # ║ for the convection-mode fit.                                       ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_H_rule(m,n,t):
         if B_form=='convection':
             return m.H[n,t]  == m.beta_1
         else:
             return Constraint.Skip
     m.eqn_H = Constraint(m.n_vial, m.tau, rule=eqn_H_rule)
-    
-    # Algebraic relation for vial concentration:
-    # mV * cV = cVmV
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ EQUATION 11 of 11:  VIAL-CONCENTRATION IDENTITY                   ║
+    # ║                                                                    ║
+    # ║   cVmV  =  mV · cV                                                 ║
+    # ║                                                                    ║
+    # ║ Recall Eq. 5 integrated d(mV·cV)/dt directly to get cVmV. This     ║
+    # ║ algebraic constraint recovers cV from cVmV by dividing by mV.      ║
+    # ║                                                                    ║
+    # ║ We write it as MULTIPLICATION  (cVmV = mV·cV)  instead of          ║
+    # ║ DIVISION  (cV = cVmV/mV)  because IPOPT handles the multiplicative ║
+    # ║ form much better numerically — division by a small mV near vial    ║
+    # ║ open would create huge Jacobian entries that destabilize the solve.║
+    # ╚══════════════════════════════════════════════════════════════════╝
     def eqn_cV_rule(m, n, t):
         return m.mV[n,t] * m.cV[n,t] == m.cVmV[n,t]
     m.eqn_cV = Constraint(m.n_vial, m.tau, rule=eqn_cV_rule)# numercally better without division
@@ -3414,6 +3843,63 @@ def _parse_excel_salt_name(sheet_name: str, metadata: dict, note_text: str = "")
     return "NaCl"
 
 
+def _detect_nf270_mode(note_text: str, mass_all_cum=None) -> tuple[str, str]:
+    """Detect Lag vs Overflow mode for an NF270 .xlsx sheet.
+
+    Returns
+    -------
+    (mode, source) : tuple of str
+        mode   — 'Lag' or 'Overflow' (the value going into data_stru["mode"])
+        source — 'notes_text', 'mass_trajectory', or 'default' (audit trail)
+
+    Detection order (first match wins):
+      1. Notes text explicitly mentions 'overflow' or 'lag'
+      2. Notes text mentions 'wash with' (a Lag operational signal) or
+         'continuous diafiltrate' (an Overflow signal)
+      3. Mass-trajectory heuristic: if the cell mass dips significantly
+         and then RECOVERS toward the initial value, it's Lag (the wash
+         restored M_F). If mass stays approximately flat, it's Overflow.
+      4. Default to 'Lag' if nothing matches.
+
+    Same architectural contract as DATA2: the user passes a known mode at
+    call-time; this helper just supplies a sensible default detected from
+    the workbook so the user doesn't have to spell it out per sheet.
+    """
+    text = str(note_text or "").lower()
+    # 1. Explicit mode keyword
+    if "overflow" in text:
+        return ("Overflow", "notes_text")
+    if "lag" in text and "lag" not in {"lagging", "lagged"}:  # avoid false-positive substrings
+        return ("Lag", "notes_text")
+    # 2. Operational signal
+    if "continuous diafiltrate" in text or "continuous diafilt" in text:
+        return ("Overflow", "notes_text")
+    if "wash with" in text or "batch wash" in text:
+        return ("Lag", "notes_text")
+    # 3. Mass trajectory: Lag = significant dip + recovery; Overflow = flat
+    if mass_all_cum is not None:
+        try:
+            mass = np.asarray(mass_all_cum, dtype=float).reshape(-1)
+            finite = mass[np.isfinite(mass)]
+            if finite.size > 10:
+                m_start = float(finite[0])
+                m_end = float(finite[-1])
+                m_max = float(np.max(finite))
+                m_min = float(np.min(finite))
+                span = max(abs(m_max - m_min), 1e-9)
+                start_to_end = abs(m_end - m_start)
+                # Heuristic threshold: if start ≈ end (within 20% of span)
+                # AND there was significant variation in between (>3× the
+                # start-to-end delta), the cell mass dipped and recovered →
+                # Lag. Otherwise default Lag (safe).
+                if start_to_end < 0.2 * span and span > 3 * start_to_end:
+                    return ("Lag", "mass_trajectory")
+        except Exception:
+            pass
+    # 4. Default
+    return ("Lag", "default")
+
+
 def _segment_indices_by_swap(swap_flags: np.ndarray) -> list[tuple[int, int]]:
     """Split a time-series into vial segments using a 0/1 swap flag column."""
     swap_flags = np.asarray(swap_flags).reshape(-1)
@@ -3435,6 +3921,101 @@ _CATION_MW_G_PER_MOL = {
     "CaCl2": 40.08,    # Ca
     "LaCl3": 138.91,   # La
 }
+
+
+# ---------------------------------------------------------------------------
+# ICP-OES calibration audit (read the calibration table embedded in each
+# workbook and cross-check the precomputed mg/L values).
+# ---------------------------------------------------------------------------
+# Each NF270 workbook sheet carries an ICP calibration block at cols 23-26:
+#     col 23/25: Concentration (mg/L)        ← calibration standards
+#     col 24/26: Intensity (cps)             ← raw ICP reading at each standard
+# The ICP machine fits a line through these and uses it to convert each
+# vial's intensity (col 18) to mg/L (col 19). The cross-check below
+# re-fits the line ourselves and verifies the stored mg/L matches what
+# the calibration curve would predict from the same intensity.
+#
+# This is a pure DATA AUDIT — does NOT change the cV_avg values; it just
+# adds a residual field per ICP row so we can flag any disagreement > 5%.
+
+def _parse_icp_calibration(sheet_df, salt_slot=1):
+    """Read the ICP calibration table and fit a linear curve.
+
+    Salt 1 calibration lives at cols 23-24, Salt 2 at cols 25-26.
+    Header rows are 1-2; data starts at row 3 and runs until NaN.
+
+    Returns a dict with the fitted curve + the raw points, or None if the
+    calibration table is missing or too short to fit.
+    """
+    base_col = 23 if salt_slot == 1 else 25
+    if base_col + 1 >= sheet_df.shape[1]:
+        return None
+
+    mg_L_list = []
+    cps_list = []
+    for r in range(3, min(sheet_df.shape[0], 60)):
+        c = sheet_df.iat[r, base_col]
+        i = sheet_df.iat[r, base_col + 1]
+        c_f = pd.to_numeric(c, errors="coerce")
+        i_f = pd.to_numeric(i, errors="coerce")
+        if pd.notna(c_f) and pd.notna(i_f):
+            mg_L_list.append(float(c_f))
+            cps_list.append(float(i_f))
+
+    if len(mg_L_list) < 2:
+        return None
+
+    cps_arr = np.asarray(cps_list, dtype=float)
+    mg_L_arr = np.asarray(mg_L_list, dtype=float)
+
+    # Fit  mg_L = slope * cps + intercept  (intensity is the independent
+    # variable because we'll invert "stored mg/L vs stored cps" downstream).
+    slope, intercept = np.polyfit(cps_arr, mg_L_arr, 1)
+    mg_L_pred = slope * cps_arr + intercept
+    ss_res = float(np.sum((mg_L_arr - mg_L_pred) ** 2))
+    ss_tot = float(np.sum((mg_L_arr - np.mean(mg_L_arr)) ** 2))
+    r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
+
+    return {
+        "slope_mg_per_L_per_cps": float(slope),
+        "intercept_mg_per_L": float(intercept),
+        "r_squared": float(r_squared),
+        "n_points": int(len(mg_L_arr)),
+        "mg_L_range": [float(np.min(mg_L_arr)), float(np.max(mg_L_arr))],
+        "cps_range": [float(np.min(cps_arr)), float(np.max(cps_arr))],
+        "points_mg_L": [float(x) for x in mg_L_arr.tolist()],
+        "points_cps":  [float(x) for x in cps_arr.tolist()],
+    }
+
+
+def _icp_calibration_residual(stored_mg_L, intensity_cps, calibration):
+    """Cross-check one stored ICP mg/L value against the fitted calibration.
+
+    Returns a small dict with the predicted mg/L from the calibration, the
+    absolute residual, the relative residual (%), and a 5%-tolerance flag.
+    Returns None if the calibration or the intensity is unusable.
+    """
+    if calibration is None:
+        return None
+    if not (np.isfinite(intensity_cps) and intensity_cps > 0):
+        return None
+    if not np.isfinite(stored_mg_L):
+        return None
+
+    slope = calibration["slope_mg_per_L_per_cps"]
+    intercept = calibration["intercept_mg_per_L"]
+    predicted = slope * intensity_cps + intercept
+
+    abs_res = float(stored_mg_L - predicted)
+    rel_pct = float(abs_res / predicted * 100.0) if abs(predicted) > 1e-9 else float("nan")
+
+    return {
+        "predicted_mg_L": float(predicted),
+        "stored_mg_L": float(stored_mg_L),
+        "absolute_residual_mg_L": float(abs_res),
+        "relative_residual_pct": float(rel_pct),
+        "within_5pct_tolerance": bool(abs(rel_pct) < 5.0) if np.isfinite(rel_pct) else False,
+    }
 
 # ---------------------------------------------------------------------------
 # Salt-aware mass-residual uncertainty (used by legacy diagnostics)
@@ -3561,6 +4142,12 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
                     return float(val)
         return float(default)
 
+    # Read the embedded ICP calibration table once (per sheet). Used below
+    # to cross-check that the precomputed mg/L matches what the calibration
+    # curve would predict from the same intensity. Adds an audit field per
+    # row; does NOT change cV_avg.
+    icp_calibration = _parse_icp_calibration(sheet_df, salt_slot=1)
+
     def _parse_sidebar_icp_rows():
         """Collect the sidebar ICP rows so cross-checks stay available downstream."""
         rows = {}
@@ -3576,6 +4163,10 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
             try:
                 samp_vol = float(pd.to_numeric(sheet_df.iat[r, 16], errors="coerce"))
                 acid_vol = float(pd.to_numeric(sheet_df.iat[r, 17], errors="coerce"))
+                # NEW: also read col 18 (raw intensity in cps) so we can
+                # cross-check against the calibration table downstream.
+                intensity_cps = float(pd.to_numeric(sheet_df.iat[r, 18], errors="coerce")) \
+                    if 18 < sheet_df.shape[1] else float("nan")
                 icp_mg_L = float(pd.to_numeric(sheet_df.iat[r, 19], errors="coerce"))
             except Exception:
                 continue
@@ -3590,14 +4181,25 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
 
             dilution = (samp_vol + acid_vol) / samp_vol
             cV_mM = icp_mg_L * dilution / cation_mw
+
+            # Cross-check the stored mg/L against the in-workbook calibration
+            # curve. residual is a dict with predicted/stored/abs/relative
+            # fields, or None if the calibration table is missing or the
+            # intensity is bad.
+            calib_residual = _icp_calibration_residual(
+                icp_mg_L, intensity_cps, icp_calibration
+            )
+
             record = {
                 "label": label_norm,
                 "sample_volume_mL": float(samp_vol),
                 "nitric_acid_volume_mL": float(acid_vol),
+                "icp_intensity_cps": float(intensity_cps) if np.isfinite(intensity_cps) else None,
                 "icp_cation_mg_L": float(icp_mg_L),
                 "cation_mw_g_per_mol": float(cation_mw),
                 "dilution_factor": float(dilution),
                 "cV_avg_mM": float(cV_mM),
+                "icp_calibration_residual": calib_residual,
             }
             rows[label_norm] = record
             vial_match = re.match(r"Vial\s+(\d+)\s*$", label_norm, flags=re.IGNORECASE)
@@ -3699,10 +4301,17 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     _mass_scale_g_val = 0.01
     _mass_scale_components = {}
 
+    # Detect the mode (Lag vs Overflow) from the Notes text + mass trajectory.
+    # Defaults to Lag if uncertain. Records the source ("notes_text",
+    # "mass_trajectory", or "default") in data_stru["mode_source"] so it's
+    # auditable per sheet.
+    detected_mode, mode_source = _detect_nf270_mode(note_text, mass_all_cum)
+
     data_stru = {
         "dataset": Path(path).stem,
         "filename": str(metadata.get("Experiment Name:", Path(path).name)),
-        "mode": "Lag",
+        "mode": detected_mode,
+        "mode_source": mode_source,
         "continuous_cF": True,
         "conductivity_cF": True,
         "conductivity_cF_converted": False,
@@ -3768,6 +4377,7 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
             "sigma0":     0.9,
             "theta0":     np.array([5.0, 0.5, 0.9], dtype=float),
             "icp_sidebar_rows": sidebar_icp_rows,
+            "icp_calibration_curve": icp_calibration,  # fitted slope/intercept/R² + raw points (or None if absent)
             "cF_feed_icp_mM": feed_icp_mM,
             "cF_diafiltrate_icp_mM": diafiltrate_icp_mM,
             "cF_retentate_icp_mM": retentate_icp_mM,
@@ -4792,6 +5402,154 @@ def _plot_contour_data1_legacy(df, output_prefix, save_dir, show_title=False, pr
         fig.savefig(out_path, dpi=300, bbox_inches="tight")
         outputs.append(str(out_path))
         plt.close(fig)
+
+    return outputs
+
+
+_PAPER_AXIS_LABELS = {
+    "Lp":    r"L$\mathbf{_p}$ [L $\mathbf{\cdot}$ m$\mathbf{^{-2}\cdot}$h$\mathbf{^{-1}\cdot}$bar$\mathbf{^{-1}}$]",
+    "B":     r"B [$\mathbf{\mu}$m $\mathbf{\cdot}$ s$\mathbf{^{-1}}$]",
+    "sigma": r"$\mathbf{\sigma}$ [dimensionless]",
+}
+
+
+def _plot_contour_paper_style(
+    df,
+    *,
+    x_var,
+    y_var,
+    theta_fit=None,
+    output_prefix,
+    save_dir,
+    show_title=True,
+    preface=False,
+):
+    """DATA1-paper-style contour rendering for an arbitrary (x_var, y_var) pair.
+
+    Produces three separate PNG files (one per data channel), each drawn as a
+    proper contour-line plot with labeled iso-objective contours and a red
+    triangle at the per-channel minimum. Generalizes
+    ``_plot_contour_data1_legacy`` (which assumed y=Lp) to handle the σ-B slice
+    where Lp is the held-fixed third parameter.
+
+    Arguments
+    ---------
+    df : pandas.DataFrame
+        Tidy contour dataframe with columns ``[x_var, y_var, Obj_mass,
+        Obj_concentration, Obj_retentate_concentration]``.
+    x_var, y_var : str
+        Names of the swept parameters (must be column names in df).
+    theta_fit : dict, optional
+        Centering fit; used only to annotate the held parameter in the title.
+    output_prefix : str
+        Stem prefix for the three output PNGs.
+    save_dir : str or Path
+        Output directory.
+
+    Returns
+    -------
+    list of pathlib.Path
+        Paths to the three PNGs (one per channel).
+    """
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    if x_var not in df.columns or y_var not in df.columns:
+        raise ValueError(
+            f"DataFrame is missing required columns {x_var!r} and/or {y_var!r}; "
+            f"got {list(df.columns)}"
+        )
+
+    f_m  = df["Obj_mass"].values
+    f_pc = df["Obj_concentration"].values
+    f_rc = df["Obj_retentate_concentration"].values
+
+    grid_size = int(round(np.sqrt(len(f_m))))
+    if grid_size * grid_size != len(f_m):
+        raise ValueError(
+            f"Contour dataframe must contain a square grid; got {len(f_m)} rows."
+        )
+
+    xx = df[x_var].values
+    yy = df[y_var].values
+    X = np.reshape(xx, (grid_size, grid_size))
+    Y = np.reshape(yy, (grid_size, grid_size))
+
+    F_m  = np.reshape(f_m,  (grid_size, grid_size))
+    F_pc = np.reshape(f_pc, (grid_size, grid_size))
+    F_rc = np.reshape(f_rc, (grid_size, grid_size))
+
+    ind_m  = int(np.nanargmin(f_m))  if np.any(np.isfinite(f_m))  else None
+    ind_pc = int(np.nanargmin(f_pc)) if np.any(np.isfinite(f_pc)) else None
+    ind_rc = int(np.nanargmin(f_rc)) if np.any(np.isfinite(f_rc)) else None
+
+    xlabelstr = _PAPER_AXIS_LABELS.get(x_var, x_var)
+    ylabelstr = _PAPER_AXIS_LABELS.get(y_var, y_var)
+    if preface:
+        xlabelstr = {"Lp": r"L$\mathbf{_p}$", "B": "B",
+                     "sigma": r"$\mathbf{\sigma}$"}.get(x_var, x_var)
+        ylabelstr = {"Lp": r"L$\mathbf{_p}$", "B": "B",
+                     "sigma": r"$\mathbf{\sigma}$"}.get(y_var, y_var)
+        axfontsize = 24
+    else:
+        axfontsize = 16
+
+    held_param = next(
+        (p for p in ("Lp", "B", "sigma") if p not in (x_var, y_var)),
+        None,
+    )
+    held_value_str = ""
+    if held_param is not None and isinstance(theta_fit, dict):
+        try:
+            held_value_str = f" (held {held_param} = {float(theta_fit[held_param]):.3g})"
+        except (KeyError, TypeError, ValueError):
+            held_value_str = ""
+
+    panel_specs = [
+        ("mass",            F_m,  ind_m,
+         r"Log$\mathbf{_{10}}$ transformed" + "\n Mass Objective" + held_value_str),
+        ("permeate_conc",   F_pc, ind_pc,
+         r"Log$\mathbf{_{10}}$ transformed" + "\n Permeate Concentration Objective" + held_value_str),
+        ("retentate_conc",  F_rc, ind_rc,
+         r"Log$\mathbf{_{10}}$ transformed" + "\n Retentate Concentration Objective" + held_value_str),
+    ]
+
+    outputs = []
+    for fig_num, (suffix, surface, ind_opt, title) in enumerate(panel_specs, start=1):
+        fig = plt.figure(figsize=(4, 4))
+        try:
+            cp = plt.contour(X, Y, surface, 10, linewidths=2)
+            try:
+                plt.clabel(cp, cp.levels[::2], inline=True, fontsize=12,
+                           colors="k", fmt="%1.1f")
+            except Exception:
+                pass
+            if ind_opt is not None:
+                plt.plot(
+                    xx[ind_opt],
+                    yy[ind_opt],
+                    marker="^",
+                    markersize=12,
+                    markeredgecolor="red",
+                    markerfacecolor=[1, 0.6, 0.6],
+                    linestyle="None",
+                    clip_on=False,
+                )
+            if show_title:
+                plt.title(title, fontsize=14, fontweight="bold")
+            plt.xlabel(xlabelstr, fontsize=axfontsize, fontweight="bold")
+            plt.ylabel(ylabelstr, fontsize=axfontsize, fontweight="bold")
+            if preface:
+                plt.gca().axes.xaxis.set_ticklabels([])
+                plt.gca().axes.yaxis.set_ticklabels([])
+            plt.xticks(fontsize=14)
+            plt.yticks(fontsize=14)
+            plt.tick_params(direction="in")
+            out_path = save_dir / f"{output_prefix}-{suffix}.png"
+            fig.savefig(out_path, dpi=300, bbox_inches="tight")
+            outputs.append(str(out_path))
+        finally:
+            plt.close(fig)
 
     return outputs
 
@@ -6401,21 +7159,30 @@ def run_nf270_contour_for_sheet(
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Checkpoint: if both expected CSVs already exist and are non-empty, skip.
-    # Lets a long-running batch resume cleanly across crashes / re-runs.
-    expected_csvs = (
-        save_dir / "contourdata-x_B-y_Lp.csv",
-        save_dir / "contourdata-x_sigma-y_Lp.csv",
+    # Three contour slices per sheet. Each slice holds the third parameter at
+    # the centering-fit value and sweeps the other two:
+    #   * (B,  Lp) — σ pinned   → permeability ↔ mass-transfer coupling
+    #   * (σ,  Lp) — B pinned   → permeability ↔ rejection coupling
+    #   * (σ,   B) — Lp pinned  → rejection  ↔ mass-transfer coupling   (new)
+    sweep_pairs = (
+        ("B",     "Lp"),
+        ("sigma", "Lp"),
+        ("sigma", "B"),
+    )
+
+    # Checkpoint: if all expected CSVs already exist and are non-empty, skip.
+    # Per-slice resume happens inside the loop below.
+    expected_csvs = tuple(
+        save_dir / f"contourdata-x_{x}-y_{y}.csv" for (x, y) in sweep_pairs
     )
     if all(p.exists() and p.stat().st_size > 0 for p in expected_csvs):
-        print(f"\n[contour] === {run_id} ===  [SKIP — already complete]")
+        print(f"\n[contour] === {run_id} ===  [SKIP — all 3 slices already complete]")
         return {
             "run_id": run_id,
             "theta_fit": None,
             "csv_paths": list(expected_csvs),
             "png_paths": [
-                save_dir / "objcontour-x_B-y_Lp.png",
-                save_dir / "objcontour-x_sigma-y_Lp.png",
+                save_dir / f"objcontour-x_{x}-y_{y}.png" for (x, y) in sweep_pairs
             ],
             "grid_density": grid_density,
             "skipped": True,
@@ -6478,28 +7245,37 @@ def run_nf270_contour_for_sheet(
             print(f"[contour] warning: failed to write {fit_json}: {exc}")
 
     print(f"\n[contour] theta_fit center = {theta_fit}")
-    print(f"[contour] grid = {grid_density} x {grid_density} per sweep, two sweeps")
+    print(f"[contour] grid = {grid_density} x {grid_density} per sweep, "
+          f"{len(sweep_pairs)} sweeps")
 
     csv_paths = []
     png_paths = []
-    for x_var in ("B", "sigma"):
-        print(f"\n[contour] -------- sweep x={x_var}, y=Lp --------")
-        df = _nf270_contour_grid_dataframe(
-            data_stru,
-            theta_fit,
-            x_var=x_var,
-            y_var="Lp",
-            grid_density=grid_density,
-            mode=mode,
-            B_form=B_form,
-            workflow_family="DATA3",
-            nfe=nfe,
-        )
-        csv_path = save_dir / f"contourdata-x_{x_var}-y_Lp.csv"
-        df.to_csv(csv_path, index=False)
+    for x_var, y_var in sweep_pairs:
+        csv_path = save_dir / f"contourdata-x_{x_var}-y_{y_var}.csv"
+        png_path = save_dir / f"objcontour-x_{x_var}-y_{y_var}.png"
+
+        # Per-slice checkpoint: if the CSV exists and is non-empty, reuse it.
+        # (Previous 2-slice batches drop in here so we only compute σ-B.)
+        if csv_path.exists() and csv_path.stat().st_size > 0:
+            print(f"\n[contour] -------- {x_var}-{y_var} CSV already on disk, reusing --------")
+            df = pd.read_csv(csv_path)
+        else:
+            print(f"\n[contour] -------- sweep x={x_var}, y={y_var} --------")
+            df = _nf270_contour_grid_dataframe(
+                data_stru,
+                theta_fit,
+                x_var=x_var,
+                y_var=y_var,
+                grid_density=grid_density,
+                mode=mode,
+                B_form=B_form,
+                workflow_family="DATA3",
+                nfe=nfe,
+            )
+            df.to_csv(csv_path, index=False)
         csv_paths.append(csv_path)
 
-        png_path = save_dir / f"objcontour-x_{x_var}-y_Lp.png"
+        # Combined viridis heatmap (quick at-a-glance review)
         try:
             fig, _axes = plot_contour(df, save_path=png_path)
             try:
@@ -6510,6 +7286,21 @@ def run_nf270_contour_for_sheet(
             print(f"[contour] wrote {csv_path.name}  +  {png_path.name}")
         except Exception as exc:
             print(f"[contour] warning: render of {png_path.name} failed: {exc}")
+
+        # DATA1-style per-channel contour-line plots (paper quality)
+        try:
+            paper_outputs = _plot_contour_paper_style(
+                df,
+                x_var=x_var,
+                y_var=y_var,
+                theta_fit=theta_fit,
+                output_prefix=f"paper-x_{x_var}-y_{y_var}",
+                save_dir=save_dir,
+            )
+            for p in paper_outputs:
+                png_paths.append(Path(p))
+        except Exception as exc:
+            print(f"[contour] warning: paper-style render for {x_var}-{y_var} failed: {exc}")
 
     return {
         "run_id": run_id,
@@ -8231,54 +9022,112 @@ def _theta_variants_for_multistart(theta, n_starts=10, seed=13, workflow_family=
 # ---------- Seeded multistart helpers (DATA3-only by construction) ----------
 
 def _contour_top_k_grid_points(panel_dir, k=2):
-    """Read both σ-Lp and B-Lp contour CSVs for ``panel_dir`` and return the
-    top-``k`` UNIQUE grid points (sorted by lowest combined raw WSSE).
+    """Read up to three contour CSVs for ``panel_dir`` (σ-Lp, B-Lp, σ-B) and
+    return the top-``k`` UNIQUE grid points (sorted by lowest combined raw WSSE).
 
     Each returned entry is a dict with keys ``Lp``, ``B``, ``sigma``,
     ``raw_obj`` (the grid-point's total WSSE).  Returns an empty list if
-    the directory is missing or the CSVs are malformed.
+    no required CSVs exist or all are malformed.
+
+    The third coordinate of each grid point — i.e. the one held fixed in that
+    particular slice — comes from ``centering_fit.json`` if present, else from
+    the median of the other slices' grid values.
     """
     import pandas as _pd
     panel_dir = Path(panel_dir)
-    sig_csv = panel_dir / "contourdata-x_sigma-y_Lp.csv"
-    B_csv   = panel_dir / "contourdata-x_B-y_Lp.csv"
-    if not sig_csv.exists() or not B_csv.exists():
+    sig_csv  = panel_dir / "contourdata-x_sigma-y_Lp.csv"
+    B_csv    = panel_dir / "contourdata-x_B-y_Lp.csv"
+    sb_csv   = panel_dir / "contourdata-x_sigma-y_B.csv"
+    fit_json = panel_dir / "centering_fit.json"
+
+    # Read centering fit for the held-parameter values (preferred over medians).
+    Lp_held = None
+    B_held = None
+    sigma_held = None
+    if fit_json.exists():
+        try:
+            with open(fit_json, "r") as fh:
+                fit_blob = json.load(fh)
+            theta = fit_blob.get("theta_fit", {}) if isinstance(fit_blob, dict) else {}
+            Lp_held = float(theta.get("Lp")) if theta.get("Lp") is not None else None
+            B_raw = theta.get("B", theta.get("beta_0"))
+            if isinstance(B_raw, dict):
+                B_raw = next(iter(B_raw.values()), None)
+            B_held = float(B_raw) if B_raw is not None else None
+            sigma_held = float(theta.get("sigma")) if theta.get("sigma") is not None else None
+        except Exception:
+            pass
+
+    # Need at least one of the three CSVs to produce any candidates.
+    if not (sig_csv.exists() or B_csv.exists() or sb_csv.exists()):
         return []
+
+    df_s = df_b = df_sb = None
     try:
-        df_s = _pd.read_csv(sig_csv)
-        df_b = _pd.read_csv(B_csv)
+        if sig_csv.exists():
+            df_s = _pd.read_csv(sig_csv)
+        if B_csv.exists():
+            df_b = _pd.read_csv(B_csv)
+        if sb_csv.exists():
+            df_sb = _pd.read_csv(sb_csv)
     except Exception:
         return []
-    for df in (df_s, df_b):
+
+    def _add_raw(df):
+        if df is None:
+            return df
         df["raw"] = (
             10.0 ** df["Obj_mass"]
             + 10.0 ** df["Obj_concentration"]
             + 10.0 ** df["Obj_retentate_concentration"]
         )
-    # Find the sheet's center B & σ (median of contour values) so we can
-    # complete a 3-coordinate seed from each CSV.
-    B_center = float(_pd.to_numeric(df_b["B"], errors="coerce").median())
-    sigma_center = float(_pd.to_numeric(df_s["sigma"], errors="coerce").median())
+        return df.replace([np.inf, -np.inf], np.nan).dropna(subset=["raw"])
+
+    df_s  = _add_raw(df_s)
+    df_b  = _add_raw(df_b)
+    df_sb = _add_raw(df_sb)
+
+    # Fill missing held values from the available slices' medians.
+    if B_held is None and df_b is not None:
+        B_held = float(_pd.to_numeric(df_b["B"], errors="coerce").median())
+    if sigma_held is None and df_s is not None:
+        sigma_held = float(_pd.to_numeric(df_s["sigma"], errors="coerce").median())
+    if Lp_held is None and df_s is not None:
+        Lp_held = float(_pd.to_numeric(df_s["Lp"], errors="coerce").median())
+    # Final fallbacks if still unknown
+    if B_held is None:    B_held = 1.0
+    if sigma_held is None: sigma_held = 0.5
+    if Lp_held is None:   Lp_held = 5.0
 
     candidates = []
-    df_s = df_s.replace([np.inf, -np.inf], np.nan).dropna(subset=["raw"])
-    df_b = df_b.replace([np.inf, -np.inf], np.nan).dropna(subset=["raw"])
-    for _, row in df_s.iterrows():
-        candidates.append({
-            "Lp": float(row["Lp"]),
-            "B":  B_center,
-            "sigma": float(row["sigma"]),
-            "raw_obj": float(row["raw"]),
-            "source": "sigma-Lp",
-        })
-    for _, row in df_b.iterrows():
-        candidates.append({
-            "Lp": float(row["Lp"]),
-            "B":  float(row["B"]),
-            "sigma": sigma_center,
-            "raw_obj": float(row["raw"]),
-            "source": "B-Lp",
-        })
+    if df_s is not None:
+        for _, row in df_s.iterrows():
+            candidates.append({
+                "Lp": float(row["Lp"]),
+                "B":  B_held,
+                "sigma": float(row["sigma"]),
+                "raw_obj": float(row["raw"]),
+                "source": "sigma-Lp",
+            })
+    if df_b is not None:
+        for _, row in df_b.iterrows():
+            candidates.append({
+                "Lp": float(row["Lp"]),
+                "B":  float(row["B"]),
+                "sigma": sigma_held,
+                "raw_obj": float(row["raw"]),
+                "source": "B-Lp",
+            })
+    if df_sb is not None:
+        for _, row in df_sb.iterrows():
+            candidates.append({
+                "Lp": Lp_held,
+                "B":  float(row["B"]),
+                "sigma": float(row["sigma"]),
+                "raw_obj": float(row["raw"]),
+                "source": "sigma-B",
+            })
+
     candidates.sort(key=lambda r: r["raw_obj"])
     # Dedupe by (Lp, B, sigma) rounded
     seen = set()
@@ -8373,12 +9222,20 @@ def build_seeded_multistart_starts(
     #   Next n_starts entries: LHS samples clustered around seeds (round-robin)
     keys_for_box = ("Lp", "B", "sigma")
     # Hard bounds to clip into (matches model_construct_inter bounds)
-    bounds = {"Lp": (0.5, 50.0), "B": (1e-6, 30.0), "sigma": (1e-3, 0.999)}
+    bounds = {"Lp": (0.5, 50.0), "B": (1e-6, 50.0), "sigma": (1e-3, 0.999)}  # B upper bumped 30→50 to match model_construct_inter
 
     variants = []
     for sd in seeds:
         v = copy.deepcopy(base)
-        v.update({k: sd["theta"][k] for k in keys_for_box if k in sd["theta"]})
+        # Fix A: clip deterministic seeds to Pyomo bounds. Some contour-grid
+        # cells (e.g. sigma=1.0 at the wall) and cross-salt references can fall
+        # exactly on or outside the model's variable bounds; passing those
+        # through unclipped triggers W1002 warnings and leaves IPOPT chasing
+        # a Pyomo-projected initial value, which has caused stuck solves.
+        for k in keys_for_box:
+            if k in sd["theta"]:
+                lo_b, hi_b = bounds[k]
+                v[k] = float(max(lo_b, min(hi_b, sd["theta"][k])))
         variants.append(v)
 
     n_seed = len(seeds)

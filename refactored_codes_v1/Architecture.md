@@ -653,3 +653,84 @@ Each campaign produces:
 | New ROOT (data source)                            | A loader + a `_dispatch_*` in the runfile          |
 | Plot tweaks for NF270                             | `render_nf270_fit_v2` (`:10362`)                   |
 | New optimization knob                             | `solve_model` (`:1640`) and propagate through `StageResults` |
+
+---
+
+## 12. May 24, 2026 — Day-of-run updates (honest state report)
+
+This section is added at the end so it doesn't fragment the architectural
+narrative above. It records what was added on May 24, 2026, what survived
+end-of-day, and where the codebase is still rough. Read this section if you
+want the most current picture of *what works vs what doesn't*.
+
+### 12.1  What was added today
+
+| Component | Where | Purpose | Status |
+|---|---|---|---|
+| `_ec25_compensate` extended docstring + worked example | `refactored_ucb_library.py:375` | Layered educational comments on the 25 °C temperature compensation. Math-to-code annotated. | ✓ in repo |
+| `_nf270_corrected_cv_index` extended docstring + worked example | `refactored_ucb_library.py:454` | Same treatment for the V_tube tube-transit time correction. | ✓ in repo |
+| 11 constraint banners inside `model_construct_inter` | `refactored_ucb_library.py:1419+` | Each ODE/algebraic constraint now carries a `╔═╗` banner naming the equation, the physics, the units, and a literature reference. | ✓ in repo |
+| `CONDUCTIVITY_PAPER_EXPLAINER.md` | `refactored_codes_v1/` | Sibling explainer for `conductivity_paper.py` (Shedlovsky + MSA) without modifying that file. | ✓ in repo |
+| `_detect_nf270_mode(notes_text, mass_cum)` | `refactored_ucb_library.py:3837` | Replaces the hardcoded `mode="Lag"` in the Excel loader. Detects Lag vs Overflow from Notes-text keywords and mass-trajectory shape. | ✓ in repo |
+| `_parse_icp_calibration` + `_icp_calibration_residual` | `refactored_ucb_library.py:3850` | Reads the per-sheet ICP calibration table from cols 23-24, fits a linear curve, and cross-checks the stored `mg/L` values. Populates `data_config["icp_calibration_curve"]` and a per-row `icp_calibration_residual` field. | ✓ in repo |
+| B upper bound: `30 → 50` | `refactored_ucb_library.py:1637`, `:9026` | All 3 CaCl₂ sheets in the prior contour batch landed at B=30 exactly. Bumping the bound lets the optimizer move freely. | ✓ in repo |
+| Defensive guard `or "DATA1"` → `or "DATA3"` (workflow_family default) | `refactored_ucb_library.py:1578` | Defensive fallback. Only fires when caller explicitly passes `None`/invalid. The function-signature default stays `'DATA1'` for legacy callers. | ✓ in repo |
+| `.get()` defaults for `M_O`, `C_D`, `n_v0` | `refactored_ucb_library.py:1546`, `:1549`, `:1556` | DATA1 DATA-mode .mat files omit these keys; defaults are physically correct (0 mass overflow, 0 diafiltrate, fit from vial 1). DATA2 / DATA3 unaffected since those datasets always supply the keys. | ✓ in repo |
+| `_preflight_audit.py` + `PREFLIGHT_AUDIT.md` | `refactored_codes_v1/` | Read-only 6-check audit: registry salts, V_tube sanity, Pyomo bounds, 11-sheet roster, loader fields, ICP calibration health. | ✓ in repo |
+| `tests/` pytest infrastructure | `refactored_codes_v1/tests/` | Structural regression tests for DATA1/DATA2 model build. `conftest.py`, `reference_cases.py`, `_capture_references.py`, `_trajectory_compare.py`, `test_data1_regression.py`, `test_data2_regression.py`, `regression_references.json`. Run: `pytest -v refactored_codes_v1/tests/`. | ✓ in repo |
+
+### 12.2  What works end-to-end
+
+- **Reading every workbook sheet** — all 11 single-salt sheets load cleanly. The audit (PREFLIGHT_AUDIT.md) shows salt classifications 11/11 consistent, V_tube=0.3 g lands the ICP time correction at exactly 40 % of every vial duration, and ICP calibration health is good for NaCl sheets (R² ≈ 0.998, residuals ≤ 5 %).
+- **DATA1/DATA2 model build (structural)** — pytest passes for the 2 DATA2 cases that have the full schema. DATA1 cases are explicitly skipped with documented `con_boundary[2]` pre-existing issue.
+- **The well-fit dilution sheet** — `MC3.07.22.24_SNaCl` fits cleanly via the DATA2 recipe (`mode='Lag'`, `B_form=1`, theta from the paper demo) in ~19 sec, producing `Lp ≈ 8.8`, `σ = 1.0`, finite per-channel objectives.
+- **Paper-styled concentration plots** — `run_data3_time_series_plots` produces Figure 6-style mass + concentration panels with the agreed colors, marker edges, time-corrected teal squares.
+
+### 12.3  What doesn't work today (honest)
+
+- **Generalizing the DATA2 recipe to every DATA3 sheet** — passing the published theta dict to a low-starting-cF concentration-regime sheet (e.g. MC2.05.07.24_NaCl, cF₀≈0.9 mM) puts IPOPT in a degenerate region (σ=1.0 + tiny cF → near-zero osmotic resistance, Jw too high). IPOPT thrashes. Three seed strategies tried today (explicit DATA2 theta, theta=None for per-sheet `Lp0/B0/sigma0`, IPOPT internal `max_cpu_time` cap) all failed to break the pattern on the hard sheets.
+- **IPOPT's `max_cpu_time` cap is unreliable** — it's checked at iteration boundaries; if MUMPS gets stuck inside a single linear solve, the cap never fires. The current rollout driver wraps `solve_model` in a Python `signal.alarm` as a hard wall-clock timeout (`refactored_codes_v1/_rollout_data2_recipe.py`).
+- **ICP calibration health for multivalents (data-quality finding, not a code bug)** — CaCl₂ and LaCl₃ workbook calibration tables don't match the stored `mg/L` values (residuals up to 921 %). Almost certainly a Salt-1=NaCl template that was reused for divalent runs; the lab's analytical software used the correct calibration. The cross-check is *audit-only*; the loader still uses the lab's stored `mg/L`.
+- **Multivalent fits (CaCl₂, LaCl₃)** — even when fits converge, σ pins at 1.0 (or 0.0) on 10/11 sheets. This is the cF-channel-dominance pathology documented in slides 26-27 of the pptx deck. The `NF270_CF_RESIDUAL_FLOOR_MM` knob fixes it (validated on MC4 SNaCl: σ moved 0 → 0.461) but is currently **disabled by default per the May 24 decision** to keep the DATA3 path aligned with the DATA2 recipe.
+
+### 12.4  Why DATA2 recipe doesn't generalize directly to DATA3
+
+DATA2's recipe was tuned for a *uniform* sheet set: KCl filtration on NF270 across a narrow concentration window. The published seed theta `{Lp:11, σ:1.0, beta_0:1, ...}` lands close to a feasible basin for every DATA2 .mat file because they're all the same salt at similar conditions.
+
+DATA3's 11 single-salt sheets span:
+- **Three different salts** with different valencies (ni = 2 for NaCl, 3 for CaCl₂, 4 for LaCl₃). Osmotic pressure ∝ ni → σ·ΔΠ scales differently per salt.
+- **Two regimes** (dilution: cF starts high; concentration: cF starts ≈ 1 mM). The DATA2 seed sits closer to a feasible point for the dilution regime; for low-cF concentration runs it's degenerate.
+- **Different operators / coupons** — small variations in feed/diafiltrate concentrations across sheets.
+
+A single seed θ cannot serve all of them. The codebase has the machinery to handle this (contour-seeded multistart, per-sheet warm starts) — but the May 24 decision was to align with DATA2's simpler workflow first and add per-sheet seeding only if the simple path proves insufficient.
+
+### 12.5  Diagnostic knobs that are currently disabled (preserved as comments)
+
+These DATA3-specific improvements were validated earlier in the session but are turned OFF in the current rollout driver so the workflow mirrors DATA2 more faithfully. Re-enable by uncommenting in `refactored_codes_v1/_rollout_paper_styling.py`:
+
+| Knob | What it does | Validated outcome |
+|---|---|---|
+| `NF270_CF_RESIDUAL_FLOOR_MM = 1.0` | Floor the cF residual scale at 1 mM. Releases σ from the wall on sheets where the 0.3 % relative weight over-constrains. | MC4 SNaCl: σ moved `0 → 0.461`, obj_cr improved 200× |
+| `NF270_MULTISTART_USE_CONTOUR_SEEDS = True` | Use per-sheet contour-grid minima as IPOPT warm starts. | Validated to give interior σ on most sheets in the contour batch |
+
+### 12.6  Open questions for collaborators
+
+1. **σ-at-the-wall pathology** — is the right physics fix (a) the cF residual floor, (b) a Bayesian prior on σ anchored at literature values (~0.95 for divalents), (c) a per-salt B_form change, or (d) an explicit ion-pairing correction in ΔΠ for trivalents?
+2. **DATA1 `con_boundary[2]` bug** — pre-existing in `model_construct_inter` for DATA-mode .mat files; not fixed today. Worth a separate investigation.
+3. **Per-sheet vs uniform recipe** — should the rollout enable contour-seeded warm starts so every sheet gets the best available initial guess, even if that introduces machinery DATA2 doesn't have?
+4. **ICP calibration disagreement on multivalents** — leftover template artifact, or did the lab's analytical software actually use that calibration? Worth a quick conversation with the experimentalist.
+
+### 12.7  Files added today (canonical list)
+
+| File | Purpose |
+|---|---|
+| `refactored_codes_v1/CONDUCTIVITY_PAPER_EXPLAINER.md` | Shedlovsky / MSA reader's guide for `conductivity_paper.py` |
+| `refactored_codes_v1/PREFLIGHT_AUDIT.md` | 6-check pre-flight audit results |
+| `refactored_codes_v1/_preflight_audit.py` | Driver for the pre-flight audit |
+| `refactored_codes_v1/_b_form_selection.py` | B_form selection driver (built, not used after May 24 simplification) |
+| `refactored_codes_v1/_rollout_data2_recipe.py` | The May 24 rollout that mirrors DATA2 recipe + has wall-clock timeout |
+| `refactored_codes_v1/tests/` (8 files) | pytest infrastructure for DATA1/DATA2 structural regression |
+| `refactored_codes_v1/DATA3_single_salt_analysis_v6.pptx` | Slide deck (with May 24 update slides appended) |
+| `refactored_codes_v1/DATA3_single_salt_speaker_notes.docx` | Speaker notes (with May 24 update notes appended) |
+
+Older disposable rollout drivers (`_preview_paper_styling.py`, `_rollout_paper_styling.py`, `_contour_batch_sigma_B.py`) are also in `refactored_codes_v1/`; they survived for compatibility with the contour batch and the earlier paper-styling rollout. None are blockers.
