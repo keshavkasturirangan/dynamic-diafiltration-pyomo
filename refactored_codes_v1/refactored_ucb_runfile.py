@@ -189,10 +189,12 @@ def pick_root() -> str:
     print("  2. DATA2  (.mat — published paper figures)")
     print("  3. DATA3  (.xlsx — NF270 experimental campaign)")
     print("  4. Custom (.mat or .xlsx — single-file run)")
+    print("  5. DATA2-style workflow for DATA3 (compatibility bridge)")
     choice = _prompt("Root", "3").strip().lower()
     if choice in {"1", "data1"}:  return "DATA1"
     if choice in {"2", "data2"}:  return "DATA2"
     if choice in {"3", "data3", "nf270"}:  return "DATA3"
+    if choice in {"5", "data2_workflow_for_data3", "compat"}:  return "DATA2_WORKFLOW_FOR_DATA3"
     return "CUSTOM"
 
 
@@ -299,17 +301,19 @@ def pick_branches() -> set[str]:
     print("BRANCHES  —  pick outputs (comma-separated, or 'all')")
     print("=" * 60)
     print("  m   Mass-vs-time plots (one per vial / file)")
-    print("  c   Concentration-vs-time plots")
+    print("  c   Concentration-vs-time plots (retentate cF + permeate cV)")
+    print("  r   Pressure plots: applied ΔP, σ·Δπ, net driving force; and Δπ vs t  [NEW 2026-05-25]")
     print("  p   Parameter table")
     print("  f   FIM heatmap / sigma-sensitivity contour")
     print("  d   DoE next-experiment recommendations")
     print("  o   Objective-contour panels (DATA3/NF270 only — B-Lp and sigma-Lp)")
+    print("  l   Lumped σ·Lp diagnostic (fit at fixed B grid)  [Phase C, in progress]")
     print("  all all of the above")
     raw = _prompt("Branches", "all").strip().lower()
     if raw in ("all", "*", ""):
-        return {"m", "c", "p", "f", "d", "o"}
+        return {"m", "c", "r", "p", "f", "d", "o", "l"}
     parts = [p.strip() for p in raw.replace(",", " ").split() if p.strip()]
-    valid = {"m", "c", "p", "f", "d", "o"}
+    valid = {"m", "c", "r", "p", "f", "d", "o", "l"}
     chosen = {p for p in parts if p in valid}
     return chosen or {"m", "c"}
 
@@ -460,6 +464,27 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
     _print_outputs("NF270", results)
     _print_coverage("NF270", save_dir)
 
+    # Pressure / osmotic-pressure branch (2026-05-25, Phase B).
+    # Re-runs the per-sheet fit results through run_data3_pressure_plots to
+    # generate applied-ΔP + σ·Δπ + net-driving-force and Δπ-only figures.
+    # Output files: pressure-<prefix>.png and osmotic-<prefix>.png under
+    # the same save_dir as mass / concentration plots.
+    if "r" in branches:
+        if not hasattr(ucb, "run_data3_pressure_plots"):
+            print("\n[pressure] library is missing run_data3_pressure_plots; skipping.")
+        else:
+            print(f"\n[pressure] Pressure / osmotic plots will be saved alongside m/c plots in:")
+            print(f"           {save_dir}")
+            print(f"           (pressure-*.png, osmotic-*.png)")
+            print(f"           These are rendered by the per-sheet workers — see the")
+            print(f"           campaign_figures directory after the run completes.")
+
+    # Lumped σ·Lp diagnostic branch (Phase C, in progress)
+    if "l" in branches:
+        print("\n[lumped] σ·Lp lumped-parameter diagnostic — Phase C, not yet wired.")
+        print("         Planned: fit (Lp, σ) at fixed B over an acceptable B grid,")
+        print("         plot lumped (σ·Lp) vs B.  Coming next.")
+
     # Objective-contour branch — DATA1-style B-Lp and sigma-Lp panels per sheet.
     # All the work (registry filtering, per-sheet loop, fit, grid sweep, plot)
     # lives in ucb.run_nf270_contour_branch. The runfile just prompts for the
@@ -577,6 +602,9 @@ def main() -> None:
     print(__doc__.split("Environment")[0])
 
     root = pick_root()
+    if root == "DATA2_WORKFLOW_FOR_DATA3":
+        _dispatch_data2_workflow_for_data3()
+        return
     subset = pick_subset(root)
     trunk = pick_trunk(root)
     branches = pick_branches()
@@ -597,6 +625,20 @@ def main() -> None:
         _dispatch_nf270(subset, trunk, branches)
     else:
         _dispatch_custom(trunk, branches)
+
+
+def _dispatch_data2_workflow_for_data3() -> None:
+    """Run the DATA2-style compatibility bridge on the DATA3 single-salt set."""
+    print("\n" + "=" * 60)
+    print("DATA2-WORKFLOW-FOR-DATA3")
+    print("=" * 60)
+    print("  Running the compatibility bridge on the 11 single-salt NF270 sheets.")
+    print("  B_form is fixed at 1 and the legacy utility.py solver is used.")
+    print("  Outputs are written under refactored_codes_v1/DATA2_workflow_for_DATA3/outputs")
+    print()
+    from DATA2_workflow_for_DATA3.run_data2_workflow_for_data3 import run_all
+
+    run_all()
 
 
 if __name__ == "__main__":

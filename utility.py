@@ -16,10 +16,35 @@ import copy
 import os
 import json
 from sklearn.metrics import r2_score
+from pathlib import Path
+import sys
 
 from pyomo.environ import *
 from pyomo.dae import *
 import idaes.core.util.scaling as iscale
+
+
+def _legacy_output_tag(data_stru):
+    """Pick a stable file tag for plots / CSVs.
+
+    DATA3/XLSX runs include a sheet name, so prefer that over the workbook
+    stem to avoid overwriting one sheet's artifacts with another sheet from
+    the same workbook.
+    """
+    if not isinstance(data_stru, dict):
+        return "dataset"
+    tag = data_stru.get("sheet_name") or data_stru.get("dataset") or "dataset"
+    return str(tag).replace("/", "_").replace(" ", "_")
+
+
+def _load_refactored_ucb_library():
+    """Import the refactored loader lazily so legacy utility.py stays usable."""
+    repo_root = Path(__file__).resolve().parent
+    ref_dir = repo_root / "refactored_codes_v1"
+    if str(ref_dir) not in sys.path:
+        sys.path.insert(0, str(ref_dir))
+    import refactored_ucb_library as refactored_lib  # noqa: WPS433
+    return refactored_lib
 
 
 def loadmat(filename):
@@ -89,6 +114,33 @@ def loadmat(filename):
     return _check_keys(data)
 
 
+def loadxlsx(filename, *, sheet=None):
+    """
+    Read an XLSX workbook through the refactored loader and return a legacy
+    wrapper that looks like ``loadmat(...)``.
+
+    This keeps the old solver / plotting code intact while letting the
+    DATA3 sheets use the refactored conductivity conversion and Excel parser.
+    """
+    refactored_lib = _load_refactored_ucb_library()
+    print("\nLoading XLSX file =", filename, "\n")
+    if sheet is not None:
+        print("  sheet =", sheet)
+    wrapped = refactored_lib.loadxlsx(filename, sheet=sheet)
+    data_stru = wrapped.get("data_stru", wrapped)
+    for row in data_stru.get("data_raw", []):
+        c_v_avg = row.get("cV_avg")
+        if isinstance(c_v_avg, np.ndarray):
+            c_v_avg_arr = np.asarray(c_v_avg, dtype=float).reshape(-1)
+            if c_v_avg_arr.size <= 1:
+                row["cV_avg"] = float(c_v_avg_arr[0]) if c_v_avg_arr.size else float("nan")
+            else:
+                row["cV_avg"] = c_v_avg_arr.tolist()
+    data_stru.setdefault("source_format", "xlsx")
+    data_stru.setdefault("workflow_bridge", "DATA2_workflow_for_DATA3")
+    return {"data_stru": data_stru}
+
+
 def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=False,LOUD=False):
     '''
     Plot simulation results comparing with measurements
@@ -127,7 +179,8 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
     #plt.show()
     
     if LOUD:
-        fname = 'figures/mass-dat'+str(data_stru['dataset'])
+        os.makedirs('figures', exist_ok=True)
+        fname = 'figures/mass-dat' + _legacy_output_tag(data_stru)
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
 
     # plot concentration data/prediction comparison
@@ -172,7 +225,8 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
     #plt.show()
     
     if LOUD:
-        fname = 'figures/concentration-dat'+str(data_stru['dataset'])
+        os.makedirs('figures', exist_ok=True)
+        fname = 'figures/concentration-dat' + _legacy_output_tag(data_stru)
         fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
         
     # plot mass of stirred cell
@@ -211,7 +265,8 @@ def plot_sim_comparison(data_stru,sim_stru,stirc_mass=False,plot_pred=True,lg=Fa
             plt.legend(fontsize=12.5,loc='best')#bbox_to_anchor=(1.02, 0.3),borderaxespad=0,ncol=3)
         #plt.show()
         if LOUD:
-            fname = 'figures/stirc_mass-dat'+str(data_stru['dataset'])
+            os.makedirs('figures', exist_ok=True)
+            fname = 'figures/stirc_mass-dat' + _legacy_output_tag(data_stru)
             fig.savefig(fname+'.png',dpi=300,bbox_inches='tight')
 
 
@@ -1063,7 +1118,7 @@ def solve_model(data_stru, mode, theta=None, sim_opt=False, B_form='single', LOU
                 'Jw': Jw,
                 'Js': Js}
         print(sim_data)
-        fname = 'sim_data-dat'+str(data_stru['dataset'])       
+        fname = 'sim_data-dat' + _legacy_output_tag(data_stru)
         #create data frame from dictionary
         sim_datapd = pd.DataFrame(sim_data)
         
@@ -1511,7 +1566,7 @@ def solve_model_B_fix(data_stru, mode, theta=None, sim_opt=False, B_form=1, sigm
                 'Jw': Jw,
                 'Js': Js}
         print(sim_data)
-        fname = 'sim_data-dat'+str(data_stru['dataset'])       
+        fname = 'sim_data-dat' + _legacy_output_tag(data_stru)
         #create data frame from dictionary
         sim_datapd = pd.DataFrame(sim_data)
         
