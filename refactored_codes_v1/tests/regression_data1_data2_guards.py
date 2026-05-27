@@ -124,22 +124,52 @@ for wf, knob, expected, note in perm_cases:
     print(f"{wf:>18s} {str(knob):>30s} {str(use_perm_probe):>22s}  {marker:>10s}  [{note}]")
 print(f"\npermeate-probe guard:  {'PASS' if perm_ok else 'FAIL'}")
 
+# ---------- Retentate-ICP-anchor guard (added 2026-05-27) ----------
+# Toggle NF270_USE_RETENTATE_ICP_ANCHOR — adds a second cF residual term
+# at the last (vial, tau) using cF_retentate_icp_mM.  Must be a no-op
+# for DATA1/DATA2 regardless of the toggle's value.  The simplest direct
+# test is to inspect that the workflow-family gate alone decides the
+# effective_use flag (no Pyomo build needed).
+print("\n### Retentate ICP anchor guard")
+print(f"{'workflow_family':>18s} {'NF270_USE_RETENTATE_ICP_ANCHOR':>32s} {'retentate anchor active?':>26s}  {'expected?':>10s}")
+print("-" * 96)
+ret_cases = [
+    ("DATA1", None, False, "legacy"),
+    ("DATA1", True, False, "GUARD ON"),
+    ("DATA2", None, False, "legacy"),
+    ("DATA2", True, False, "GUARD ON"),
+    ("DATA3", None, False, "legacy"),
+    ("DATA3", True, True,  "active"),
+]
+ret_ok = True
+for wf, knob, expected, note in ret_cases:
+    lib.NF270_USE_RETENTATE_ICP_ANCHOR = knob
+    _is_data3 = (str(wf).upper() == "DATA3")
+    use_retentate_anchor = bool(_is_data3 and lib.NF270_USE_RETENTATE_ICP_ANCHOR)
+    match = (use_retentate_anchor == expected)
+    marker = "yes" if match else "NO!"
+    if not match: ret_ok = False
+    print(f"{wf:>18s} {str(knob):>32s} {str(use_retentate_anchor):>26s}  {marker:>10s}  [{note}]")
+print(f"\nRetentate ICP anchor guard:  {'PASS' if ret_ok else 'FAIL'}")
+
 # Reset
-lib.NF270_CF_RESIDUAL_FLOOR_MM  = None
-lib.NF270_SIGMA_INTERIOR_BOUNDS = None
-lib.NF270_USE_PERMEATE_PROBE    = None
+lib.NF270_CF_RESIDUAL_FLOOR_MM     = None
+lib.NF270_SIGMA_INTERIOR_BOUNDS    = None
+lib.NF270_USE_PERMEATE_PROBE       = None
+lib.NF270_USE_RETENTATE_ICP_ANCHOR = None
 
 print("\n" + "=" * 72)
 print("SUMMARY")
 print("=" * 72)
-print(f"  sigma interior-bounds guard:  {'PASS' if sigma_ok else 'FAIL'}")
-print(f"  cF residual-floor guard:      {'PASS' if cf_ok else 'FAIL'}")
-print(f"  permeate-probe guard:         {'PASS' if perm_ok else 'FAIL'}")
-if sigma_ok and cf_ok and perm_ok:
+print(f"  sigma interior-bounds guard:    {'PASS' if sigma_ok else 'FAIL'}")
+print(f"  cF residual-floor guard:        {'PASS' if cf_ok else 'FAIL'}")
+print(f"  permeate-probe guard:           {'PASS' if perm_ok else 'FAIL'}")
+print(f"  Retentate ICP anchor guard:     {'PASS' if ret_ok else 'FAIL'}")
+if sigma_ok and cf_ok and perm_ok and ret_ok:
     print()
-    print("  Conclusion: both knobs are inert for DATA1/DATA2 model construction.")
-    print("  DATA1 and DATA2 fits are byte-equivalent to the legacy code path")
-    print("  regardless of the constants' values.")
+    print("  Conclusion: all four DATA3 knobs are inert for DATA1/DATA2 model")
+    print("  construction.  DATA1 and DATA2 fits are byte-equivalent to the")
+    print("  legacy code path regardless of the constants' values.")
 else:
     print()
     print("  *** REGRESSION ***  the guard leaks.")

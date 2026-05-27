@@ -290,6 +290,20 @@ NF270_USE_PERMEATE_PROBE = None
 NF270_PERMEATE_PROBE_FLOOR_MM = 0.1     # absolute floor on permeate residual scale (mM)
 
 
+# When truthy and workflow_family == "DATA3", add a SECOND end-of-experiment
+# residual term to obj_cr using `data_config['cF_retentate_icp_mM']` as the
+# target — alongside the existing `cF_final_meas` (Final Tube ICP) anchor.
+# The two physical samples are not equivalent (Retentate = bulk stirred-cell
+# at experiment end; Final Tube = connecting-tubing dead-volume sample), so
+# enabling this constraint forces the fit to reconcile both.  Default None
+# (off) preserves byte-equivalent behavior with the legacy code path and the
+# DATA1/DATA2 paths regardless of value.  Set to True (or any truthy) to
+# activate.  See PREFLIGHT_AUDIT.md row "Retentate row" — historically
+# documented as a "cross-check only" measurement; this toggle promotes it to
+# a fit constraint.
+NF270_USE_RETENTATE_ICP_ANCHOR = None
+
+
 # Seeded multistart: instead of LHS over the full (Lp, B, sigma) bounds, cluster
 # starts around explicit seed thetas — typically the top-K grid points from the
 # sheet's own contour panel, plus one optimal theta from a different salt's
@@ -2485,6 +2499,32 @@ def solve_model(
             final_denom = final_tube_meas if np.isfinite(final_tube_meas) and abs(final_tube_meas) > 0 else final_scale
             ob_cf += (res_cf_final / final_denom) ** 2
             Count_cf += 1
+
+        # ── Optional SECOND end-of-experiment anchor (Retentate ICP) ──
+        # Added 2026-05-27 per user audit finding: cF_retentate_icp_mM
+        # (bulk stirred-cell concentration at experiment end) was loaded
+        # but never used as a fit constraint — only Final Tube ICP was.
+        # When NF270_USE_RETENTATE_ICP_ANCHOR is truthy AND workflow_family
+        # is DATA3, add a parallel residual term to obj_cr using the
+        # Retentate ICP measurement.  GUARDED so DATA1/DATA2 remain
+        # byte-equivalent to the legacy code path regardless of the
+        # constant's value.
+        _is_data3 = (str(workflow_family).upper() == "DATA3")
+        if _is_data3 and NF270_USE_RETENTATE_ICP_ANCHOR:
+            retentate_icp_meas = data_stru["data_config"].get("cF_retentate_icp_mM", np.nan)
+            try:
+                retentate_icp_meas = float(retentate_icp_meas)
+            except (TypeError, ValueError):
+                retentate_icp_meas = float("nan")
+            if np.isfinite(retentate_icp_meas):
+                # Use the same 0.3 % relative scaling as the Final Tube anchor.
+                retentate_scale = _abs_scale(retentate_icp_meas, 0.003, 0.003)
+                res_cf_retentate = m.cF[m.n_vial.last(), m.tau.last()] - retentate_icp_meas
+                res_cf_assemble.append(res_cf_retentate / retentate_scale)
+                obj_cf += (res_cf_retentate / retentate_scale) ** 2
+                ret_denom = retentate_icp_meas if abs(retentate_icp_meas) > 0 else retentate_scale
+                ob_cf += (res_cf_retentate / ret_denom) ** 2
+                Count_cf += 1
 
         m.count_m = Count_m
         m.count_cv = Count_cp

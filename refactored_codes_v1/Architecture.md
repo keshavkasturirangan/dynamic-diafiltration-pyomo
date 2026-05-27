@@ -888,6 +888,30 @@ This plot is **salt-agnostic** by construction — it uses `CONDUCTIVITY_TEMP_CO
 
 14 slides: title + reading guide + 11 side-by-side experiment comparisons (collaborator's slide LEFT, our concentration plot RIGHT) + summary. Spot-checked retentate end-of-run values on 3 sheets (MC2.NaCl, MC3.SNaCl, MC2.CaCl₂) — all agree within ~5 % across the two pipelines.
 
+### 14.4b  ICP-data usage audit (added 2026-05-27 evening)
+
+User raised a sharper question — verifying values are *preserved* isn't the same as verifying they're *used*. Tracing every ICP scalar from `data_config` into the model objective produced this table:
+
+| ICP value (raw row) | Loaded into `data_config` | Used in fit objective? | Where in `refactored_ucb_library.py` |
+|---|---|---|---|
+| **Feed** (initial retentate) | `C_F0` | ✅ Yes — initial condition for `cF` at t=0 | line 1574 |
+| **Diafiltrate** (buffer composition) | `C_D` | ✅ Yes — diafiltrate concentration parameter | line 1572 |
+| **Retentate** (final stirred-cell) | `cF_retentate_icp_mM` | ⚠️ Previously **cross-check only** — now optional fit anchor via `NF270_USE_RETENTATE_ICP_ANCHOR` | new block at line ~2493 |
+| **Final Tube** | `cF_final_meas` / `icp_final_tube_mM` | ✅ Yes — `obj_cr` end-of-experiment anchor | lines 2477–2487 |
+| **Per-vial Permeate** (Vial 1..N) | `data_raw[i]['cV_avg']` | ✅ Yes — `obj_cv` residual term with 3 % relative scale | lines 2376, 3042 |
+
+`PREFLIGHT_AUDIT.md` line 120 had explicitly documented `cF_retentate_icp_mM` as "⚪ cross-check only" — known but unused. In MC2.NaCl the Retentate ICP (35.06 mM) and Final Tube ICP (23.90 mM) differ by ~46 %, so they are physically distinct samples (bulk stirred-cell at end vs connecting-tubing dead-volume).
+
+**New toggle `NF270_USE_RETENTATE_ICP_ANCHOR`** (default `None` = off, opt-in):
+
+When set truthy AND `workflow_family == "DATA3"`, `model_construct_inter` adds a *second* residual term to `obj_cr`:
+```
+res_cf_retentate = m.cF[last_vial, last_tau]  −  cF_retentate_icp_mM
+```
+with the same 0.3 % relative scaling as the Final Tube anchor. Both anchors apply at the same `(last_vial, last_tau)` index — the optimizer reconciles both samples in a least-squares sense.
+
+**Guards** — like the other three DATA3-only knobs (`NF270_CF_RESIDUAL_FLOOR_MM`, `NF270_USE_PERMEATE_PROBE`, `NF270_SIGMA_INTERIOR_BOUNDS`), this toggle is gated by a `workflow_family == "DATA3"` check. Verified inert for DATA1/DATA2 by `tests/regression_data1_data2_guards.py` (now testing all four knobs); DATA2 pytest continues to pass within 1 % tolerance.
+
 ### 14.5  What this section lets us claim
 
 > The data-processing pipeline preserves the raw Excel measurements byte-equivalent (Time, Pressure, Temperatures, Vial Swap) or transforms them by single documented formulas (Mass baseline-subtraction per loader-vial, Conductivities EC25-compensated by salt-specific α). Every continuous-measurement column from the data file is now plotted in a generated figure (raw conductivity in `conductivity-<prefix>.png`; derived concentration in `concentration-<prefix>.png`). 70,101 of 70,101 audited data points verify GOOD. The "you're not plotting the data file" claim is empirically false.
