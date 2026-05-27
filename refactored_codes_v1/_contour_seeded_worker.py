@@ -137,6 +137,15 @@ def main():
                 plot_paths = list(plot_paths) + list(pressure_paths)
             except Exception as exc:
                 out["pressure_plot_error"] = f"{type(exc).__name__}: {exc}"
+            # 2026-05-27: also render raw-conductivity plots (collaborator
+            # left-panel format — refutes "you're not plotting the data file")
+            try:
+                cond_paths = lib.run_data3_conductivity_plots(
+                    results_dict, save_dir=save_dir, show=False
+                )
+                plot_paths = list(plot_paths) + list(cond_paths)
+            except Exception as exc:
+                out["conductivity_plot_error"] = f"{type(exc).__name__}: {exc}"
             out["plot_paths"] = [str(p) for p in plot_paths]
             out["fit_meta"] = fit_meta
         except Exception as exc:

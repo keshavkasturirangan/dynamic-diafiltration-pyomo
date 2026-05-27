@@ -5413,6 +5413,146 @@ def run_data3_pressure_plots(results, save_dir=None, show=False):
     return outputs
 
 
+def run_data3_conductivity_plots(results, save_dir=None, show=False):
+    """Create DATA3 raw-conductivity time-series plots — matches the
+    collaborator's left-panel format from the multicomponent deck.
+
+    Produces ``conductivity-<prefix>.png`` per sheet showing:
+      - Magenta triangles: raw retentate conductivity (μS/cm at measured T)
+      - Red diamonds: raw permeate conductivity (μS/cm at measured T)
+      - (optionally) the EC25-compensated traces as faded squares so the
+        compensation transformation is visible
+
+    The "raw" values are recovered from the stored EC25-compensated
+    cF_exp_conductivity / cV_perm_cond by inverting the EC25 formula:
+        σ_T = σ_25 / (1 + α · (25 − T))
+
+    This directly addresses the "you're not plotting what's in the data
+    file" criticism — every continuous-measurement column from the raw
+    Excel is now rendered in its native μS/cm units.
+
+    Annotation calls out:
+      - the EC25 formula and α used,
+      - the data-file columns the points come from,
+      - the Shedlovsky inversion that downstream produces concentration.
+    """
+    settings = results.get("model_settings", {})
+    if str(settings.get("workflow_family", "DATA3")).upper() != "DATA3":
+        return []
+
+    data_payload = results.get("data")
+    if isinstance(data_payload, list):
+        data_payload = data_payload[0] if data_payload else None
+    if not isinstance(data_payload, dict):
+        return []
+
+    fit_meta = results.get("fit_meta") or {}
+    save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    sheet_slug = _sanitize_filename_component(data_payload.get("sheet_name", "sheet"))
+    file_slug = _sanitize_filename_component(Path(str(data_payload.get("filename", "data3"))).stem)
+    prefix = f"{file_slug}_{sheet_slug}"
+    n_vials = int(data_payload.get("data_config", {}).get("n", len(data_payload.get("data_raw", []))))
+
+    # Salt-specific EC25 alpha so the un-compensation matches the loader's
+    # forward path.  Fallback to default if unknown salt.
+    salt_name = str(data_payload.get("data_config", {}).get("namec", "NaCl"))
+    alpha = float(CONDUCTIVITY_TEMP_COEFF_PER_C.get(salt_name, CONDUCTIVITY_TEMP_COEFF_DEFAULT))
+
+    data_raw = data_payload.get("data_raw", []) or []
+    if not data_raw:
+        return []
+
+    outputs = []
+
+    cond_fig, cond_ax = plt.subplots(figsize=(7, 4.5))
+    drew_ret_raw = False
+    drew_perm_raw = False
+    drew_ret_comp = False
+    drew_perm_comp = False
+    for i in range(min(n_vials, len(data_raw))):
+        v = data_raw[i]
+        time = np.asarray(v.get("time", []), dtype=float)
+        ret_T = np.asarray(v.get("retentate_temp", []), dtype=float)
+        perm_T = np.asarray(v.get("permeate_temp", []), dtype=float)
+        ret_cond_comp = np.asarray(v.get("cF_exp_conductivity", []), dtype=float)
+        perm_cond_comp = np.asarray(v.get("cV_perm_cond", []), dtype=float)
+        n_use = min(time.size, ret_T.size, ret_cond_comp.size)
+        if n_use == 0:
+            continue
+        # Invert EC25: σ_T = σ_25 / (1 + α · (25 − T))
+        denom_ret = 1.0 + alpha * (25.0 - ret_T[:n_use])
+        denom_ret = np.where(np.abs(denom_ret) > 1e-9, denom_ret, np.nan)
+        ret_raw = ret_cond_comp[:n_use] / denom_ret
+        n_perm = min(time.size, perm_T.size, perm_cond_comp.size)
+        denom_perm = 1.0 + alpha * (25.0 - perm_T[:n_perm])
+        denom_perm = np.where(np.abs(denom_perm) > 1e-9, denom_perm, np.nan)
+        perm_raw = perm_cond_comp[:n_perm] / denom_perm
+
+        # Plot raw (at measured T) — matches the collaborator's marker style.
+        # X axis in seconds to match their format.
+        cond_ax.plot(time[:n_use], ret_raw, "^", color="#C71585", markersize=4, alpha=0.85,
+                     markeredgecolor="k", markeredgewidth=0.3,
+                     label="Retentate (raw, μS/cm @ measured T)" if not drew_ret_raw else None)
+        drew_ret_raw = True
+        cond_ax.plot(time[:n_perm], perm_raw, "D", color="#D62728", markersize=4, alpha=0.85,
+                     markeredgecolor="k", markeredgewidth=0.3,
+                     label="Permeate (raw, μS/cm @ measured T)" if not drew_perm_raw else None)
+        drew_perm_raw = True
+        # Plot EC25-compensated (what we actually use downstream) as faded line
+        cond_ax.plot(time[:n_use], ret_cond_comp[:n_use], "-", color="#2E8B57", linewidth=1.0, alpha=0.5,
+                     label="Retentate EC25 (μS/cm @ 25°C)" if not drew_ret_comp else None)
+        drew_ret_comp = True
+        cond_ax.plot(time[:n_perm], perm_cond_comp[:n_perm], "-", color="#212121", linewidth=1.0, alpha=0.5,
+                     label="Permeate EC25 (μS/cm @ 25°C)" if not drew_perm_comp else None)
+        drew_perm_comp = True
+
+    cond_ax.set_xlabel("Time [s]", fontsize=14, fontweight="bold")
+    cond_ax.set_ylabel("Conductivity [μS/cm]", fontsize=14, fontweight="bold")
+    cond_ax.tick_params(direction="in")
+    cond_ax.xaxis.set_tick_params(labelsize=12)
+    cond_ax.yaxis.set_tick_params(labelsize=12)
+    cond_ax.set_xlim(left=0)
+    cond_ax.set_ylim(bottom=0)
+    # Legend anchored OUTSIDE the plot on the right so it doesn't collide
+    # with the data or the source-annotation box.
+    cond_ax.legend(
+        fontsize=8, loc="upper left", bbox_to_anchor=(1.02, 1.0),
+        frameon=True, borderaxespad=0.0,
+    )
+
+    # Annotation: data-source explanation — top-left INSIDE the plot
+    _ann = (
+        f"Source: raw Excel cols 4 (retentate) + 6 (permeate)\n"
+        f"Salt: {salt_name},  α = {alpha:.3f} /°C\n"
+        f"EC25 forward: σ_25 = σ_T · (1 + α·(25−T))\n"
+        f"EC25 inverse: σ_T  = σ_25 / (1 + α·(25−T))\n"
+        f"Downstream: Shedlovsky inversion → mM"
+    )
+    cond_ax.text(
+        0.02, 0.97, _ann, transform=cond_ax.transAxes, fontsize=7,
+        verticalalignment="top", horizontalalignment="left", family="monospace",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.85),
+    )
+    # fit_meta annotation (recipe / cF uncertainty) — bottom-left INSIDE the plot
+    _fit_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=True)
+    if _fit_lines:
+        cond_ax.text(
+            0.02, 0.03, "\n".join(_fit_lines), transform=cond_ax.transAxes, fontsize=7,
+            verticalalignment="bottom", horizontalalignment="left", family="monospace",
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.85),
+        )
+
+    cond_path = save_dir / f"conductivity-{prefix}.png"
+    cond_fig.savefig(cond_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(cond_path))
+    if show:
+        plt.show()
+    plt.close(cond_fig)
+    return outputs
+
+
 def _resolve_data_root(data_root=None):
     """Find the folder that stores the DATA1 paper inputs."""
     repo_root = Path(__file__).resolve().parents[1]
