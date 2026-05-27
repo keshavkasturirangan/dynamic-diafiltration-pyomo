@@ -734,3 +734,66 @@ These DATA3-specific improvements were validated earlier in the session but are 
 | `refactored_codes_v1/DATA3_single_salt_speaker_notes.docx` | Speaker notes (with May 24 update notes appended) |
 
 Older disposable rollout drivers (`_preview_paper_styling.py`, `_rollout_paper_styling.py`, `_contour_batch_sigma_B.py`) are also in `refactored_codes_v1/`; they survived for compatibility with the contour batch and the earlier paper-styling rollout. None are blockers.
+
+---
+
+## 13. May 24–25, 2026 — Late-session NaCl rollout findings (honest)
+
+### 13.1  Goal of the late session
+
+The mid-day v5 contour-seeded rollout (logged in `/tmp/nf270_paper_rollout_v5.log`) had converged the MC2.05.07.24_NaCl sheet to **Lp = 9.11, B = 8.31, σ = 0.665** under `B_form = 'single'`, with 6+ multistart trials all landing on the same θ — a strong basin signal. The plan for the evening was to use that fit's θ as a seed (the "MC2 NaCl anchor") and run all remaining NaCl single-salt sheets through the same contour-seeded multistart, expecting σ near 0.66 across the campaign per the user's table (same NF270 coupon, NaCl in concentration regime → similar σ).
+
+### 13.2  What we actually got — v3 rollout, 2026-05-25
+
+Re-running the contour-seeded multistart with the closest reproduction of the v5 recipe we could assemble (`B_form='single'`, `NF270_CF_RESIDUAL_FLOOR_MM=1.0`, `NF270_USE_PERMEATE_PROBE=None`, `NF270_MULTISTART_USE_CONTOUR_SEEDS=True`, `NF270_MULTISTART_INCLUDE_CROSS_SALT=True`) on all 6 NaCl sheets:
+
+| Sheet | Regime | Lp | B | σ | obj_m / cv / cr |
+|---|---|---|---|---|---|
+| MC2.05.07.24_NaCl   | conc | 9.21 | 14.08 | **1.000** | 22 / 102 / 55 |
+| MC3.07.22.24_SNaCl  | dil  | 8.90 | — | **1.000** | 26 / 7.9 / 21 |
+| **MC4.07.11.24_SNaCl**  | conc | 10.76 | 6.12 | **0.767** | 19 / 240 / 26 |
+| MC5.07.23.24_NaCl   | conc | 8.83 | — | **1.000** | 13 / 86 / 55 |
+| MC5.07.23.24_SNaCl  | conc | 8.36 | — | **1.000** | 15 / 85 / 63 |
+| **MC5.07.23.24_S2NaCl** | dil  | 7.84 | — | **0.454** | 43 / 50 / 37 |
+
+**2 of 6 sheets (MC4.SNaCl, MC5.S2NaCl) landed in interior σ. 4 of 6 landed at σ = 1.0 (the wall).**
+
+### 13.3  Why v5's σ = 0.665 doesn't reproduce
+
+The smoke test for the v3 rollout was MC2.05.07.24_NaCl — re-running v5's exact sheet through what was meant to be v5's recipe. It came back at σ = 1.000, not 0.665. We investigated:
+
+1. **Library bisect** — checked out the library file at `0c45466^` (the exact pre-evening-commit state, which is what v5 ran against). Ran the smoke test against that library. Same σ = 1.0 result. Conclusion: **the single evening commit 0c45466 did NOT introduce the σ-basin change.**
+2. **Data files** — `NF270_MC2.xlsx` mtime is Feb 23, 2026. Not modified since v5.
+3. **Objective magnitudes** — v5 logs report `Obj = 1632838` and `Obj(m) = 26.6`. Current rollout reports `obj_m = 22` (lower than v5's). So the σ = 1.0 fit has *better* objective by the current formulation. This is not a local-minimum issue; σ = 1.0 is the genuine global optimum under the current code.
+4. **Seeds** — pre-0c45466 library produced different LHS seeds (broader, including σ = 0.46 starts) than HEAD. All five seeds walked uphill to σ = 1.0 regardless of starting point.
+
+**Conclusion: v5 must have been running against a different objective function than is now in the codebase.** Possibilities (none confirmed): an uncommitted edit that was rewritten before the evening commit; a different residual-scale normalization; a different per-vial count weighting. We cannot recover v5's exact state from git alone.
+
+### 13.4  What this means for the campaign
+
+- **The σ = 0.665 MC2.NaCl fit and the σ ≈ 0.66 cross-salt anchor values in `NF270_MULTISTART_CROSS_SALT_REFERENCES` are NOT reproducible.** They were obtained against a specific ephemeral session state. Honest reading: the σ = 0.665 result is not the current best optimum and any documentation that claims that fit is "the answer" needs the caveat.
+- **The current campaign best is 2 of 6 NaCl sheets at interior σ.** Both interior cases (MC4.SNaCl at σ = 0.77, MC5.S2NaCl at σ = 0.45) used cf-floor contour panels as the seed source — the contour-seeded multistart is doing real work where the data support an interior σ.
+- **4 of 6 sheets prefer σ = 1.0 under the current objective.** That is a real campaign result. Whether it's physically reasonable (literature NaCl rejection on NF270 is ~0.5–0.7) is a question for the experimentalist + the model — not for more multistart tuning.
+
+### 13.5  Standing open question
+
+If the v5 σ = 0.665 fit is physically expected (literature consistent), then the *current* objective is too permissive — something is letting the σ = 1.0 corner win. The most likely candidate is the residual-scale normalization: today's run has a sum-of-objectives total of ~180, vs v5's ~1.6M, a ~10⁴ factor difference. Tightening (or restoring) the per-vial residual count normalization is the natural place to look if/when this is investigated further.
+
+### 13.6  Files added in this session
+
+| File | Purpose |
+|---|---|
+| `_rollout_contour_seeded.py` | The v3 NaCl rollout — 6 sheets, contour-seeded multistart, killpg-enforced 600s wall cap |
+| `_contour_seeded_worker.py` | Per-sheet worker; sets v5-recipe toggles, runs library multistart, returns winning θ + sim_stru |
+| `_rollout_warm_anchor.py` | Phase 1.5 (built but NOT launched — would have used same flawed B_form=1) |
+| `_warm_anchor_worker.py` | Companion worker for `_rollout_warm_anchor.py` |
+| `_nacl_warm_worker.py` | Earlier abandoned attempt (warm-start single-shot from MC2 anchor) |
+| `_rollout_nacl_warm.py` | Driver for the abandoned attempt above |
+| `_b_form_worker.py` | Earlier subprocess worker for B_form experiments |
+| `_rollout_per_sheet_subprocess.py` | Earlier process-group-kill rollout (kept as template) |
+
+Library edits in this session (kept):
+- `NF270_MULTISTART_INCLUDE_CROSS_SALT` (new module-level toggle)
+- `_resolve_nf270_panel_dir` patched to prefer `contour_panels_cF_floor_1mM/` when cf-floor is on, falling back to legacy `contour_panels/` otherwise.
+
+These patches are functional and benign — they don't change DATA1/DATA2 behavior, and they correctly route cf-floor fits to the matching contour panels when available.

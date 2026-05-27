@@ -297,22 +297,31 @@ NF270_PERMEATE_PROBE_FLOOR_MM = 0.1     # absolute floor on permeate residual sc
 # multistart=True will use the seeded strategy instead of pure LHS.
 NF270_MULTISTART_USE_CONTOUR_SEEDS = False
 NF270_MULTISTART_CONTOUR_DIR = None      # if None, library auto-detects
+# When seeded multistart is on, decide whether to include the cross-salt
+# reference theta as one of the seed points.  Default True preserves the
+# May-24 behavior.  Set False to use ONLY the per-sheet contour minima as
+# seeds (pure contour-seeded mode, no cross-salt anchor).
+NF270_MULTISTART_INCLUDE_CROSS_SALT = True
 NF270_MULTISTART_CROSS_SALT_REFERENCES = {
-    # Reference (Lp, B, sigma) per salt — the "best" interior fit each salt
-    # has currently produced.  Used as the cross-salt seed when fitting a
-    # sheet whose salt is NOT this one.
+    # Reference (Lp, B, sigma) used as the cross-salt seed in seeded
+    # multistart.  Restored 2026-05-25 to match the recipe documented in
+    # DATA3_single_salt_analysis_v7.pptx slide 29:
     #
-    # Updated 2026-05-24 (evening): the prior CaCl2 / LaCl3 references had
-    # σ = 1.0 (at the wall) which was bad as a seed.  Per the May-24
-    # decision to use NaCl's optimum as a cross-salt seed for divalent /
-    # trivalent fits (since the mass-vs-time and concentration profiles
-    # are qualitatively similar across salts), all three references are
-    # now anchored at the MC2.05.07.24_NaCl converged fit, with σ bumped
-    # upward for higher-valency salts to reflect their stronger rejection
-    # (literature σ ≈ 0.85 for CaCl2, ≈ 0.92 for LaCl3 on NF270).
-    "NaCl":  {"Lp": 9.11, "B": 8.31, "sigma": 0.66},    # MC2.05.07.24_NaCl (v11 fit; interior σ)
-    "CaCl2": {"Lp": 9.11, "B": 8.31, "sigma": 0.85},    # NaCl-anchored; σ bumped for divalent
-    "LaCl3": {"Lp": 9.11, "B": 8.31, "sigma": 0.92},    # NaCl-anchored; σ bumped for trivalent
+    #   "When fitting CaCl₂ or LaCl₃: use MC3 SNaCl's interior-σ fit.
+    #    (Lp = 8.22, B = 14.7, σ = 0.45) — the campaign's gold-standard θ."
+    #
+    # MC3.07.22.24_SNaCl is the ONLY sheet in the campaign with interior σ,
+    # and slide 12 documents that all three channels (mass, retentate cF,
+    # vial-ICP) agree on the same Lp ≈ 8 there.  Anchoring every cross-salt
+    # seed on this θ gives the optimizer a known-physical starting point.
+    #
+    # Previous (rejected) anchor was MC2.NaCl's Lp=9.11, B=8.31, σ=0.66 —
+    # but that fit's σ was tied to objective formulations that produced
+    # σ=1.0 under today's recipe.  The MC3.SNaCl anchor is robust because
+    # the dilution-regime data themselves DEMAND an interior σ.
+    "NaCl":  {"Lp": 8.22, "B": 14.7, "sigma": 0.45},  # MC3.SNaCl gold standard
+    "CaCl2": {"Lp": 8.22, "B": 14.7, "sigma": 0.45},  # MC3.SNaCl gold standard
+    "LaCl3": {"Lp": 8.22, "B": 14.7, "sigma": 0.45},  # MC3.SNaCl gold standard
 }
 
 
@@ -4932,8 +4941,51 @@ def _normalize_sim_stru(sim_stru):
     return []
 
 
+def _build_fit_meta_annotation(fit_meta, include_cf_unc=False):
+    """Render a short annotation block from a fit_meta dict.
+
+    Returns a list of strings (one per line) suitable for matplotlib `text()`.
+    Returns [] if fit_meta is empty or has no usable keys, so the caller can
+    skip the annotation cleanly.
+
+    Keys consumed (all optional):
+      recipe_name, b_form, theta_init_summary, winning_theta, cf_uncertainty_str
+    """
+    if not isinstance(fit_meta, dict) or not fit_meta:
+        return []
+    lines = []
+    if fit_meta.get("recipe_name"):
+        lines.append(f"recipe: {fit_meta['recipe_name']}")
+    if fit_meta.get("b_form") is not None:
+        lines.append(f"B_form = {fit_meta['b_form']}")
+    if fit_meta.get("theta_init_summary"):
+        for ln in str(fit_meta["theta_init_summary"]).splitlines():
+            if ln.strip():
+                lines.append(ln)
+    wt = fit_meta.get("winning_theta") or {}
+    if isinstance(wt, dict) and wt:
+        bits = []
+        for k in ("Lp", "B", "beta_0", "beta_1", "sigma"):
+            if k in wt and isinstance(wt[k], (int, float)) and np.isfinite(wt[k]):
+                bits.append(f"{k}={wt[k]:.3g}")
+        if bits:
+            lines.append("fit: " + ", ".join(bits))
+    if include_cf_unc and fit_meta.get("cf_uncertainty_str"):
+        lines.append(str(fit_meta["cf_uncertainty_str"]))
+    return lines
+
+
 def run_data3_time_series_plots(results, save_dir=None, show=False):
-    """Create DATA3-only mass and concentration time-series plots from a staged workflow result."""
+    """Create DATA3-only mass and concentration time-series plots from a staged workflow result.
+
+    Optional ``results['fit_meta']`` keys read for plot annotations:
+      - ``theta_init_summary``  (str)   — seed strategy description
+      - ``cf_uncertainty_str``  (str)   — formula used for σ_cF
+      - ``b_form``              (any)   — B_form value (1, 2, 'single', ...)
+      - ``winning_theta``       (dict)  — fitted (Lp, B, sigma, ...) of the
+                                          winning trial
+      - ``recipe_name``         (str)   — short label (e.g. "slide-29 v5")
+    """
     settings = results.get("model_settings", {})
     if str(settings.get("workflow_family", "DATA3")).upper() != "DATA3":
         return []
@@ -4943,6 +4995,11 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
         data_payload = data_payload[0] if data_payload else None
     if not isinstance(data_payload, dict):
         return []
+
+    # Optional fit-meta for the new init-guess + cF-uncertainty annotations
+    # (2026-05-25).  Keys are all-optional; missing keys → no annotation
+    # change vs the legacy behavior.
+    fit_meta = results.get("fit_meta") or {}
 
     sim_stru = _normalize_sim_stru(results.get("sim_stru") or [])
     save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
@@ -5012,6 +5069,19 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
         family="monospace",
         bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
     )
+    # 2026-05-25: optional init-guess + recipe annotation (bottom-right of mass plot)
+    _fit_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=False)
+    if _fit_lines:
+        mass_ax.text(
+            0.98, 0.03,
+            "\n".join(_fit_lines),
+            transform=mass_ax.transAxes,
+            fontsize=7,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            family="monospace",
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
+        )
     mass_path = save_dir / f"mass-{prefix}.png"
     mass_fig.savefig(mass_path, dpi=300, bbox_inches="tight")
     outputs.append(str(mass_path))
@@ -5150,7 +5220,7 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
                         interp_cv(time_shifted[valid]),
                         marker="^", linestyle="None",
                         color=PAPER_PERM_LINE,
-                        markersize=PAPER_MARKER_SIZE,
+                        markersize=PAPER_VIAL_MARKER_SIZE,   # typo fix: was PAPER_MARKER_SIZE
                         markeredgecolor=PAPER_EDGE_COLOR,
                         markeredgewidth=PAPER_EDGE_WIDTH,
                         alpha=1.0,
@@ -5171,12 +5241,174 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
         frameon=True,
         borderaxespad=0.0,
     )
+    # 2026-05-25: optional init-guess + cF-uncertainty annotation on conc plot
+    _conc_fit_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=True)
+    if _conc_fit_lines:
+        conc_ax.text(
+            0.02, 0.97,
+            "\n".join(_conc_fit_lines),
+            transform=conc_ax.transAxes,
+            fontsize=7,
+            verticalalignment="top",
+            horizontalalignment="left",
+            family="monospace",
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
+        )
     conc_path = save_dir / f"concentration-{prefix}.png"
     conc_fig.savefig(conc_path, dpi=300, bbox_inches="tight")
     outputs.append(str(conc_path))
     if show:
         plt.show()
     plt.close(conc_fig)
+
+    return outputs
+
+
+def run_data3_pressure_plots(results, save_dir=None, show=False):
+    """Create DATA3 applied-pressure and osmotic-pressure time-series plots.
+
+    Two output figures per sheet:
+      1. ``pressure-<prefix>.png``  —  Applied ΔP (constant line) + the
+         osmotic backpressure σ·Δπ(t) overlaid + net driving force
+         (ΔP − σ·Δπ) vs time.  Shows the membrane work term evolution.
+      2. ``osmotic-<prefix>.png``  —  Pure Δπ(t) curve per vial.
+
+    Δπ is computed from sim_stru's bulk feed (cF) and permeate-wall (cH)
+    concentrations:
+        Δπ(t) = (cF(t) − cH(t)) · ni · R · T
+    This omits the concentration-polarization correction (cIn vs cF) —
+    the surface-side Δπ would be ~e^(Jw/k) larger.  See comment block in
+    model_construct_inter for the polarization equation.
+
+    Inputs: same ``results`` dict structure as run_data3_time_series_plots.
+    Optional ``results['fit_meta']`` controls the annotation block.
+
+    Returns list of saved image paths.
+    """
+    settings = results.get("model_settings", {})
+    if str(settings.get("workflow_family", "DATA3")).upper() != "DATA3":
+        return []
+
+    data_payload = results.get("data")
+    if isinstance(data_payload, list):
+        data_payload = data_payload[0] if data_payload else None
+    if not isinstance(data_payload, dict):
+        return []
+
+    fit_meta = results.get("fit_meta") or {}
+    sim_stru = _normalize_sim_stru(results.get("sim_stru") or [])
+    if not sim_stru:
+        return []
+    save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    sheet_slug = _sanitize_filename_component(data_payload.get("sheet_name", "sheet"))
+    file_slug = _sanitize_filename_component(Path(str(data_payload.get("filename", "data3"))).stem)
+    prefix = f"{file_slug}_{sheet_slug}"
+    t_delay = _data1_time_origin(data_payload)
+    n_vials = int(data_payload.get("data_config", {}).get("n", len(data_payload.get("data_raw", []))))
+    n_v0 = int(data_payload.get("data_config", {}).get("n_v0", 1))
+
+    cfg = data_payload.get("data_config", {})
+    delP = float(cfg.get("delP", 0.0))     # bar
+    ni   = float(cfg.get("ni",   1.0))     # van 't Hoff
+    Temp = float(cfg.get("Temp", 298.15))  # K
+    R    = 8.314e-5                        # cm^3 bar / micromol / K
+
+    # Use the winning sigma if available; otherwise 1.0 for upper-bound trace
+    winning = fit_meta.get("winning_theta") or {}
+    sigma_fit = float(winning.get("sigma", 1.0)) if isinstance(winning.get("sigma"), (int, float)) else 1.0
+
+    outputs = []
+
+    # ───── Figure 1: applied ΔP, σ·Δπ, and net driving force vs time ─────
+    pres_fig, pres_ax = plt.subplots(figsize=(6, 4))
+    pres_ax.axhline(delP, color="tab:orange", linestyle="-", linewidth=2.5,
+                    label=f"Applied ΔP = {delP:.2f} bar", alpha=0.9)
+    # Aggregate dpi & net curves across vials
+    any_drawn = False
+    for i in range(min(n_vials, len(sim_stru))):
+        if (i + 1) < n_v0:
+            continue
+        sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
+        cF_arr   = np.asarray(sim_stru[i].get("cF",   []), dtype=float)
+        cH_arr   = np.asarray(sim_stru[i].get("cH",   []), dtype=float)
+        if not (sim_time.size and cF_arr.size and cH_arr.size):
+            continue
+        # Truncate to common length
+        m = min(sim_time.size, cF_arr.size, cH_arr.size)
+        t_min = _plot_time_minutes(sim_time[:m], t_delay=t_delay)
+        # Δπ in bar.  R uses [cm^3 bar / μmol / K]; cF and cH are in mM = μmol/cm^3.
+        dpi_t   = (cF_arr[:m] - cH_arr[:m]) * ni * R * Temp
+        sdpi_t  = sigma_fit * dpi_t
+        net_t   = delP - sdpi_t
+        pres_ax.plot(t_min, sdpi_t, color="tab:red", linewidth=1.5, alpha=0.6,
+                     label=("σ·Δπ (bulk)" if not any_drawn else None))
+        pres_ax.plot(t_min, net_t, color="tab:blue", linewidth=1.5, alpha=0.6,
+                     label=("Net = ΔP − σ·Δπ" if not any_drawn else None))
+        any_drawn = True
+    pres_ax.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
+    pres_ax.set_ylabel("Pressure [bar]", fontsize=14, fontweight="bold")
+    pres_ax.tick_params(direction="in")
+    pres_ax.legend(fontsize=9, loc="best")
+    pres_ax.set_xlim(left=0)
+    # Annotation block on pressure plot
+    _pres_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=False)
+    _pres_lines = [f"ni = {ni:g}, T = {Temp:.1f} K"] + _pres_lines
+    pres_ax.text(
+        0.02, 0.97, "\n".join(_pres_lines),
+        transform=pres_ax.transAxes, fontsize=7,
+        verticalalignment="top", horizontalalignment="left", family="monospace",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
+    )
+    pres_path = save_dir / f"pressure-{prefix}.png"
+    pres_fig.savefig(pres_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(pres_path))
+    if show:
+        plt.show()
+    plt.close(pres_fig)
+
+    # ───── Figure 2: pure Δπ(t) ─────
+    osm_fig, osm_ax = plt.subplots(figsize=(6, 4))
+    any_drawn = False
+    for i in range(min(n_vials, len(sim_stru))):
+        if (i + 1) < n_v0:
+            continue
+        sim_time = np.asarray(sim_stru[i].get("time", []), dtype=float)
+        cF_arr   = np.asarray(sim_stru[i].get("cF",   []), dtype=float)
+        cH_arr   = np.asarray(sim_stru[i].get("cH",   []), dtype=float)
+        if not (sim_time.size and cF_arr.size and cH_arr.size):
+            continue
+        m = min(sim_time.size, cF_arr.size, cH_arr.size)
+        t_min = _plot_time_minutes(sim_time[:m], t_delay=t_delay)
+        dpi_t = (cF_arr[:m] - cH_arr[:m]) * ni * R * Temp
+        osm_ax.plot(t_min, dpi_t, color="tab:purple", linewidth=1.5, alpha=0.7,
+                    label=("Δπ (bulk)" if not any_drawn else None))
+        any_drawn = True
+    osm_ax.set_xlabel("Time [min]", fontsize=14, fontweight="bold")
+    osm_ax.set_ylabel("Osmotic Pressure Δπ [bar]", fontsize=14, fontweight="bold")
+    osm_ax.tick_params(direction="in")
+    osm_ax.legend(fontsize=9, loc="best")
+    osm_ax.set_xlim(left=0)
+    osm_ax.set_ylim(bottom=0)
+    _osm_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=True)
+    _osm_lines = [
+        f"Δπ = (cF − cH) · ni · R · T",
+        f"ni = {ni:g}, T = {Temp:.1f} K",
+        "(bulk; polarization not included)",
+    ] + _osm_lines
+    osm_ax.text(
+        0.02, 0.97, "\n".join(_osm_lines),
+        transform=osm_ax.transAxes, fontsize=7,
+        verticalalignment="top", horizontalalignment="left", family="monospace",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.8),
+    )
+    osm_path = save_dir / f"osmotic-{prefix}.png"
+    osm_fig.savefig(osm_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(osm_path))
+    if show:
+        plt.show()
+    plt.close(osm_fig)
 
     return outputs
 
@@ -9129,15 +9361,35 @@ def _contour_top_k_grid_points(panel_dir, k=2):
             })
 
     candidates.sort(key=lambda r: r["raw_obj"])
-    # Dedupe by (Lp, B, sigma) rounded
-    seen = set()
-    top = []
+    # 2026-05-25: pick top-1 PER SLICE so multistart always sees a seed
+    # with varied σ (from σ-Lp), varied B (from B-Lp), and the σ-B corner
+    # (from σ-B).  Previous behavior pooled all candidates by raw_obj and
+    # the lowest-obj slice (often σ-B with Lp at centering) would dominate
+    # — IPOPT never saw interior σ or small-B starts.  Slide 29 of the
+    # v7 deck explicitly calls out:
+    #   "SEED 1: contour top-1 (lowest-WSSE grid point from σ-Lp)"
+    #   "SEED 2: contour top-2 (B-Lp sweep most often)"
+    # so we honor that by guaranteeing at least one seed from each slice.
+    by_source = {}
     for c in candidates:
+        by_source.setdefault(c["source"], c)  # already sorted, first per source is best
+    # Build the result: top from each slice in σ-Lp → B-Lp → σ-B order,
+    # then pad with next-best candidates from the global pool if k is larger.
+    top = []
+    seen = set()
+    def _add(c):
         key = (round(c["Lp"], 4), round(c["B"], 4), round(c["sigma"], 4))
-        if key in seen:
-            continue
-        seen.add(key)
-        top.append(c)
+        if key not in seen:
+            seen.add(key)
+            top.append(c)
+    for src in ("sigma-Lp", "B-Lp", "sigma-B"):
+        if src in by_source:
+            _add(by_source[src])
+        if len(top) >= int(k):
+            return top
+    # If k requests more seeds than slices available, fall back to global pool
+    for c in candidates:
+        _add(c)
         if len(top) >= int(k):
             break
     return top
@@ -9280,7 +9532,20 @@ def _resolve_nf270_panel_dir(data_stru):
     # "NF270_MC2" -> "MC2"
     coupon = dataset.replace("NF270_", "")
     run_id = f"{coupon}.{sheet}"
-    base = Path(__file__).resolve().parents[1] / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "nf270" / "contour_panels" / run_id
+    artifacts_root = (
+        Path(__file__).resolve().parents[1]
+        / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts" / "nf270"
+    )
+    # When cF-floor is active, prefer the cF-floor-1mM contour batch — its
+    # σ-basin matches the fit objective.  The May-22 wall-geometry batch
+    # (legacy `contour_panels/`) is the wrong basin for cF-floor fits and
+    # has caused IPOPT to thrash on σ.  Falls back to the legacy batch
+    # only if this sheet has no cF-floor panel yet.
+    if NF270_CF_RESIDUAL_FLOOR_MM is not None and float(NF270_CF_RESIDUAL_FLOOR_MM) > 0:
+        cf_base = artifacts_root / "contour_panels_cF_floor_1mM" / run_id
+        if cf_base.exists():
+            return cf_base
+    base = artifacts_root / "contour_panels" / run_id
     return base if base.exists() else None
 
 
@@ -9313,19 +9578,23 @@ def _solve_model_multistart(
         panel_dir = _resolve_nf270_panel_dir(data_stru)
         salt_name = data_stru.get("data_config", {}).get("namec") if isinstance(data_stru, dict) else None
         if panel_dir is not None:
+            # NF270_MULTISTART_INCLUDE_CROSS_SALT (default True) lets the
+            # caller suppress the cross-salt anchor and use only this
+            # sheet's own contour minima as seeds.
             candidates = build_seeded_multistart_starts(
                 theta,
                 panel_dir=panel_dir,
                 salt_name=salt_name,
                 n_starts=multistart_iterations,
                 n_contour_seeds=2,
-                include_cross_salt=True,
+                include_cross_salt=bool(NF270_MULTISTART_INCLUDE_CROSS_SALT),
                 seed=multistart_seed,
                 workflow_family=workflow_family,
                 B_form=B_form,
             )
             print(f"[multistart] seeded LHS active — panel_dir={panel_dir.name}, "
-                  f"salt={salt_name}, total_starts={len(candidates)}")
+                  f"salt={salt_name}, total_starts={len(candidates)}, "
+                  f"cross_salt={'on' if NF270_MULTISTART_INCLUDE_CROSS_SALT else 'off'}")
     if candidates is None:
         candidates = _theta_variants_for_multistart(
             theta,
