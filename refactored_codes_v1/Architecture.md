@@ -849,13 +849,23 @@ For each of the 13 single-salt sheets, the audit:
 5. Computes absolute and relative residual per data point.
 6. Classifies each point as `good` / `warning` / `bad` based on a 1 % relative + absolute-floor tolerance.
 
-**Result:**
+**Result (continuous time-series, cols 0–7):**
 
 | Total data points across 13 sheets | Good | Warning | Bad |
 |---|---|---|---|
 | **70,101** | **70,101 (100 %)** | 0 | 0 |
 
 Every variable on every sheet receives the `OK` verdict in the `_summary` tab. The `_transformations` tab embeds the table from §14.1 directly into the workbook. The 13 detail tabs let any reviewer drill into row-by-row residuals.
+
+**Extended audit blocks (added 2026-05-27 evening — v2 of the script):**
+
+The original audit covered the continuous time-series (cols 0–7) thoroughly but stopped short of the per-vial ICP block and metadata. The v2 extension adds three more comparison blocks to every per-sheet tab:
+
+1. **ICP sidebar (raw cols 14–21)** — side-by-side display of raw per-vial cells (Sample Vol, Nitric Acid Vol, ICP intensity in cps, ICP in mg/L) against the loaded per-position scalars (`cF_feed_icp_mM`, `cF_diafiltrate_icp_mM`, `cF_retentate_icp_mM`, `icp_final_tube_mM`, and per-vial `cV_avg`). Includes a "Loader expanded ratio" column showing the dilution × molar-mass factor the loader applies (e.g., ~108× for NaCl Feed with 0.12 mL sample + 5 mL HNO₃; ~510× for Diafiltrate / Retentate with 0.025 mL sample). Physically sensible across all 13 sheets.
+2. **ICP calibration points (raw cols 23–26)** — the 10 (concentration, intensity) calibration pairs per salt, exactly as in the raw Excel, followed by the loaded `icp_calibration_curve` summary (slope, intercept, R², range). R² values fall in the 0.99–0.999 range — calibration quality preserved by the loader.
+3. **Header / sidebar metadata** — Datapoints count, Notes string, Initial / Final Solution Weight, Number of Salts, Salt 1 + Salt 2 names, ICP Calibration Points (#) checked against `data_config` (`note_text`, `M_F0`, `nc`, `namec`, etc.). Result: **40 / 40 ✓ matches** across all 13 sheets on the fields with strict equality tests.
+
+A new aggregate `_header_metadata` tab in the workbook collects every (sheet, field) row in one place — 83 rows total, with the `Match` column color-coded ✓ / — / ✗ for quick scanning.
 
 ### 14.3  New raw-conductivity plot type
 

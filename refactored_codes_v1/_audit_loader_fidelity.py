@@ -163,6 +163,170 @@ def _expected_loaded(raw_ts: pd.DataFrame, salt_name: str) -> pd.DataFrame:
     return df
 
 
+# Molar masses (g/mol) for the salts the campaign covers — used to convert
+# raw ICP mg/L to mM when displaying the per-vial sidebar.
+_SALT_MOLAR_MASS = {
+    "NaCl":  58.44,
+    "KCl":   74.55,
+    "CaCl2": 110.98,
+    "LaCl3": 245.26,
+}
+
+
+def _audit_sidebar(raw: pd.DataFrame, ds: dict, salt_name: str) -> pd.DataFrame:
+    """Compare the per-vial ICP block (cols 14–21, rows 3–16) against the
+    loaded sidebar scalars and per-vial cV_avg.  Side-by-side display —
+    no residual / verdict because the loader applies a non-trivial
+    calibration + dilution + molar-mass chain (cps → mg/L → mM) and the
+    correct test is internal consistency, not raw-numeric equality.
+    """
+    cfg = ds.get("data_config", {})
+    # The vial block runs from row 3 down to row 3 + 4 + N (Feed, Diafiltrate,
+    # Retentate, Final Tube, then Vials 1..N).  Build the slice generously
+    # and trim to non-NaN labels.
+    block = raw.iloc[3:30, 14:22].copy()
+    block.columns = [
+        "Vial label", "Sidebar Cond @ Temp", "Sample Vol (mL)",
+        "Nitric Acid Vol (mL)", "ICP Salt1 Intensity (cps)",
+        "ICP Salt1 (mg/L)", "ICP Salt2 (ppm)", "ICP Salt2 Err (%)",
+    ]
+    block = block[block["Vial label"].notna()].reset_index(drop=True)
+
+    # Loader-stored equivalents (where they exist)
+    n_v = cfg.get("n", 0)
+    loaded_lookup = {
+        "Feed":         cfg.get("cF_feed_icp_mM"),
+        "Diafiltrate":  cfg.get("cF_diafiltrate_icp_mM"),
+        "Retentate":    cfg.get("cF_retentate_icp_mM"),
+        "Final Tube":   cfg.get("icp_final_tube_mM"),
+    }
+    # Per-vial cV_avg from data_raw
+    for i, v in enumerate(ds.get("data_raw", [])):
+        cv = v.get("cV_avg")
+        cv_arr = np.asarray(cv, dtype=float) if cv is not None else np.array([])
+        vals = cv_arr[~np.isnan(cv_arr)] if cv_arr.size else np.array([])
+        scalar = float(vals[0]) if vals.size else None
+        loaded_lookup[f"Vial {i + 1}"] = scalar
+
+    # Convert raw mg/L → mM using salt molar mass (approximate; loader adds
+    # dilution factor on top).  This is for orientation only.
+    M = float(_SALT_MOLAR_MASS.get(salt_name, 58.44))
+
+    rows = []
+    for _, r in block.iterrows():
+        label = str(r["Vial label"]).strip()
+        loaded_mM = loaded_lookup.get(label)
+        raw_mgL = r["ICP Salt1 (mg/L)"]
+        raw_mM_approx = (float(raw_mgL) / M) if pd.notna(raw_mgL) else None
+        rows.append({
+            "Vial label": label,
+            "Raw sample vol (mL)": r["Sample Vol (mL)"],
+            "Raw nitric acid vol (mL)": r["Nitric Acid Vol (mL)"],
+            "Raw ICP intensity (cps)": r["ICP Salt1 Intensity (cps)"],
+            "Raw ICP (mg/L)": raw_mgL,
+            "Raw ICP → mM (no dilution corr)": raw_mM_approx,
+            "Loaded ICP (mM, w/ dilution corr)": loaded_mM,
+            "Loader expanded ratio": (
+                (float(loaded_mM) / raw_mM_approx) if (loaded_mM is not None and raw_mM_approx not in (None, 0)) else None
+            ),
+        })
+    return pd.DataFrame(rows)
+
+
+def _audit_calibration(raw: pd.DataFrame, ds: dict) -> pd.DataFrame:
+    """Compare the ICP Salt1 + Salt2 calibration curves (cols 23–26, rows 3–13)
+    against the loaded icp_calibration_curve dict.  Returns a side-by-side
+    DataFrame; raw points unchanged from the Excel by the loader (it just
+    fits slope + intercept).
+    """
+    cfg = ds.get("data_config", {})
+    cal = cfg.get("icp_calibration_curve") or {}
+    # Salt 1 (cols 23, 24); Salt 2 (cols 25, 26)
+    salt1 = raw.iloc[3:20, 23:25].copy()
+    salt1.columns = ["Salt1 Concentration (mg/L)", "Salt1 Intensity (cps)"]
+    salt1 = salt1[salt1["Salt1 Concentration (mg/L)"].notna()].reset_index(drop=True)
+    salt2 = raw.iloc[3:20, 25:27].copy()
+    salt2.columns = ["Salt2 Concentration (mg/L)", "Salt2 Intensity (cps)"]
+    salt2 = salt2[salt2["Salt2 Concentration (mg/L)"].notna()].reset_index(drop=True)
+    # Loaded calibration scalar summary
+    cal_summary = pd.DataFrame([
+        {"Loaded calibration field": "slope (mg/L per cps)", "Value": cal.get("slope_mg_per_L_per_cps")},
+        {"Loaded calibration field": "intercept (mg/L)",     "Value": cal.get("intercept_mg_per_L")},
+        {"Loaded calibration field": "R²",                   "Value": cal.get("r_squared")},
+        {"Loaded calibration field": "n calibration points", "Value": cal.get("n_points")},
+        {"Loaded calibration field": "mg/L range (min)",     "Value": (cal.get("mg_L_range") or [None, None])[0]},
+        {"Loaded calibration field": "mg/L range (max)",     "Value": (cal.get("mg_L_range") or [None, None])[1]},
+    ])
+    n = max(len(salt1), len(salt2))
+    df = pd.DataFrame(index=range(n))
+    df["Salt1 Conc (mg/L) — RAW"]   = salt1["Salt1 Concentration (mg/L)"].reindex(range(n)).values
+    df["Salt1 Intensity (cps) — RAW"] = salt1["Salt1 Intensity (cps)"].reindex(range(n)).values
+    df["Salt2 Conc (mg/L) — RAW"]   = salt2["Salt2 Concentration (mg/L)"].reindex(range(n)).values
+    df["Salt2 Intensity (cps) — RAW"] = salt2["Salt2 Intensity (cps)"].reindex(range(n)).values
+    return df, cal_summary
+
+
+def _audit_header(raw: pd.DataFrame, ds: dict) -> dict:
+    """Compare the header / sidebar metadata cells against the loaded
+    data_config scalars.  Returns a dict with raw, loaded, and pass/fail
+    keys for each metadata field.
+    """
+    cfg = ds.get("data_config", {})
+
+    def _cell(r, c):
+        try:
+            v = raw.iat[r, c]
+            return v if pd.notna(v) else None
+        except Exception:
+            return None
+
+    raw_datapoints = _cell(0, 1)                 # "Datapoints:" cell
+    raw_notes      = _cell(0, 4)                 # Notes string
+    raw_initial_wt = _cell(5, 10)                # Initial Solution Weight
+    raw_final_wt   = _cell(6, 10)                # Final Solution Weight
+    raw_n_salts    = _cell(12, 10)               # Number of Salts
+    raw_salt1_name = _cell(13, 10)               # Salt 1
+    raw_salt2_name = _cell(14, 10)               # Salt 2 (may be NaN)
+    raw_cal_points = _cell(11, 10)               # ICP Calibration Points (#)
+
+    # Expected total time-series rows = n_holdup_samples + sum(per-vial lengths)
+    loaded_total_ts = sum(len(v.get("time", [])) for v in ds.get("data_raw", []))
+
+    # "Final Solution Weight" — loader represents this as M_O via a known
+    # relation; report both raw and loaded without enforcing equality.
+    rows = [
+        ("Datapoints (raw row count)", raw_datapoints, loaded_total_ts, None,
+         "Raw Excel row count of the continuous time-series; the loader splits this into vials."),
+        ("Notes",                      raw_notes,     cfg.get("note_text"),
+         (str(raw_notes) == str(cfg.get("note_text"))) if raw_notes is not None else None,
+         "Loader preserves Notes verbatim (data_config['note_text'])."),
+        ("Initial Solution Weight (g)", raw_initial_wt, cfg.get("M_F0"),
+         (abs(float(raw_initial_wt) - float(cfg.get("M_F0", 0))) < 1e-6) if raw_initial_wt is not None else None,
+         "→ data_config['M_F0']."),
+        ("Final Solution Weight (g)",  raw_final_wt,  cfg.get("M_O"),
+         None,
+         "Loader stores M_O — its relation to the raw Final Solution Weight is documented elsewhere in §4 (mass balance)."),
+        ("Number of Salts",            raw_n_salts,   cfg.get("nc"),
+         (int(raw_n_salts) == int(cfg.get("nc", 0))) if raw_n_salts is not None else None,
+         "→ data_config['nc']."),
+        ("Salt 1 name",                raw_salt1_name, cfg.get("namec"),
+         (str(raw_salt1_name).strip() == str(cfg.get("namec")).strip()) if raw_salt1_name is not None else None,
+         "→ data_config['namec']."),
+        ("Salt 2 name (multicomp only)", raw_salt2_name, None,
+         None,
+         "Single-salt sheets have NaN here; multicomp sheets carry the second-salt label."),
+        ("ICP Calibration Points (#)", raw_cal_points, (ds.get("data_config", {}).get("icp_calibration_curve", {}) or {}).get("n_points"),
+         None,
+         "Loader fits slope + intercept against these N points; verified in the per-sheet calibration block."),
+    ]
+    return [
+        {"Field": fld, "Raw value": rv, "Loaded value": lv,
+         "Match": ("✓" if m is True else ("✗" if m is False else "—")),
+         "Notes": notes}
+        for (fld, rv, lv, m, notes) in rows
+    ]
+
+
 def audit_one_sheet(wb_stem: str, sheet_name: str):
     """Return a tuple (rows_df, vial_df, stats_dict, error)."""
     run_id = f"{wb_stem.replace('NF270_', '')}.{sheet_name}"
@@ -345,6 +509,30 @@ def audit_one_sheet(wb_stem: str, sheet_name: str):
             else "WARN" if bad_counts[label] == 0
             else "BAD"
         )
+    # 7. Extended audit blocks (ICP sidebar, calibration, header metadata).
+    # These were missing in the initial v1 of the audit script.
+    try:
+        sidebar_df = _audit_sidebar(raw, ds, salt_name)
+    except Exception as exc:
+        sidebar_df = pd.DataFrame([{"_error": f"sidebar audit failed: {exc!r}"}])
+    try:
+        cal_pts_df, cal_summary_df = _audit_calibration(raw, ds)
+    except Exception as exc:
+        cal_pts_df = pd.DataFrame([{"_error": f"calibration audit failed: {exc!r}"}])
+        cal_summary_df = pd.DataFrame()
+    try:
+        header_rows = _audit_header(raw, ds)
+    except Exception as exc:
+        header_rows = [{"_error": f"header audit failed: {exc!r}"}]
+
+    extras = {
+        "sidebar_df":     sidebar_df,
+        "cal_pts_df":     cal_pts_df,
+        "cal_summary_df": cal_summary_df,
+        "header_rows":    header_rows,
+    }
+    # Attach to stats so the writer can pick them up
+    stats["_extras"] = extras
     return rows_df, vial_df, stats, None
 
 
@@ -390,7 +578,10 @@ def main():
             {"Variable": "Permeate Temp (°C)", "Loader transformation": "1:1 preserved", "Why": "Needed for EC25 compensation of permeate conductivity."},
             {"Variable": "Permeate Cond (μS/cm)", "Loader transformation": "EC25 temperature compensation (same formula as retentate); tube-transit-time correction applied to TIME axis, not to value", "Why": "Same as retentate. Tube transit τ = V_tube / (dm/dt) shifts the permeate time axis to account for the 0.3 g dead volume between membrane and probe."},
             {"Variable": "Vial Swap", "Loader transformation": "1:1 preserved", "Why": "Index flag; used by loader to slice the continuous time-series into per-vial blocks."},
-            {"Variable": "ICP (cV_avg per vial)", "Loader transformation": "Extracted from vial-data block (cols 14-21), one scalar per vial. Conductivity calibration applied if needed.", "Why": "Vial ICP-OES gives ion-specific concentrations; reduced to one mM scalar per vial for the model."},
+            # — extended audit blocks (added v2 2026-05-27) —
+            {"Variable": "ICP vial block (cols 14–21)", "Loader transformation": "Per-vial: label (Feed/Diafiltrate/Retentate/Final Tube/Vial N), Sample Vol (mL), Nitric Acid Vol (mL), ICP intensity (cps), ICP (mg/L) read 1:1 from rows 3+. ICP (mg/L) → mM converted using salt molar mass + dilution factor ((sample+acid)/sample).", "Why": "ICP-OES gives ion-specific concentrations; the loader applies acid dilution + calibration + molar mass to produce cF_feed_icp_mM, cF_diafiltrate_icp_mM, cF_retentate_icp_mM, icp_final_tube_mM, and per-vial cV_avg used by the model."},
+            {"Variable": "ICP Salt 1 + Salt 2 calibration (cols 23–26)", "Loader transformation": "Calibration points (concentration vs intensity, ~10 pairs per salt) read 1:1 and fit to linear slope + intercept. Stored as icp_calibration_curve dict with slope_mg_per_L_per_cps, intercept_mg_per_L, r_squared, n_points, mg_L_range.", "Why": "Converts raw cps intensity into a calibrated mg/L concentration. The loader checks R² to flag any poor-quality calibration."},
+            {"Variable": "Header / sidebar metadata (rows 0–14)", "Loader transformation": "Datapoints count, Notes string, Initial / Final Solution Weight, Number of Salts, Salt 1 + Salt 2 names, ICP Calibration Points (#) all read 1:1 into data_config (note_text, M_F0, M_O-derived, nc, namec, n_holdup_samples, etc.).", "Why": "Identifies the experiment, sets the mass balance baseline, picks the salt-specific α + molar mass, and tells the loader how many calibration points to expect."},
         ])
         transforms.to_excel(xw, sheet_name="_transformations", index=False)
         ws = xw.sheets["_transformations"]
@@ -443,6 +634,59 @@ def main():
                 vial_start_row = len(rows_df) + 4
                 ws.write(vial_start_row, 0, "Per-vial ICP scalars (loaded data_raw cV_avg)")
                 vial_df.to_excel(xw, sheet_name=sheet_label, startrow=vial_start_row + 1, index=False)
+
+            # — Extended audit blocks (v2): sidebar + calibration + header —
+            extras = stats.get("_extras") or {}
+            cur_row = len(rows_df) + (len(vial_df) + 4 if (vial_df is not None and not vial_df.empty) else 0) + 6
+
+            sidebar_df = extras.get("sidebar_df")
+            if sidebar_df is not None and not sidebar_df.empty:
+                ws.write(cur_row, 0, "ICP sidebar block (raw cols 14–21 vs loaded scalars)")
+                sidebar_df.to_excel(xw, sheet_name=sheet_label, startrow=cur_row + 1, index=False)
+                cur_row += len(sidebar_df) + 4
+
+            cal_pts_df = extras.get("cal_pts_df")
+            cal_summary_df = extras.get("cal_summary_df")
+            if cal_pts_df is not None and not cal_pts_df.empty:
+                ws.write(cur_row, 0, "ICP calibration points (raw cols 23–26)")
+                cal_pts_df.to_excel(xw, sheet_name=sheet_label, startrow=cur_row + 1, index=False)
+                cur_row += len(cal_pts_df) + 4
+            if cal_summary_df is not None and not cal_summary_df.empty:
+                ws.write(cur_row, 0, "ICP calibration — loaded summary (data_config['icp_calibration_curve'])")
+                cal_summary_df.to_excel(xw, sheet_name=sheet_label, startrow=cur_row + 1, index=False)
+                cur_row += len(cal_summary_df) + 4
+
+            header_rows = extras.get("header_rows")
+            if header_rows:
+                ws.write(cur_row, 0, "Header / sidebar metadata (rows 0–14)")
+                hdf = pd.DataFrame(header_rows)
+                hdf.to_excel(xw, sheet_name=sheet_label, startrow=cur_row + 1, index=False)
+                cur_row += len(hdf) + 4
+
+        # === _header_metadata sheet (aggregated across all sheets) ===
+        # One row per (sheet, field) so a reviewer can scan in one place.
+        header_long_rows = []
+        for run_id, (rows_df, vial_df, stats) in per_sheet_results.items():
+            for row in (stats.get("_extras", {}).get("header_rows") or []):
+                row2 = {"run_id": run_id}
+                row2.update(row)
+                header_long_rows.append(row2)
+        if header_long_rows:
+            hdr_df = pd.DataFrame(header_long_rows)
+            hdr_df.to_excel(xw, sheet_name="_header_metadata", index=False)
+            ws_hdr = xw.sheets["_header_metadata"]
+            ws_hdr.set_column(0, 0, 24)
+            ws_hdr.set_column(1, 1, 30)
+            ws_hdr.set_column(2, 3, 40)
+            ws_hdr.set_column(4, 4, 8)
+            ws_hdr.set_column(5, 5, 80)
+            ws_hdr.freeze_panes(1, 0)
+            # Color-code the Match column
+            match_col_idx = list(hdr_df.columns).index("Match")
+            col_letter = chr(ord("A") + match_col_idx)
+            rng = f"{col_letter}2:{col_letter}{len(hdr_df) + 1}"
+            ws_hdr.conditional_format(rng, {"type": "text", "criteria": "containing", "value": "✓", "format": good_fmt})
+            ws_hdr.conditional_format(rng, {"type": "text", "criteria": "containing", "value": "✗", "format": bad_fmt})
 
     print(f"[audit] done.  Output: {OUT_PATH}")
 
