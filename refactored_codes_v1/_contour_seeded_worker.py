@@ -146,6 +146,16 @@ def main():
                 plot_paths = list(plot_paths) + list(cond_paths)
             except Exception as exc:
                 out["conductivity_plot_error"] = f"{type(exc).__name__}: {exc}"
+            # 2026-05-27: also render applied-vs-osmotic-pressure plots —
+            # explains the collaborator-flagged per-vial mass pattern
+            # (rising in dilution, falling in concentration).
+            try:
+                appvo_paths = lib.run_data3_applied_vs_osmotic_plots(
+                    results_dict, save_dir=save_dir, show=False
+                )
+                plot_paths = list(plot_paths) + list(appvo_paths)
+            except Exception as exc:
+                out["applied_vs_osmotic_plot_error"] = f"{type(exc).__name__}: {exc}"
             out["plot_paths"] = [str(p) for p in plot_paths]
             out["fit_meta"] = fit_meta
         except Exception as exc:

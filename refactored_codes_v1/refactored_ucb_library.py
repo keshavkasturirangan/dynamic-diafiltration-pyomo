@@ -5593,6 +5593,168 @@ def run_data3_conductivity_plots(results, save_dir=None, show=False):
     return outputs
 
 
+def run_data3_applied_vs_osmotic_plots(results, save_dir=None, show=False):
+    """Per-sheet plot of applied pressure ΔP + osmotic pressure Δπ on the
+    same time axis, computed from the MEASURED retentate concentration (no
+    fit required).
+
+    Output filename: ``applied_vs_osmotic-<prefix>.png``
+
+    Physical story this plot tells (from collaborator feedback 2026-05-27):
+      The model's water-flux equation is
+              Jw  =  Lp · (ΔP  −  σ · Δπ)
+      where ΔP is the applied (constant) operating pressure and Δπ is the
+      osmotic-pressure difference across the membrane.  When cF rises in a
+      CONCENTRATING run, Δπ rises; the net driving force ΔP − σ·Δπ shrinks;
+      water flux Jw drops; each successive vial captures less mass per unit
+      time.  Mirror image in a DILUTING run: cF falls, Δπ falls, net driving
+      force grows, mass per vial increases.
+
+      Plotting ΔP and Δπ side-by-side on the same axes makes this directly
+      visible.  No model prediction is required — the curves are built from
+      the measured cF (after Shedlovsky inversion + EC25) and a simple van't
+      Hoff conversion:  Δπ ≈ (cF − cH) · ni · R · T  ≈  cF · ni · R · T
+      (assuming cH << cF, which holds throughout the campaign).
+
+      A bullet annotation calls out the regime (concentrating vs diluting)
+      based on whether cF rises or falls over the run, plus the end-of-run
+      ratio Δπ_end / ΔP so the user can read off how close the run gets to
+      osmotic shutdown.
+    """
+    settings = results.get("model_settings", {})
+    if str(settings.get("workflow_family", "DATA3")).upper() != "DATA3":
+        return []
+
+    data_payload = results.get("data")
+    if isinstance(data_payload, list):
+        data_payload = data_payload[0] if data_payload else None
+    if not isinstance(data_payload, dict):
+        return []
+
+    fit_meta = results.get("fit_meta") or {}
+    save_dir = Path(save_dir) if save_dir is not None else Path(FIGURES_DIR) / "data3_option3"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    sheet_slug = _sanitize_filename_component(data_payload.get("sheet_name", "sheet"))
+    file_slug = _sanitize_filename_component(Path(str(data_payload.get("filename", "data3"))).stem)
+    prefix = f"{file_slug}_{sheet_slug}"
+
+    cfg = data_payload.get("data_config", {})
+    delP = float(cfg.get("delP", 0.0))     # bar
+    ni   = float(cfg.get("ni",   1.0))     # van 't Hoff factor (1 for non-dissociating; loader sets to 1 for NF270)
+    nc   = int(cfg.get("nc",   1))         # # of salts (NaCl→2 ion species, CaCl₂→3, LaCl₃→4 in terms of ν)
+    salt_name = str(cfg.get("namec", ""))
+    Temp = float(cfg.get("Temp", 298.15))  # K
+    R    = 8.314e-5                        # cm^3 bar / micromol / K  (loader's convention)
+    # For van 't Hoff Δπ with full dissociation, use ν (total particles per formula unit).
+    # The model multiplies by data_config['ni'] which the loader currently sets to 1, so
+    # the physics-correct ν for the diagnostic is the count of ion species per salt:
+    nu = {"NaCl": 2, "KCl": 2, "CaCl2": 3, "LaCl3": 4}.get(salt_name, max(int(ni), 1))
+
+    data_raw = data_payload.get("data_raw", []) or []
+    if not data_raw:
+        return []
+
+    outputs = []
+    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+
+    # Applied pressure — constant horizontal line
+    ax.axhline(delP, color="tab:orange", linestyle="-", linewidth=2.5,
+               label=f"Applied ΔP = {delP:.2f} bar", alpha=0.95)
+
+    # Osmotic pressure curve: Δπ(t) ≈ cF · ν · R · T   (cH ≈ 0 assumption)
+    # Concatenate every vial's cF + time into a single trace (loader vials
+    # share a continuous time axis already so this draws as one curve).
+    all_t = []
+    all_dpi = []
+    cf_initial = None
+    cf_final = None
+    for v in data_raw:
+        time = np.asarray(v.get("time", []), dtype=float)
+        cF = np.asarray(v.get("cF_exp", []), dtype=float)
+        m = min(time.size, cF.size)
+        if m == 0:
+            continue
+        all_t.extend(time[:m].tolist())
+        all_dpi.extend((cF[:m] * nu * R * Temp).tolist())
+        # Track first / last finite cF for regime detection
+        finite_cf = cF[:m][np.isfinite(cF[:m])]
+        if finite_cf.size:
+            if cf_initial is None:
+                cf_initial = float(finite_cf[0])
+            cf_final = float(finite_cf[-1])
+    all_t = np.asarray(all_t, dtype=float)
+    all_dpi = np.asarray(all_dpi, dtype=float)
+    if all_t.size:
+        # Time in seconds (matches the collaborator deck's convention)
+        ax.plot(all_t, all_dpi, color="#C71585", linewidth=2.0,
+                label="Osmotic ΔΠ(t) = cF · ν · R · T", alpha=0.85)
+
+    # Light reference lines: y=0 (de facto) and a faint band at ΔP-σ·Δπ for σ=1 worst-case
+    ax.axhline(0, color="#bbbbbb", linewidth=0.5, alpha=0.5)
+
+    ax.set_xlabel("Time [s]", fontsize=14, fontweight="bold")
+    ax.set_ylabel("Pressure [bar]", fontsize=14, fontweight="bold")
+    ax.tick_params(direction="in")
+    ax.set_xlim(left=0)
+    ax.set_ylim(bottom=0)
+    ax.legend(fontsize=10, loc="upper left", bbox_to_anchor=(1.02, 1.0), borderaxespad=0.0, frameon=True)
+
+    # Regime detection + headline annotation
+    if cf_initial is not None and cf_final is not None:
+        delta_cF = cf_final - cf_initial
+        regime = "concentrating" if delta_cF > 0 else ("diluting" if delta_cF < 0 else "flat")
+        regime_color = {"concentrating": "#B85042", "diluting": "#2C5F2D", "flat": "#6B7A99"}[regime]
+        pi_end = (cf_final * nu * R * Temp) if cf_final is not None else float("nan")
+        ratio = (pi_end / delP) if (delP > 0 and np.isfinite(pi_end)) else float("nan")
+        story_lines = [
+            f"Regime: {regime.upper()}  (cF: {cf_initial:.2f} → {cf_final:.2f} mM)",
+            f"Δπ_end / ΔP = {ratio:.3f}",
+        ]
+        if regime == "concentrating":
+            story_lines.append("→ ΔΠ rises ⇒ net driving force shrinks")
+            story_lines.append("→ mass per vial DECREASES over the run")
+        elif regime == "diluting":
+            story_lines.append("→ ΔΠ falls ⇒ net driving force grows")
+            story_lines.append("→ mass per vial INCREASES over the run")
+        ax.text(
+            0.02, 0.97, "\n".join(story_lines),
+            transform=ax.transAxes, fontsize=9, fontweight="bold",
+            verticalalignment="top", horizontalalignment="left", family="monospace",
+            color=regime_color,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor=regime_color, linewidth=1.5, alpha=0.92),
+        )
+
+    # Source / formula footer
+    _src_ann = (
+        f"Source: measured cF (data file cols 4/3 → Shedlovsky → mM)\n"
+        f"Salt: {salt_name},  ν = {nu},  T = {Temp:.1f} K\n"
+        f"ΔΠ = cF · ν · R · T   (cH ≈ 0 assumption — bulk Δπ)"
+    )
+    ax.text(
+        0.02, 0.03, _src_ann, transform=ax.transAxes, fontsize=7,
+        verticalalignment="bottom", horizontalalignment="left", family="monospace",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.85),
+    )
+    # fit_meta on the right margin if present
+    _fit_lines = _build_fit_meta_annotation(fit_meta, include_cf_unc=False)
+    if _fit_lines:
+        ax.text(
+            1.02, 0.03, "\n".join(_fit_lines),
+            transform=ax.transAxes, fontsize=7,
+            verticalalignment="bottom", horizontalalignment="left", family="monospace",
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="grey", alpha=0.85),
+        )
+
+    out_path = save_dir / f"applied_vs_osmotic-{prefix}.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    outputs.append(str(out_path))
+    if show:
+        plt.show()
+    plt.close(fig)
+    return outputs
+
+
 def _resolve_data_root(data_root=None):
     """Find the folder that stores the DATA1 paper inputs."""
     repo_root = Path(__file__).resolve().parents[1]
