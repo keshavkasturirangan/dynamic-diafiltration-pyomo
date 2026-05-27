@@ -1,0 +1,17 @@
+[
+  {
+    "run_id": "270611.121",
+    "variant": "",
+    "data_file": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data_library/data_stru-dataset270611.121.mat"
+  },
+  {
+    "run_id": "270711.121",
+    "variant": "",
+    "data_file": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data_library/data_stru-dataset270711.121.mat"
+  },
+  {
+    "run_id": "270511.123",
+    "variant": "",
+    "data_file": "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/legacy/data1_matlab/data_library/data_stru-dataset270511.123.mat"
+  }
+]

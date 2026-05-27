@@ -1,0 +1,19 @@
+mode,model,metric,paper_value,unified_value,status,warning
+Lag,M1,A_trace,2.36e8,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,M1,D_det,5.30e20,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,M1,E_min_eig,1023.311,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,M3,A_trace,2.18e8,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,M3,D_det,2.23e20,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,M3,E_min_eig,560.68,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,improvement,A_trace,8%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,improvement,D_det,138%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Lag,improvement,E_min_eig,83%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M1,A_trace,2.78e9,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M1,D_det,4.11e21,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M1,E_min_eig,164.016,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M3,A_trace,3.01e9,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M3,D_det,4.51e21,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,M3,E_min_eig,144.867,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,improvement,A_trace,-8%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,improvement,D_det,-9%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
+Overflow,improvement,E_min_eig,13%,,WARNING,Unified value missing in current runtime (Pyomo overflow issue in run_DATA2_model_variations.py).
