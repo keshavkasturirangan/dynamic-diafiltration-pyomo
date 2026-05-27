@@ -925,3 +925,72 @@ with the same 0.3 % relative scaling as the Final Tube anchor. Both anchors appl
 | `refactored_codes_v1/refactored_ucb_library.py` | Added `run_data3_conductivity_plots()` (+140 lines) |
 | `refactored_codes_v1/_contour_seeded_worker.py` | Worker now calls `run_data3_conductivity_plots()` alongside mass / conc / pressure / osmotic |
 | `refactored_codes_v1/DATA3_single_salt_collab_comparison_2026-05-25.pptx` | Collaborator-vs-DATA3 side-by-side deck (NEW; built earlier in this session) |
+
+
+## 15. May 27, 2026 — Explaining the concentrating/diluting mass pattern (ΔP vs Δπ overlay)
+
+This section closes a question collaborators raised in last week's discussion: across the single-salt campaign, the mass collected per vial is **not constant** — it tends to *increase* through a diluting run and *decrease* through a concentrating run. Per-vial mass slope ≠ 0 is a physical signature of changing flux, and that change has a clean explanation in the Spiegler–Kedem flux equation.
+
+### 15.1  The physics in one line
+
+```
+                    Jw  =  Lp · (ΔP  −  σ · Δπ)
+```
+
+- `ΔP` (applied pressure) is **constant** for the experiment — it's a control variable set by the operator.
+- `Δπ` (osmotic pressure difference across the membrane) **depends on cF(t)** via van 't Hoff:
+
+```
+                    Δπ  ≈  (cF − cH) · ν · R · T   ≈   cF · ν · R · T   (cH ≪ cF)
+```
+
+So as `cF` changes during the experiment, `Δπ` changes, and the net driving force `ΔP − σ·Δπ` changes. That in turn changes `Jw` — the water flux — which is the rate at which mass accumulates in each collection vial.
+
+| Regime | `cF(t)` trend | `Δπ(t)` trend | `ΔP − σ·Δπ` trend | `Jw` trend | Mass per vial |
+|---|---|---|---|---|---|
+| **Concentrating** (feed dilute, diafiltrate concentrated) | rises | rises | shrinks | drops | **decreases over the run** |
+| **Diluting** (feed concentrated, diafiltrate water) | falls | falls | grows | rises | **increases over the run** |
+
+The pattern the collaborators flagged is therefore expected — and visible directly in the data without any model fitting.
+
+### 15.2  New plot type: `applied_vs_osmotic-<prefix>.png`
+
+**Library function:** `run_data3_applied_vs_osmotic_plots(results, save_dir, show)` in `refactored_ucb_library.py`.
+**Worker integration:** `_contour_seeded_worker.py` calls it alongside mass / concentration / pressure / osmotic / conductivity.
+**One-off generator:** `_generate_applied_vs_osmotic_plots.py` regenerates all 13 single-salt plots in ~10 s without needing a fit.
+
+Per-sheet figure shows:
+
+- **Orange horizontal line** — applied pressure `ΔP` (constant, read from `data_config["delP"]`).
+- **Magenta curve** — osmotic pressure `Δπ(t) = cF · ν · R · T`, built from measured `cF` (Shedlovsky-inverted, EC25-compensated). No model prediction required — the plot is built purely from the data file.
+- **Colored callout** (red for concentrating, green for diluting) reporting the regime, the cF start/end values, and the end-of-run `Δπ_end / ΔP` ratio so the reader can see immediately how close the run gets to osmotic shutdown.
+- **Footer** documenting the formula and the data-file source columns.
+
+Stoichiometric ν is salt-specific (NaCl = 2, KCl = 2, CaCl₂ = 3, LaCl₃ = 4); falls back to `data_config["ni"]` or 1 for unknown salts. This is the **physical** dissociation factor, distinct from the model's `ni` parameter which the loader sets to 1 by convention.
+
+### 15.3  Spot-check findings on the 13 generated plots
+
+| Sheet | Regime | `cF: start → end` (mM) | `Δπ_end / ΔP` | Pattern visible? |
+|---|---|---|---|---|
+| MC2.05.07.24_NaCl | concentrating | 0.88 → 35.72 | 0.54 | ✓ moderate flux suppression |
+| MC3.07.22.24_SNaCl | **diluting** | 95.53 → 10.39 | 0.14 | ✓ **Δπ_initial > ΔP at t=0** — striking |
+| MC2.05.07.24_CaCl₂ | concentrating | 0.60 → 23.75 | 0.53 | ✓ ν = 3 magnifies Δπ per mM |
+| (10 other sheets — same pattern) | … | … | … | ✓ |
+
+The MC3.SNaCl plot is the cleanest visualization: at t = 0 the osmotic backpressure literally exceeds the applied pressure, so net flux is suppressed at the start of the run and grows as the experiment proceeds. The mass-vs-time plot for that sheet shows exactly the expected mirror image — slow mass accumulation early, accelerating as Δπ falls.
+
+### 15.4  How this helps the broader fit story
+
+This plot type is **diagnostic**, not a fit input. Its value is twofold:
+
+1. **For collaborator review:** the per-vial mass pattern is no longer mysterious. It is the direct, predictable signature of a constant-pressure diafiltration experiment combined with a changing feed concentration. Showing the ΔP and Δπ curves side-by-side makes this self-evident.
+2. **For our own pathology hunt:** sheets with `Δπ_end / ΔP` close to 1 (near-osmotic-shutdown) are exactly the ones where σ is most strongly constrained by the data, because σ multiplies the dominant term in the flux equation. Sheets where `Δπ_end / ΔP ≪ 1` have weak σ identifiability — σ becomes interchangeable with Lp. This connects naturally to the §13 finding that σ pins at the bound on the concentrating-regime sheets and to the lumped-σ·Lp diagnostic deferred in Task #5.
+
+### 15.5  Files added / changed in this section
+
+| File | Purpose |
+|---|---|
+| `refactored_codes_v1/refactored_ucb_library.py` | Added `run_data3_applied_vs_osmotic_plots()` (+162 lines) |
+| `refactored_codes_v1/_contour_seeded_worker.py` | Worker now calls the new function alongside the other plot types |
+| `refactored_codes_v1/_generate_applied_vs_osmotic_plots.py` | One-off generator for the 13 single-salt sheets (NEW) |
+| `UnifiedFramework/DATA3/results/paper_artifacts/nf270/campaign_figures/applied_vs_osmotic-*.png` | 13 generated figures (NEW; committed to the repo) |
