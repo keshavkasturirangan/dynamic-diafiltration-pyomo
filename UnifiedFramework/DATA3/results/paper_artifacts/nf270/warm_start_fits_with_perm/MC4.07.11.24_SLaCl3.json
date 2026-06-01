@@ -1,0 +1,27 @@
+{
+  "run_id": "MC4.07.11.24_SLaCl3",
+  "theta_fit": {
+    "Lp": 0.5,
+    "B": 0.0644480898193524,
+    "sigma": 1.0,
+    "S": 0.16738245718617262,
+    "S0": 0.0
+  },
+  "obj": {
+    "obj_m": 2821.9729042679915,
+    "obj_cv": 452.05337917616725,
+    "obj_cr": 957.5143181367075,
+    "obj_cv_perm": 1.413571140188517
+  },
+  "total_obj": 4232.954172721054,
+  "wall_time_s": 11.29779601097107,
+  "prior_theta": {
+    "Lp": 2.7758166376792954,
+    "B": 0.171510512400045,
+    "sigma": 1.0,
+    "S0": 0.0,
+    "S": 0.4720183929174195
+  },
+  "prior_total_obj": 21345.141324846503,
+  "png": "UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits_with_perm/MC4.07.11.24_SLaCl3.png"
+}

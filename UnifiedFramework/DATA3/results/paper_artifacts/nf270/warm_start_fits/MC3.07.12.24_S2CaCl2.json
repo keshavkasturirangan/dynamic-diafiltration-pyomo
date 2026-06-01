@@ -1,0 +1,38 @@
+{
+  "run_id": "MC3.07.12.24_S2CaCl2",
+  "warm_start_theta_init": {
+    "Lp": 4.374555182691667,
+    "B": 22.333333333333332,
+    "sigma": 1.0,
+    "beta_0": 414876.1060428209,
+    "beta_1": 1.0,
+    "beta_2": 0.0,
+    "beta_3": 0.0,
+    "S0": 0
+  },
+  "warm_start_meta": {
+    "Lp_from_sigma_grid": 4.374555182691667,
+    "Lp_from_B_grid": 4.374555182691667,
+    "grid_min_raw": 9340.780221142375
+  },
+  "baseline_theta": {
+    "Lp": 4.631881958144119,
+    "B": 30.0,
+    "sigma": 1.0,
+    "S0": 0,
+    "S": 1.7394999702979577
+  },
+  "baseline_obj_total": 9260.34342161326,
+  "warm_start_theta_fit": {
+    "Lp": 4.63008100740254,
+    "B": 30.0,
+    "sigma": 1.0,
+    "S0": 0.0,
+    "S": 1.739366645326524
+  },
+  "warm_start_obj_m": 159.2268086884481,
+  "warm_start_obj_cv": 475.9847382505447,
+  "warm_start_obj_cr": 8616.458454694333,
+  "warm_start_obj_total": 9251.670001633327,
+  "wall_time_s": 11.522809028625488
+}
