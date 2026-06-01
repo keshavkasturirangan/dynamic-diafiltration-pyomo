@@ -7499,6 +7499,13 @@ def run_data1_direct_contour_branch(data_root=None, save_dir=None, grid_density=
 
             prefix = f"{page_name}_{label.lower()}"
             csv_path = save_dir / f"{prefix}.csv"
+            # Defensive: ensure the target directory exists at write time, in
+            # line with the out_path.parent.mkdir pattern used elsewhere in
+            # this file (e.g. lines 6584, 6732, 6768, 8226). Guards against
+            # the rare cases where the up-front save_dir.mkdir at function
+            # entry does not survive to this point (caller-supplied path
+            # quirks, filesystem races, etc.).
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(csv_path, index=False)
             outputs.append(str(csv_path))
 
