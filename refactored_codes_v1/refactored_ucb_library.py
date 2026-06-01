@@ -5841,25 +5841,55 @@ def get_experimental_run(campaign, run_id, variant="base", data_root=None):
 
 
 def _plot_heatmap_frame(df, x_col, y_col, z_col, ax=None, show_title=True, preface=False, cmap="viridis"):
-    """Draw one contour-style heatmap from a tidy dataframe."""
+    """Draw one paper-style contour-line panel from a tidy dataframe.
+
+    Matches the DATA1 published figure_s5 / figure_s6 visual idiom:
+      * coloured contour lines (no fill) with inline numeric labels at every
+        other level, drawn on a clean white background;
+      * red triangle at the per-channel minimum of the objective;
+      * bold, TeX-formatted axis labels with units (L_p, B, sigma);
+      * ticks pointing inward, no colorbar.
+
+    The signature is unchanged so every existing caller of ``plot_contour``
+    automatically picks up the readable contour-line style. The ``cmap`` kwarg
+    is forwarded to ``ax.contour`` (colours the iso-objective lines).
+    """
     if ax is None:
         ax = plt.gca()
 
-    # Pivot the table so the x/y grid becomes a matrix for plotting.
+    # Pivot the tidy table into a (Y, X) grid for contour rendering.
     grid = df.pivot_table(index=y_col, columns=x_col, values=z_col, aggfunc="mean")
     x_vals = grid.columns.to_numpy(dtype=float)
     y_vals = grid.index.to_numpy(dtype=float)
     z_vals = grid.to_numpy(dtype=float)
+    X, Y = np.meshgrid(x_vals, y_vals)
 
-    mesh = ax.pcolormesh(x_vals, y_vals, z_vals, shading="auto", cmap=cmap)
-    plt.colorbar(mesh, ax=ax)
-    ax.set_xlabel(x_col)
-    ax.set_ylabel(y_col)
+    # Iso-objective contour lines + inline value labels.
+    cp = ax.contour(X, Y, z_vals, 10, linewidths=2, cmap=cmap)
+    ax.clabel(cp, cp.levels[::2], inline=True, fontsize=10, colors="k", fmt="%1.1f")
+
+    # Red triangle at the argmin of the objective surface.
+    if np.isfinite(z_vals).any():
+        flat_idx = np.nanargmin(z_vals)
+        iy, ix = np.unravel_index(flat_idx, z_vals.shape)
+        ax.plot(
+            X[iy, ix], Y[iy, ix], "^",
+            markersize=12,
+            markeredgecolor="red",
+            markerfacecolor=[1, 0.6, 0.6],
+            clip_on=False,
+        )
+
+    # TeX-formatted axis labels with units when the column name matches a
+    # known parameter; otherwise fall back to the raw column name.
+    xlabel = _PAPER_AXIS_LABELS.get(x_col, x_col)
+    ylabel = _PAPER_AXIS_LABELS.get(y_col, y_col)
+    ax.set_xlabel(xlabel, fontsize=12, fontweight="bold")
+    ax.set_ylabel(ylabel, fontsize=12, fontweight="bold")
     if show_title:
-        title = z_col
-        if preface:
-            title = f"{title}"
-        ax.set_title(title)
+        title = z_col if not preface else f"{z_col}"
+        ax.set_title(title, fontsize=12)
+    ax.tick_params(direction="in", labelsize=10)
     return ax
 
 
@@ -5883,7 +5913,10 @@ def plot_contour(df, show_title=True, preface=False, save_path=None, cmap="virid
     if not value_cols:
         value_cols = [df.columns[2]]
 
-    fig, axes = plt.subplots(1, len(value_cols), figsize=(5 * len(value_cols), 4), squeeze=False)
+    # Square panels (4×4) — the contour-line style doesn't need horizontal
+    # room for a colorbar, so we trade the old wide-panel layout for a
+    # readable aspect ratio that matches figure_s5 / figure_s6.
+    fig, axes = plt.subplots(1, len(value_cols), figsize=(4 * len(value_cols), 4), squeeze=False)
     for idx, z_col in enumerate(value_cols):
         _plot_heatmap_frame(df, x_col, y_col, z_col, ax=axes[0, idx], show_title=show_title, preface=preface, cmap=cmap)
 
