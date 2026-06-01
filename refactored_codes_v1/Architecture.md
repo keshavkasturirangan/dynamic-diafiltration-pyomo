@@ -994,3 +994,83 @@ This plot type is **diagnostic**, not a fit input. Its value is twofold:
 | `refactored_codes_v1/_contour_seeded_worker.py` | Worker now calls the new function alongside the other plot types |
 | `refactored_codes_v1/_generate_applied_vs_osmotic_plots.py` | One-off generator for the 13 single-salt sheets (NEW) |
 | `UnifiedFramework/DATA3/results/paper_artifacts/nf270/campaign_figures/applied_vs_osmotic-*.png` | 13 generated figures (NEW; committed to the repo) |
+
+
+## 16. June 1, 2026 — DATA1 direct-contour bugfix + `plot_contour` figure_s5 style
+
+Two small but important changes to the paper-figure rendering path, plus same-day housekeeping commits captured for completeness.
+
+### 16.1  Defensive `parent.mkdir` at the `run_data1_direct_contour_branch` CSV write site
+
+**Symptom.** With `Root = 1` (DATA1), manifest-default trunk, branches = all, then answering `y` to the *"Run the direct DATA1 contour-grid branch as well?"* prompt, the run crashed with:
+
+```
+OSError: Cannot save file into a non-existent directory:
+  '.../paper_artifacts/data1/notebook_figures/direct_contours'
+```
+
+**Root cause.** The up-front `save_dir.mkdir(parents=True, exist_ok=True)` at function entry (line 7423 of `refactored_ucb_library.py`) was not sufficient — caller-supplied path quirks, intermediate modifications, or filesystem races can leave the directory missing by the time `df.to_csv(csv_path)` runs inside the per-page / per-case loop.
+
+**Fix.** Add `csv_path.parent.mkdir(parents=True, exist_ok=True)` directly before the `df.to_csv(...)` call. This mirrors the `out_path.parent.mkdir` pattern already in use at four other write sites in the same file (lines 6584, 6732, 6768, 8226), making the CSV writer self-sufficient.
+
+Three downstream writers in the same call graph were already defensive — only the direct-CSV write was exposed:
+
+| Writer | Defensive idiom | Status |
+|---|---|---|
+| `df.to_csv(csv_path)` at line 7502 | (none) | **fixed in this commit** |
+| `_plot_contour_data1_legacy()` at 5899 | `save_dir.mkdir` at entry | already defensive |
+| `_compose_data1_panel_grid()` at 6732 | `out_path.parent.mkdir` | already defensive |
+| `_compose_data1_panel_sheet()` at 6768 | `out_path.parent.mkdir` | already defensive |
+
+Commit `4cd8a60` (+7 lines, comments included).
+
+### 16.2  `plot_contour` switched from `pcolormesh` heatmap to figure_s5 contour-line style
+
+**Symptom.** The contour panels produced by the DATA1 reproduction workflow (file names like `data501.1_base_contour_sigma.png`, `data511.12_base_contour_B.png`) were rendered as solid `pcolormesh` heatmaps with a colorbar and bare column-name axis labels — visually correct but hard to read for parameter-estimability discussion.
+
+**Root cause.** `plot_contour` (the public 1×N panel renderer) delegated to `_plot_heatmap_frame`, an internal panel-drawer using `ax.pcolormesh(...) + plt.colorbar(...)` and `ax.set_xlabel(x_col)` (raw column name like `"sigma"`, no units). The published-style contour-line renderer (`_plot_contour_data1_legacy`, which produces the SI panels stitched into `figure_s5.png` / `figure_s6.png`) lived in a separate code path used only by the SI composers and the manifest-driven `render_contour_data1_legacy`.
+
+**Fix.** Rewrite `_plot_heatmap_frame` (signature unchanged) in the published figure_s5 / figure_s6 idiom:
+
+- Coloured iso-objective contour **lines** (`ax.contour(X, Y, Z, 10, linewidths=2, cmap="viridis")`), no fill
+- Inline numeric labels at every other level (`ax.clabel(cp, cp.levels[::2], inline=True, fmt="%1.1f")`)
+- Red triangle at the per-channel `nanargmin(Z)` location, matching the legacy SI panel marker
+- Bold, TeX-formatted axis labels with units via `_PAPER_AXIS_LABELS` lookup, fallback to raw column name
+- Ticks pointing inward, no colorbar
+
+`plot_contour`'s figsize also drops from `(5 × n_panels, 4)` to square `(4 × n_panels, 4)` — the colorbar room is freed.
+
+**Blast radius.** All four `plot_contour` call sites automatically pick up the new style:
+
+| Call site | What it writes |
+|---|---|
+| `published_paper_reproductions` workflow, lines 7042 / 7051 | `data{N}_{variant}_contour_{B,sigma}.png` (DATA1 reproduction PNGs) |
+| `_contour_seeded_worker.py`, line 7861 | DATA3 NF270 quick-look composite (alongside the per-channel SI panels) |
+| `render_contour`, line 11296 | Manifest-driven FigureSpec entrypoint |
+
+`_plot_contour_data1_legacy` itself is unchanged — its inline `plt.contour` / `plt.clabel` logic was the visual reference for this port.
+
+Visual check against an existing DATA3 NF270 contour CSV (`MC2.05.07.24_NaCl/contourdata-x_sigma-y_Lp.csv`) — output matches the figure_s5 idiom (coloured iso-lines, inline labels, red triangle at the `(Lp, sigma)` minimum, σ [dimensionless] and L_p [L · m⁻² · h⁻¹ · bar⁻¹] axis labels).
+
+Commit `c737254` (+44 / −11).
+
+### 16.3  Reproducibility note on DATA1 / DATA2
+
+Neither §16.1 nor §16.2 touches `_plot_contour_data1_legacy` or any of the SI composers — the byte-equivalent reproduction of `figure_s2…s6` is preserved. The change in §16.2 affects only the **secondary** quick-look heatmap output produced by `plot_contour`; the canonical SI panels stitched by the manifest builders are unchanged.
+
+Recommended verification: run the DATA1 / DATA2 manifest default trunk and inspect `_print_coverage` — should still report `main figures: 12/18   SI figures: 10/10   tables: 2/2` (or better, since §16.1 now lets the direct-contour branch complete).
+
+### 16.4  Housekeeping commits same day
+
+- `a19ef91` — collaborator briefing 2026-05-27: dated folder grouping the earlier brief, the 6-slide AICHE-style build, and the edited version actually presented to collaborators. Lives under `refactored_codes_v1/collaborator_briefing_2026-05-27/`.
+- `e3a25e1` — DATA3 warm-start fit artifacts under `UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits/` and `..._with_perm/` (22 JSON + 22 PNG + 2 `summary.json`), preserved for later reference. NF270 partition only — DATA1 / DATA2 outputs untouched.
+
+### 16.5  Files changed in this section
+
+| File | Change |
+|---|---|
+| `refactored_codes_v1/refactored_ucb_library.py` | §16.1 mkdir defensive (+7) and §16.2 `_plot_heatmap_frame` rewrite + `plot_contour` figsize (+44 / −11) |
+| `refactored_codes_v1/Architecture.md` | This section (§16) |
+| `refactored_codes_v1/collaborator_briefing_2026-05-27/*.pptx` | 3 dated decks (§16.4) |
+| `UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits/` | 23 new files (§16.4) |
+| `UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits_with_perm/` | 23 new files (§16.4) |
