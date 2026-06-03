@@ -41,3 +41,22 @@ results/reproduction/*/notebook_extract/
 # Stray simulation output CSVs (model writes to cwd by default — should land
 # in results/ directories, not at repo root or alongside source code).
 sim_data-*.csv
+
+# DATA1 path-construction bug artifact: a writer somewhere occasionally builds
+# `<data1_root>/data1/...` instead of `<data1_root>/notebook_figures/...` and
+# spills ~50 MB of figures into the wrong place. Ignore the bad output until
+# the writer is fixed; the bug is tracked separately.
+UnifiedFramework/DATA3/results/paper_artifacts/data1/data1/
+
+# NF270 experimental snapshots — exploratory runs that produce zip dumps and
+# scratch directories alongside the real paper artifacts. None of these are
+# inputs to the published-figure pipeline. The originally-tracked items under
+# nf270/ (paper figures, campaign_figures.zip series 2-6) are unaffected by
+# these patterns (.gitignore does not apply to tracked files).
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/cf_floor_test*
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/contour_panels*
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/paper_style_test/
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/paper_styling_preview/
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/regime_gated_fits*
+# Finder-style duplicates of nf270/campaign_figures.zip (e.g. "… 7.zip", "… 8.zip")
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/campaign_figures [0-9].zip
