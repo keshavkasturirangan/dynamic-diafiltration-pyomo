@@ -271,12 +271,111 @@ NF270_MASS_LITMUS_TEST_ACTIVE = False
 NF270_CF_RESIDUAL_FLOOR_MM = None
 
 
+# DATA3-only: retentate (cF) and permeate (cV) concentration MEASUREMENT ERROR,
+# expressed as a fraction of the measured concentration, applied CONSISTENTLY in
+# the WSSE objective (obj_rule), the Fisher-information covariance (calc_FIM), and
+# the Pyomo.parmest measurement_error suffix.  Keeping all three on one source
+# avoids an inconsistent reported covariance.
+#
+# Basis — Lilonfe, Estrada, Singh, Ouimet, Phillip, Dowling, "Soft Sensors Enable
+# Real-Time Ion Concentration Measurements", ChemRxiv 2026
+# (doi:10.26434/chemrxiv.15002541/v1):
+#   * cF (retentate) is conductivity / soft-sensor-derived.  End-to-end error =
+#     soft-sensor MAPE (NaCl 1.0 %, CaCl2 2.2 %, LaCl3 1.9 %; Table 3) in
+#     quadrature with the regressed cell-constant uncertainty (~1.38 %, Eq. S5)
+#     -> ~2 %.  The legacy 0.3 % had NO physical basis and over-weighted cF at
+#     high concentration (0.3 % of 100 mM = 0.3 mM, tighter than the probe
+#     itself), which pushed sigma to its bound.  DATA3 default = 0.02 (2 %).
+#   * cV (permeate) is an offline ICP-OES scalar — the REFERENCE.  ICP-OES
+#     accuracy is ~1-3 %, so the legacy 3 % is already physical.  The paper's
+#     "within 5 %" is the soft-sensor-vs-ICP AGREEMENT, not ICP's own error, so
+#     it does NOT justify loosening the ICP channel.  DATA3 default = None (3 %).
+#     (The 5 % soft-sensor figure applies to the conductivity permeate PROBE
+#     channel cH, configured separately via NF270_USE_PERMEATE_PROBE.)
+#
+# GUARDED to workflow_family == "DATA3": when a knob is None, or for DATA1/DATA2,
+# the legacy 0.003 / 0.03 weights are used unchanged (byte-identical published
+# behavior).  See Architecture.md.
+NF270_CF_RESIDUAL_SCALE_FRACTION = 0.02
+NF270_CP_RESIDUAL_SCALE_FRACTION = None
+
+
+def _nf270_conc_scales(workflow_family):
+    """Return (cf_frac, cp_frac): the retentate/permeate concentration relative
+    measurement-error fractions for the WLS weight 1/(frac*c).  DATA3 uses the
+    paper-justified NF270_*_RESIDUAL_SCALE_FRACTION when set; DATA1/DATA2 (and
+    unset DATA3 knobs) fall back to the legacy 0.003 / 0.03."""
+    is_data3 = str(workflow_family).upper() == "DATA3"
+    cf = (float(NF270_CF_RESIDUAL_SCALE_FRACTION)
+          if is_data3 and NF270_CF_RESIDUAL_SCALE_FRACTION is not None else 0.003)
+    cp = (float(NF270_CP_RESIDUAL_SCALE_FRACTION)
+          if is_data3 and NF270_CP_RESIDUAL_SCALE_FRACTION is not None else 0.03)
+    return cf, cp
+
+
+# Ionic strength  I = 1/2 * sum_j c_j z_j^2.  For a chloride salt M^{z+}Cl_z,
+# electroneutrality (anion conc = z * cation conc, z_anion = 1) gives
+#     I = 1/2 * c * (z^2 + z) = 1/2 * z * (z + 1) * c,
+# i.e. I = k_I * c with k_I = {NaCl 1, CaCl2 3, LaCl3 6}.  k_I converts the
+# (single-salt) cation/salt concentration to ionic strength and is the basis for
+# re-parameterizing the solute permeability as B = f(I) instead of B = f(c) —
+# because I = k_I*c is LINEAR, a single-salt B(I) fit is just a rescaling of the
+# B(c) fit (beta_k -> beta_k / k_I^k), but the resulting beta become transferable
+# ACROSS salts, which is what multisalt prediction needs.  See Architecture.md.
+NF270_IONIC_STRENGTH_FACTOR = {"NaCl": 1.0, "KCl": 1.0, "CaCl2": 3.0, "LaCl3": 6.0}
+
+
+def nf270_ionic_strength_factor(salt, cation_valence=None):
+    """Return k_I such that ionic strength I = k_I * c for a 1:z chloride salt.
+
+    Looks the salt up by name; otherwise falls back to 0.5*z*(z+1) computed from
+    the cation valence z (which can be read from data_config as ni-1, since the
+    van't Hoff count ni = 1 cation + z anions = z + 1 for MCl_z)."""
+    if salt in NF270_IONIC_STRENGTH_FACTOR:
+        return NF270_IONIC_STRENGTH_FACTOR[salt]
+    if cation_valence is not None:
+        z = float(cation_valence)
+        return 0.5 * z * (z + 1.0)
+    return 1.0
+
+
+# Re-parameterize the concentration-dependent solute permeability as B = f(I)
+# instead of B = f(c): inside the numeric-B_form polynomial, the membrane-
+# interface concentration cIn that drives B (Js = B*(cIn - cH)) is replaced by
+# the INTERFACIAL ionic strength I_in = k_I * cIn, with k_I from the salt
+# valence (NaCl 1, CaCl2 3, LaCl3 6).  Because I = k_I*c is LINEAR, a single-
+# salt B(I) fit is numerically identical to the B(c) fit after rescaling
+# beta_k -> beta_k / k_I^(power of cIn that beta_k multiplies) — but the beta
+# then become TRANSFERABLE across salts, which is the point for multisalt
+# prediction.  GUARDED to workflow_family == "DATA3"; when None (default) or for
+# DATA1/DATA2 the legacy B(c) constraint is used byte-identically regardless of
+# value.  Set to True (or any truthy) to activate.  See Architecture.md §18.3.
+NF270_B_USE_IONIC_STRENGTH = None
+
+
 # Optional interior bound on sigma to prevent the optimizer from pinning at
 # the {0, 1} corners on sheets where the sigma surface is genuinely flat
 # (multivalent salts especially). When set to (lo, hi) with 0 <= lo < hi <= 1,
 # the Var bounds change from (0, 1) to (lo, hi). When None, legacy bounds
 # (0, 1) are preserved exactly.
 NF270_SIGMA_INTERIOR_BOUNDS = None
+
+
+# Per-salt upper bounds on the solute-permeability coefficient B, applied
+# ONLY to DATA3 NF270 single-salt fits (workflow_family == "DATA3" and
+# B_form == 'single').  Replaces the legacy single 50 upper with a
+# valence-graded triple derived from dielectric exclusion + Stokes-Einstein
+# scaling on a negatively-charged NF270 polyamide layer.  Salts not present
+# in the dict fall back to NF270_B_BOUNDS_DEFAULT, so adding a new chloride
+# salt is a one-line addition.  GUARDED to DATA3 — DATA1/DATA2 fits always
+# see (1e-6, 50) regardless of this dict's contents, preserving byte-
+# identical legacy behavior.  See Architecture.md §17.
+NF270_B_BOUNDS_PER_SALT = {
+    "NaCl":  (1e-6, 30.0),
+    "CaCl2": (1e-6, 15.0),
+    "LaCl3": (1e-6, 10.0),
+}
+NF270_B_BOUNDS_DEFAULT = (1e-6, 50.0)
 
 
 # Adds the continuous permeate-probe conductivity (Shedlovsky-inverted to mM)
@@ -1680,7 +1779,21 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
             # indicating the bound was clipping. Bumping to 50 gives the
             # optimizer headroom; if the fits still want > 50, that's a
             # separate physics question (the cf-floor change should help too).
-            m.B = Var(bounds=(1e-6,50),initialize=param_in['B'])
+            #
+            # Per-salt upper override (2026-06-03): for DATA3 NF270 single-salt
+            # fits, replace the legacy 50 upper with a valence-graded triple
+            # NaCl=30, CaCl2=15, LaCl3=10 (see Architecture.md §17 and the
+            # NF270_B_BOUNDS_PER_SALT constant). GUARDED to workflow_family ==
+            # "DATA3"; DATA1/DATA2 always see (1e-6, 50), exactly matching the
+            # legacy call site above. Salt is read from data_config['namec'],
+            # the canonical salt-name field populated by both the DATA3 Excel
+            # ingest and DATA1/DATA2 .mat loaders.
+            if workflow_family == "DATA3":
+                _salt_key = str(data_stru['data_config'].get('namec') or "").strip()
+                _b_bounds = NF270_B_BOUNDS_PER_SALT.get(_salt_key, NF270_B_BOUNDS_DEFAULT)
+            else:
+                _b_bounds = (1e-6, 50)
+            m.B = Var(bounds=_b_bounds, initialize=param_in['B'])
         elif B_form=='pervial':
             m.B = Var(m.n_vial, bounds=(1e-6,50),initialize=param_in['B'])
         elif isinstance(B_form, str) and 'convection' in B_form:
@@ -2123,8 +2236,25 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
             return m.cVmV[n,Tauf]==m.cVmV[n+1,0]
         else:
             return m.cV[n,Tauf]*1e-6==m.cVmV[n+1,0]                                                                  
-    m.cVmV_linking = Constraint(m.n_vial,rule=cVmV_linking_rule)  
-    
+    m.cVmV_linking = Constraint(m.n_vial,rule=cVmV_linking_rule)
+
+    # Optional ionic-strength reparameterization of the concentration-dependent
+    # B polynomial (DATA3-only, gated on NF270_B_USE_IONIC_STRENGTH).  When
+    # enabled, the concentration argument that drives B is scaled by k_I so that
+    # B is a function of ionic strength I = k_I*c rather than bare concentration
+    # c.  When the toggle is off (or workflow_family != DATA3), _b_kI == 1.0 and
+    # the local `cc` binding below IS the same Pyomo component as the bare
+    # concentration, so each constraint expression is byte-identical to the
+    # legacy path — DATA1/DATA2 reproduction is unaffected regardless of value.
+    _b_use_I = bool(workflow_family == "DATA3" and NF270_B_USE_IONIC_STRENGTH)
+    if _b_use_I:
+        _b_salt = str(data_stru['data_config'].get('namec') or "").strip()
+        _b_ni = data_stru['data_config'].get('ni')
+        _b_zc = (float(_b_ni) - 1.0) if (_b_ni and float(_b_ni) > 1.0) else None
+        _b_kI = nf270_ionic_strength_factor(_b_salt, cation_valence=_b_zc)
+    else:
+        _b_kI = 1.0
+
     # B continuity across vials in the per-vial form.
     def B_form_rule1(m,n):
         if n < N_V0-1:
@@ -2136,12 +2266,15 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     # Example: B = beta_0 + beta_1*cF^p + beta_2*cF^(p+1) + ...
     def B_form_rule2(m,n,t):
         if not isinstance(B_form, str):
+            # cc == m.cF[n,t] when the ionic-strength toggle is off (byte-identical);
+            # k_I*m.cF[n,t] when on (B driven by bulk ionic strength).
+            cc = (_b_kI * m.cF[n,t]) if _b_use_I else m.cF[n,t]
             if B_form > 2:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cF[n,t]**(B_form - 2) + m.beta_2 * m.cF[n,t]**(B_form - 1) + m.beta_3 * m.cF[n,t]**B_form #+ m.beta_4 * m.cH[n,t]        
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**(B_form - 2) + m.beta_2 * cc**(B_form - 1) + m.beta_3 * cc**B_form #+ m.beta_4 * m.cH[n,t]
             elif B_form > 1:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cF[n,t]**(B_form - 1) + m.beta_2 * m.cF[n,t]**B_form #+ m.beta_4 * m.cH[n,t]
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**(B_form - 1) + m.beta_2 * cc**B_form #+ m.beta_4 * m.cH[n,t]
             else:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cF[n,t]**B_form
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**B_form
         else:
             return Constraint.Skip
 
@@ -2149,16 +2282,21 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     # The exponent p is controlled by B_form.
     def B_form_rule3(m,n,t):
         if not isinstance(B_form, str):
+            # cc == m.cIn[n,t] when the ionic-strength toggle is off (byte-identical);
+            # k_I*m.cIn[n,t] when on, so B is driven by the INTERFACIAL ionic
+            # strength I_in = k_I*cIn (the membrane-wall concentration the solute
+            # flux Js = B*(cIn - cH) actually sees).  See Architecture.md §18.3.
+            cc = (_b_kI * m.cIn[n,t]) if _b_use_I else m.cIn[n,t]
             if B_form > 2:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cIn[n,t]**(B_form - 2) + m.beta_2 * m.cIn[n,t]**(B_form - 1) + m.beta_3 * m.cIn[n,t]**B_form# + m.beta_4 * m.cH[n,t]        
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**(B_form - 2) + m.beta_2 * cc**(B_form - 1) + m.beta_3 * cc**B_form# + m.beta_4 * m.cH[n,t]
             elif B_form > 1:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cIn[n,t]**(B_form - 1) + m.beta_2 * m.cIn[n,t]**B_form# + m.beta_4 * m.cH[n,t]
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**(B_form - 1) + m.beta_2 * cc**B_form# + m.beta_4 * m.cH[n,t]
             elif B_form == 0:
                 return m.B[n,t] == m.beta_0
             elif B_form < 0:
-                return m.B[n,t] * m.cIn[n,t]**(-B_form) == m.beta_0 * m.cIn[n,t]**(-B_form) + m.beta_1
+                return m.B[n,t] * cc**(-B_form) == m.beta_0 * cc**(-B_form) + m.beta_1
             else:
-                return m.B[n,t] == m.beta_0 + m.beta_1 * m.cIn[n,t]**B_form
+                return m.B[n,t] == m.beta_0 + m.beta_1 * cc**B_form
         else:
             return Constraint.Skip
     
@@ -2215,11 +2353,19 @@ def solve_model(
     multistart=False,
     multistart_iterations=10,
     multistart_seed=13,
+    band_vials=None,
 ):
     """
     Solve pyomo model
 
     Arguments:
+        band_vials: optional iterable of 1-indexed vial numbers. When given,
+            the WSSE objective is MASKED to only those vials (out-of-band vials
+            are skipped in the per-vial residual loop), so one theta is fit to a
+            single concentration band. None (default) fits all vials and is
+            byte-identical to the legacy objective. Used by the per-concentration
+            -band diagnostic (Architecture.md §18.4); single-shot only (not
+            wired through multistart).
         data_stru: dict, experimental data dictionary
         mode: str, experiment mode, {DATA, lag, overflow}
         theta: dict, preset parameter values
@@ -2262,6 +2408,14 @@ def solve_model(
         # so neither pattern breaks.
         sim_inter = [{"time": s["time"], "mV": s["mV"]} for s in sim_stru]
         return fit_stru, sim_stru, sim_inter
+
+    # Per-concentration-band masking is single-shot (the obj_rule closure below
+    # honors band_vials); it is not threaded through the multistart helper.
+    if band_vials is not None:
+        band_vials = set(int(v) for v in band_vials)
+        if bool(multistart):
+            print("[band] band_vials set -> disabling multistart (single-shot band fit).")
+            multistart = False
 
     if bool(multistart) and not sim_opt:
         return _solve_model_multistart(
@@ -2313,6 +2467,9 @@ def solve_model(
         mass_scale = float(data_stru["data_config"].get("mass_scale_g", 0.01))
         if not np.isfinite(mass_scale) or mass_scale <= 0:
             mass_scale = 0.01
+        # DATA3-only paper-justified retentate/permeate concentration sigmas
+        # (legacy 0.003 / 0.03 for DATA1/DATA2 and unset knobs).
+        _cf_frac, _cp_frac = _nf270_conc_scales(workflow_family)
         obj_m = 0
         obj_cp = 0
         obj_cf0 = 0
@@ -2354,13 +2511,17 @@ def solve_model(
         TI_dict = dict(zip(m.n_vial,TI_list)) # unscaled initial time for each vial
     
         for n_vial in m.n_vial:
+            # Per-concentration-band mask: skip vials outside the requested band
+            # so theta is fit to one band only.  No-op when band_vials is None.
+            if band_vials is not None and n_vial not in band_vials:
+                continue
             t_meas = _data1_shifted_time(data_stru, n_vial-1)
             mv_meas = np.asarray(data_stru['data_raw'][n_vial-1]['mass'], dtype=float)
             cp_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg'], dtype=float)
             cf_meas = np.asarray(data_stru['data_raw'][n_vial-1]['cF_exp'], dtype=float)
-    
+
             t_meas_scaled = [(t-TI_dict[n_vial])/(TF_dict[n_vial]-TI_dict[n_vial]) for t in t_meas]
-            
+
             mv_pred=[]
             res_m_=[]
             obj_mi = 0
@@ -2386,8 +2547,8 @@ def solve_model(
             if np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg']).ndim == 0:
                 if n_vial > data_stru['data_config']['n_extra']:
                     res_cp = m.cV[n_vial,m.tau.last()]-data_stru['data_raw'][n_vial-1]['cV_avg']
-                    res_cp_assemble.append(res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))
-                    obj_cp += (res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))**2 # 3% error
+                    res_cp_assemble.append(res_cp/(_cp_frac*data_stru['data_raw'][n_vial-1]['cV_avg']))
+                    obj_cp += (res_cp/(_cp_frac*data_stru['data_raw'][n_vial-1]['cV_avg']))**2 # permeate cV weight (DATA3: NF270_CP_RESIDUAL_SCALE_FRACTION; else 3%)
                     ob_cp += (res_cp/(data_stru['data_raw'][n_vial-1]['cV_avg']))**2
                     Count_cp = collect_vial
             else:
@@ -2402,8 +2563,8 @@ def solve_model(
                         if not np.isnan(cp_meas[i]):   
                             res_cp = cp_pred[i]-cp_meas[i]
                             count_cp += 1
-                            res_cp_assemble.append(res_cp/(0.03*cp_meas[i]))
-                            obj_cpi += (res_cp/(0.03*cp_meas[i]))**2 # 3% error
+                            res_cp_assemble.append(res_cp/(_cp_frac*cp_meas[i]))
+                            obj_cpi += (res_cp/(_cp_frac*cp_meas[i]))**2 # permeate cV weight (DATA3: NF270_CP_RESIDUAL_SCALE_FRACTION; else 3%)
                             ob_cpi += (res_cp/(cp_meas[i]))**2
                     Count_cp = collect_vial
                     obj_cp += obj_cpi#/count_cp/collect_vial
@@ -2434,7 +2595,7 @@ def solve_model(
                     if not np.isnan(cf_meas[i]):
                         res_cf = cf_pred[i]-cf_meas[i]
                         count_cf += 1
-                        relative_scale = 0.003 * cf_meas[i]
+                        relative_scale = _cf_frac * cf_meas[i]  # retentate cF weight (DATA3: NF270_CF_RESIDUAL_SCALE_FRACTION=2%; else 0.3%)
                         if cf_floor_mM is not None and cf_floor_mM > 0 and relative_scale < cf_floor_mM:
                             cf_scale = float(cf_floor_mM)
                         else:
@@ -2492,7 +2653,7 @@ def solve_model(
         if not np.isfinite(final_tube_meas):
             final_tube_meas = data_stru["data_config"].get("icp_final_tube_mM", np.nan)
         if np.isfinite(final_tube_meas):
-            final_scale = _abs_scale(final_tube_meas, 0.003, 0.003)
+            final_scale = _abs_scale(final_tube_meas, _cf_frac, 0.003)  # cF anchor: DATA3 measurement error
             res_cf_final = m.cF[m.n_vial.last(), m.tau.last()] - final_tube_meas
             res_cf_assemble.append(res_cf_final / final_scale)
             obj_cf += (res_cf_final / final_scale) ** 2
@@ -2518,7 +2679,7 @@ def solve_model(
                 retentate_icp_meas = float("nan")
             if np.isfinite(retentate_icp_meas):
                 # Use the same 0.3 % relative scaling as the Final Tube anchor.
-                retentate_scale = _abs_scale(retentate_icp_meas, 0.003, 0.003)
+                retentate_scale = _abs_scale(retentate_icp_meas, _cf_frac, 0.003)  # retentate cF anchor: DATA3 measurement error
                 res_cf_retentate = m.cF[m.n_vial.last(), m.tau.last()] - retentate_icp_meas
                 res_cf_assemble.append(res_cf_retentate / retentate_scale)
                 obj_cf += (res_cf_retentate / retentate_scale) ** 2
@@ -2535,11 +2696,20 @@ def solve_model(
         m.res_m = res_m_assemble
         m.res_cp = res_cp_assemble
         m.res_cf = res_cf_assemble
-        
-        m.obj_m = obj_m/Count_m
-        m.obj_cv = obj_cp/Count_cp
-        m.obj_cr = (obj_cf0+obj_cf)/(count_cf0+Count_cf)
-        m.obj_cr_tru = obj_cf/Count_cf
+
+        # Guarded denominators for per-band masked fits: identical to the raw
+        # counts when band_vials is None (so the legacy objective is byte-
+        # identical), but floored at 1 when a band excludes a whole channel so
+        # the per-channel normalization never divides by zero.
+        _den_m  = Count_m if band_vials is None else max(Count_m, 1)
+        _den_cp = Count_cp if band_vials is None else max(Count_cp, 1)
+        _den_cr = (count_cf0 + Count_cf) if band_vials is None else max(count_cf0 + Count_cf, 1)
+        _den_cf = Count_cf if band_vials is None else max(Count_cf, 1)
+
+        m.obj_m = obj_m/_den_m
+        m.obj_cv = obj_cp/_den_cp
+        m.obj_cr = (obj_cf0+obj_cf)/_den_cr
+        m.obj_cr_tru = obj_cf/_den_cf
         # Optional permeate-probe channel: stored on m for reporting even
         # when inactive (will be 0/None then).
         if _use_perm_probe and Count_cp_perm > 0:
@@ -2547,9 +2717,9 @@ def solve_model(
         else:
             m.obj_cv_perm = 0.0
         # Overall normalized objective used by the solver.
-        m.obj_tru = 1e4*(obj_m/Count_m+obj_cp/Count_cp+obj_cf/Count_cf)
+        m.obj_tru = 1e4*(obj_m/_den_m+obj_cp/_den_cp+obj_cf/_den_cf)
         m.llh1 = m.count_m*log(m.obj_m) + m.count_cv*log(m.obj_cv) + (m.count_cr0+m.count_cr)*log(m.obj_cr)#m.count * log((obj_m+obj_cp+obj_cf0+obj_cf)/m.count)
-        m.llh2 = Count_m*log(ob_m/Count_m) + Count_cp*log(ob_cp/Count_cp) + (count_cf0+Count_cf)*log((ob_cf0+ob_cf)/(count_cf0+Count_cf))
+        m.llh2 = Count_m*log(ob_m/_den_m) + Count_cp*log(ob_cp/_den_cp) + (count_cf0+Count_cf)*log((ob_cf0+ob_cf)/_den_cr)
 
         if mass_litmus_test:
             # Mass-litmus test: collapse the WSSE to mass only. Drop the cV
@@ -2560,7 +2730,7 @@ def solve_model(
         # (continuous permeate-probe) is added ONLY when the DATA3 toggle
         # is active AND samples were collected; otherwise the objective is
         # byte-identical to the published form.
-        legacy_obj = 1e4*(obj_m/Count_m + obj_cp/Count_cp + (obj_cf0+obj_cf)/(count_cf0+Count_cf))
+        legacy_obj = 1e4*(obj_m/_den_m + obj_cp/_den_cp + (obj_cf0+obj_cf)/_den_cr)
         if _use_perm_probe and Count_cp_perm > 0:
             legacy_obj = legacy_obj + 1e4 * (obj_cp_perm / Count_cp_perm)
         return legacy_obj
@@ -2745,10 +2915,10 @@ def nested_dict_update(dict_nest,new_value,i=0):
     return dict_nest
 
 
-def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form='single', workflow_family='DATA1', nfe=300):
+def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form='single', workflow_family='DATA1', nfe=300, band_vials=None):
     """
     Calculate FIM
-    
+
     Arguments:
         data_stru: dict, experimental data dictionary
         mode: str, experiment mode, {DATA, lag, overflow}
@@ -2759,8 +2929,14 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
                 'single' - constant B
                 'per vial' - discrete B per vial
                 'convection' - convection-diffussion model
-                0, -0.5, 0.5, 1, 2, 3 - order of dipendence on concentration 
-    
+                0, -0.5, 0.5, 1, 2, 3 - order of dipendence on concentration
+        band_vials: optional iterable of 1-indexed vial numbers.  When given, the
+                FIM is built from ONLY those vials' predictions (both the
+                measurement covariance and the Jacobian are masked identically),
+                giving a per-concentration-band FIM whose non-singularity tells
+                you whether that band alone identifies theta.  None (default) uses
+                all vials and is byte-identical to the legacy FIM.
+
     Returns:
         doe_stru: dict, FIM results
     """
@@ -2768,6 +2944,8 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
     data_stru = _normalize_conductivity_measurements(data_stru)
     workflow_tag = str(workflow_family).upper()
     sim_opt = True
+    # Per-band FIM mask (1-indexed vials -> 0-indexed loop index n_vial+1).
+    _band = set(int(v) for v in band_vials) if band_vials is not None else None
 
     def _solve_fim_case(label, theta_guess, *, sim_opt_flag):
         solve_kwargs = dict(
@@ -2835,8 +3013,11 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
             else:
                 theta_p2_v.append(step)
     
-    # Prediction covariance is built from the paper measurement errors:
-    # 0.01 g for mass, 3% for permeate concentration, and 0.3% for retentate.
+    # Prediction covariance is built from the per-channel measurement errors:
+    # 0.01 g for mass; permeate cV and retentate cF use _nf270_conc_scales() so
+    # the FIM covariance MATCHES the objective weights (DATA3: cF 2%, cV 3%;
+    # DATA1/DATA2: cF 0.3%, cV 3%).  Must stay in sync with obj_rule.
+    _fim_cf_frac, _fim_cp_frac = _nf270_conc_scales(workflow_family)
     if sim_opt == True:
         fit_stru_p, sim_stru_p, sim_inter_p = _solve_fim_case(
             f"{workflow_tag or 'DATA'} FIM reference solve",
@@ -2850,9 +3031,11 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
             raise RuntimeError("Reference solve failed while building the FIM.")
     var_pred=[]
     for n_vial in range(data_stru['data_config']['n']):
+        if _band is not None and (n_vial + 1) not in _band:
+            continue
         var_pred = np.append(var_pred,0.01 ** 2 * np.ones(len(sim_inter_p[n_vial]['mV'])))
-        var_pred = np.append(var_pred,(0.03 * sim_inter_p[n_vial]['cV'])**2)
-        var_pred = np.append(var_pred,(0.003 * sim_inter_p[n_vial]['cF'])**2)
+        var_pred = np.append(var_pred,(_fim_cp_frac * sim_inter_p[n_vial]['cV'])**2)
+        var_pred = np.append(var_pred,(_fim_cf_frac * sim_inter_p[n_vial]['cF'])**2)
     cov_pred = np.diag(var_pred)
     
     # The Jacobian is the sensitivity of all predictions with respect to all parameters.
@@ -2887,6 +3070,8 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
             raise RuntimeError(f"Perturbation solve {i+1} failed while building the FIM.")
         jac=[]
         for n_vial in range(data_stru['data_config']['n']):
+            if _band is not None and (n_vial + 1) not in _band:
+                continue
             jac = np.append(jac,sim_inter_pk2[n_vial]['mV']-sim_inter_pk1[n_vial]['mV'])
             jac = np.append(jac,sim_inter_pk2[n_vial]['cV']-sim_inter_pk1[n_vial]['cV'])
             jac = np.append(jac,sim_inter_pk2[n_vial]['cF']-sim_inter_pk1[n_vial]['cF'])
@@ -2930,6 +3115,152 @@ def calc_FIM(data_stru, mode, theta=None, step=1e-8, formula='backward', B_form=
 
     print(doe_stru)
     return doe_stru
+
+
+def _vial_terminal_cf(data_stru, n_vial):
+    """Last finite cF_exp sample for a 1-indexed vial (its terminal retentate
+    concentration, used to assign the vial to a concentration band)."""
+    a = np.asarray(data_stru['data_raw'][n_vial - 1]['cF_exp'], dtype=float)
+    a = a[np.isfinite(a)]
+    return float(a[-1]) if a.size else float('nan')
+
+
+def partition_vials_by_terminal_cf(data_stru, n_bands=2):
+    """Partition the FITTED vials (n_vial >= n_v0) into ``n_bands`` contiguous
+    concentration bands by terminal cF, low->high, each band a sorted list of
+    1-indexed vial numbers.  A median split (n_bands=2) yields balanced low/high
+    bands; vials with no finite cF are dropped."""
+    n = data_stru['data_config']['n']
+    n_v0 = data_stru['data_config'].get('n_v0', 1)
+    fitted = [i for i in range(1, n + 1) if i >= n_v0]
+    pairs = sorted((_vial_terminal_cf(data_stru, i), i)
+                   for i in fitted if np.isfinite(_vial_terminal_cf(data_stru, i)))
+    if not pairs:
+        return []
+    order = [i for _, i in pairs]
+    groups = np.array_split(np.asarray(order), max(1, int(n_bands)))
+    return [sorted(int(x) for x in g) for g in groups if len(g) > 0]
+
+
+def solve_model_per_concentration_band(
+    data_stru,
+    mode,
+    *,
+    bands=None,
+    n_bands=2,
+    B_form='single',
+    workflow_family='DATA3',
+    nfe=80,
+    seed_theta=None,
+    compute_fim=True,
+    min_vials=6,
+    max_bands=2,
+    solver_max_cpu_time=200,
+    LOUD=False,
+):
+    """Fit one theta per concentration band by MASKING the WSSE objective to each
+    band's vials (Architecture.md §18.4).
+
+    Bands partition the fitted vials by terminal cF (median/quantile split via
+    ``partition_vials_by_terminal_cf``) unless an explicit ``bands`` list of
+    1-indexed vial-number lists is supplied.  Each band is fit with
+    ``solve_model(..., band_vials=band)`` warm-started from a full-sheet seed
+    fit, and (when ``compute_fim``) its per-band FIM is checked for
+    non-singularity — the statistical guard from §18.4.
+
+    Restricted to >= ``min_vials`` fitted vials and <= ``max_bands`` bands; a
+    sheet that violates either still runs but the returned dict carries a
+    ``warnings`` list so callers can refuse to trust the per-band UQ.
+
+    Returns
+    -------
+    dict with keys: run_mode, n_fitted, bands, warnings, full (seed theta +
+    objectives), per_band (list of {band_vials, cf_range, theta, obj_m, obj_cv,
+    obj_cr, fim}).
+    """
+    n = data_stru['data_config']['n']
+    n_v0 = data_stru['data_config'].get('n_v0', 1)
+    fitted = [i for i in range(1, n + 1) if i >= n_v0]
+
+    if bands is None:
+        bands = partition_vials_by_terminal_cf(data_stru, n_bands=n_bands)
+    bands = [sorted(int(v) for v in b) for b in bands if len(b) > 0]
+
+    warnings = []
+    if len(fitted) < min_vials:
+        warnings.append(
+            f"only {len(fitted)} fitted vials (< min_vials={min_vials}); per-band "
+            f"theta is weakly determined — treat per-band UQ with caution")
+    if len(bands) > max_bands:
+        warnings.append(f"{len(bands)} bands > max_bands={max_bands}; capping to {max_bands}")
+        bands = bands[:max_bands]
+    for b in bands:
+        if len(b) < 3:
+            warnings.append(f"band {b} has < 3 vials; theta under-determined for that band")
+
+    def _summ(fit):
+        p = dict(fit.get('parameters', {}))
+        return {
+            'theta': p,
+            'obj_m': fit.get('obj_m'), 'obj_cv': fit.get('obj_cv'), 'obj_cr': fit.get('obj_cr'),
+        }
+
+    # Full-sheet seed fit (also the comparison baseline).
+    if seed_theta is None:
+        full_fit, _, _ = solve_model(
+            data_stru, mode, sim_opt=False, B_form=B_form,
+            workflow_family=workflow_family, nfe=nfe,
+            solver_max_cpu_time=solver_max_cpu_time, LOUD=LOUD)
+        seed_theta = dict(full_fit['parameters'])
+        full = _summ(full_fit)
+    else:
+        full = {'theta': dict(seed_theta), 'obj_m': None, 'obj_cv': None, 'obj_cr': None}
+
+    per_band = []
+    for bi, band in enumerate(bands):
+        cfs = [_vial_terminal_cf(data_stru, i) for i in band]
+        cfs = [c for c in cfs if np.isfinite(c)]
+        entry = {
+            'band_index': bi,
+            'band_vials': band,
+            'cf_range': [min(cfs), max(cfs)] if cfs else [None, None],
+        }
+        fit, _, _ = solve_model(
+            data_stru, mode, theta=seed_theta, sim_opt=False, B_form=B_form,
+            workflow_family=workflow_family, nfe=nfe, band_vials=band,
+            solver_max_cpu_time=solver_max_cpu_time, LOUD=LOUD)
+        entry.update(_summ(fit))
+        if compute_fim:
+            try:
+                doe = calc_FIM(
+                    data_stru, mode, theta=entry['theta'], B_form=B_form,
+                    workflow_family=workflow_family, nfe=nfe, band_vials=band)
+                if doe is None:
+                    entry['fim'] = {'error': 'calc_FIM returned None'}
+                else:
+                    min_eig = float(doe.get('min_eig', float('nan')))
+                    cond = float(doe.get('cond', float('nan')))
+                    entry['fim'] = {
+                        'min_eig': min_eig,
+                        'cond': cond,
+                        'det': float(doe.get('det', float('nan'))),
+                        'singular': (not np.isfinite(min_eig)) or min_eig <= 0
+                                    or (not np.isfinite(cond)) or cond > 1e12,
+                    }
+            except Exception as exc:
+                entry['fim'] = {'error': repr(exc)}
+        per_band.append(entry)
+
+    return {
+        'run_mode': mode,
+        'B_form': B_form,
+        'n_fitted': len(fitted),
+        'bands': bands,
+        'warnings': warnings,
+        'full': full,
+        'per_band': per_band,
+    }
+
 
 def correlation_from_covariance(covariance):
     ''' 
@@ -3022,6 +3353,9 @@ def solve_model_B_fix(
         mass_scale = float(data_stru["data_config"].get("mass_scale_g", 0.01))
         if not np.isfinite(mass_scale) or mass_scale <= 0:
             mass_scale = 0.01
+        # DATA3-only paper-justified retentate/permeate concentration sigmas
+        # (legacy 0.003 / 0.03 for DATA1/DATA2 and unset knobs).
+        _cf_frac, _cp_frac = _nf270_conc_scales(workflow_family)
         obj_m = 0
         obj_cp = 0
         obj_cf0 = 0
@@ -3078,8 +3412,8 @@ def solve_model_B_fix(
             if np.asarray(data_stru['data_raw'][n_vial-1]['cV_avg']).ndim == 0:
                 if n_vial > data_stru['data_config']['n_extra']:
                     res_cp = m.cV[n_vial,m.tau.last()]-data_stru['data_raw'][n_vial-1]['cV_avg']
-                    res_cp_assemble.append(res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))
-                    obj_cp += (res_cp/(0.03*data_stru['data_raw'][n_vial-1]['cV_avg']))**2 # 3% error
+                    res_cp_assemble.append(res_cp/(_cp_frac*data_stru['data_raw'][n_vial-1]['cV_avg']))
+                    obj_cp += (res_cp/(_cp_frac*data_stru['data_raw'][n_vial-1]['cV_avg']))**2 # permeate cV weight (DATA3: NF270_CP_RESIDUAL_SCALE_FRACTION; else 3%)
                     ob_cp += (res_cp/(data_stru['data_raw'][n_vial-1]['cV_avg']))**2
                     Count_cp = collect_vial
             else:
@@ -3094,8 +3428,8 @@ def solve_model_B_fix(
                         if not np.isnan(cp_meas[i]):   
                             res_cp = cp_pred[i]-cp_meas[i]
                             count_cp += 1
-                            res_cp_assemble.append(res_cp/(0.03*cp_meas[i]))
-                            obj_cpi += (res_cp/(0.03*cp_meas[i]))**2 # 3% error
+                            res_cp_assemble.append(res_cp/(_cp_frac*cp_meas[i]))
+                            obj_cpi += (res_cp/(_cp_frac*cp_meas[i]))**2 # permeate cV weight (DATA3: NF270_CP_RESIDUAL_SCALE_FRACTION; else 3%)
                             ob_cpi += (res_cp/(cp_meas[i]))**2
                     Count_cp = collect_vial
                     obj_cp += obj_cpi#/count_cp/collect_vial
@@ -3122,7 +3456,7 @@ def solve_model_B_fix(
                     if not np.isnan(cf_meas[i]):
                         res_cf = cf_pred[i]-cf_meas[i]
                         count_cf += 1
-                        relative_scale = 0.003 * cf_meas[i]
+                        relative_scale = _cf_frac * cf_meas[i]  # retentate cF weight (DATA3: NF270_CF_RESIDUAL_SCALE_FRACTION=2%; else 0.3%)
                         if cf_floor_mM is not None and cf_floor_mM > 0 and relative_scale < cf_floor_mM:
                             cf_scale = float(cf_floor_mM)
                         else:
@@ -3738,9 +4072,11 @@ def _theta_components(model):
     return theta_components
 
 
-def _label_parmest_model(model, data_stru, mode="DATA"):
+def _label_parmest_model(model, data_stru, mode="DATA", workflow_family="DATA1"):
     """Attach the labels ParmEst needs."""
     data_stru = _normalize_conductivity_measurements(data_stru)
+    # Keep parmest's measurement_error consistent with obj_rule + calc_FIM.
+    _pe_cf_frac, _pe_cp_frac = _nf270_conc_scales(workflow_family)
     model.experiment_outputs = Suffix(direction=Suffix.LOCAL)
     model.measurement_error = Suffix(direction=Suffix.LOCAL)
     model.unknown_parameters = Suffix(direction=Suffix.LOCAL)
@@ -3763,8 +4099,8 @@ def _label_parmest_model(model, data_stru, mode="DATA"):
         cV_obs = _last_valid_value(row.get("cV_avg"))
         mass_obs = _last_valid_value(row.get("mass"))
 
-        output_items.append((model.cF[i, final_t], cF_obs, _abs_scale(cF_obs, 0.003, 0.003)))
-        output_items.append((model.cV[i, final_t], cV_obs, _abs_scale(cV_obs, 0.03, 0.03)))
+        output_items.append((model.cF[i, final_t], cF_obs, _abs_scale(cF_obs, _pe_cf_frac, 0.003)))
+        output_items.append((model.cV[i, final_t], cV_obs, _abs_scale(cV_obs, _pe_cp_frac, 0.03)))
 
         if hasattr(model, "mF"):
             output_items.append((model.mF[i, final_t], mass_obs, _abs_scale(mass_obs, 0.01, 0.01)))
@@ -3773,7 +4109,7 @@ def _label_parmest_model(model, data_stru, mode="DATA"):
     if final_tube_meas is not None and np.isfinite(final_tube_meas):
         model.cF_terminal_obs = Expression(expr=model.cF[model.n_vial.last(), final_t])
         output_items.append(
-            (model.cF_terminal_obs, final_tube_meas, _abs_scale(final_tube_meas, 0.003, 0.003))
+            (model.cF_terminal_obs, final_tube_meas, _abs_scale(final_tube_meas, _pe_cf_frac, 0.003))
         )
 
     for expr, obs, err in output_items:
@@ -3808,7 +4144,7 @@ class DiafiltrationParmestExperiment(ParmestExperiment):
         TransformationFactory("dae.finite_difference").apply_to(
             model, nfe=self.nfe, scheme="BACKWARD"
         )
-        return _label_parmest_model(model, self.data_stru, mode=self.mode)
+        return _label_parmest_model(model, self.data_stru, mode=self.mode, workflow_family=self.workflow_family)
 
 
 def build_parmest_experiments(data_structures, mode="DATA", theta=None, B_form="single", nfe=300, workflow_family="DATA1"):
@@ -7598,6 +7934,7 @@ def _nf270_contour_objectives_at_theta(
     B_form="single",
     workflow_family="DATA3",
     nfe=80,
+    band_vials=None,
 ):
     """Forward-simulate one NF270 sheet at a fixed theta; return per-channel objectives.
 
@@ -7606,6 +7943,8 @@ def _nf270_contour_objectives_at_theta(
     tuple of three floats
         (obj_mass, obj_permeate_conc, obj_retentate_conc) at the supplied theta.
         Any failed solve returns (nan, nan, nan).
+    band_vials, when given, restricts the per-channel objectives to that
+    concentration band's vials (band-masked contour).
     """
     try:
         fit_stru, _sim_stru, _sim_inter = solve_model(
@@ -7617,6 +7956,7 @@ def _nf270_contour_objectives_at_theta(
             workflow_family=workflow_family,
             nfe=nfe,
             LOUD=False,
+            band_vials=band_vials,
         )
     except Exception as exc:
         print(f"  [contour] forward sim raised: {exc!r}")
@@ -7646,6 +7986,7 @@ def _nf270_contour_grid_dataframe(
     workflow_family="DATA3",
     nfe=80,
     progress_every=10,
+    band_vials=None,
 ):
     """Build one 2D contour DataFrame at fixed theta with two parameters swept.
 
@@ -7657,8 +7998,11 @@ def _nf270_contour_grid_dataframe(
     if x_var == y_var:
         raise ValueError("x_var and y_var must differ.")
     for var in (x_var, y_var):
-        if var not in ("Lp", "B", "sigma"):
-            raise ValueError(f"Unsupported contour axis {var!r}; expected Lp/B/sigma.")
+        if var not in ("Lp", "B", "sigma", "beta_0", "beta_1", "beta_2"):
+            raise ValueError(
+                f"Unsupported contour axis {var!r}; expected Lp/B/sigma or "
+                "beta_0/beta_1/beta_2 (the latter require a numeric-B_form centering fit)."
+            )
 
     Lp_fit = float(theta_fit["Lp"])
     sigma_fit = float(theta_fit.get("sigma", 0.5))
@@ -7676,6 +8020,17 @@ def _nf270_contour_grid_dataframe(
             return np.linspace(0.0, 1.0, grid_density)
         if var == "B":
             return np.linspace(0.1 * B_abs, 3.0 * B_abs, grid_density)
+        # Concentration-dependent solute permeability coefficients (B_form 1/2):
+        # B = Jw*[beta_0 + beta_1*c^(B_form-1) + beta_2*c^B_form].  Sweeping a beta
+        # instead of the lumped B exposes how the concentration-dependence (NF270)
+        # couples to Lp / sigma.  Requires a centering fit done with numeric B_form.
+        if var == "beta_0":
+            b0 = float(theta_fit.get("beta_0", B_abs if np.isfinite(B_abs) else 1.0))
+            return np.linspace(0.1 * b0, 3.0 * b0, grid_density)
+        if var in ("beta_1", "beta_2"):
+            bk = float(theta_fit.get(var, 0.0))
+            span = max(abs(bk), 1.0)              # beta_1/beta_2 can be negative
+            return np.linspace(bk - 2.0 * span, bk + 2.0 * span, grid_density)
         raise ValueError(var)
 
     x_vals = _axis_values(x_var)
@@ -7697,6 +8052,7 @@ def _nf270_contour_grid_dataframe(
                 B_form=B_form,
                 workflow_family=workflow_family,
                 nfe=nfe,
+                band_vials=band_vials,
             )
 
             def _log10_or_nan(val):
@@ -7737,6 +8093,7 @@ def run_nf270_contour_for_sheet(
     nfe=80,
     mode="Lag",
     B_form="single",
+    band_vials=None,
 ):
     """Generate DATA1-style objective-contour panels for one NF270 single-salt sheet.
 
@@ -7778,11 +8135,28 @@ def run_nf270_contour_for_sheet(
     #   * (B,  Lp) — σ pinned   → permeability ↔ mass-transfer coupling
     #   * (σ,  Lp) — B pinned   → permeability ↔ rejection coupling
     #   * (σ,   B) — Lp pinned  → rejection  ↔ mass-transfer coupling   (new)
-    sweep_pairs = (
-        ("B",     "Lp"),
-        ("sigma", "Lp"),
-        ("sigma", "B"),
-    )
+    #
+    # When B_form is a numeric concentration-dependent form (B_form >= 1), the
+    # centering fit yields beta coefficients (beta_0, beta_1, ...) in place of a
+    # lumped B, so we sweep the beta coefficients instead.  Gated on
+    # ``isinstance(B_form, int) and B_form >= 1`` (bool excluded) so that
+    # 'single'/'pervial'/'convection' and fractional exponents keep the
+    # lumped-B slices.  Y-priority rule L_p > B(beta) > sigma:
+    #   * (beta_0, Lp)     — L_p on Y  (beta_0 plays the role of B; L_p outranks it)
+    #   * (sigma,  Lp)     — L_p on Y
+    #   * (sigma,  beta_1) — beta_1 on Y  (beta outranks sigma)
+    if isinstance(B_form, int) and not isinstance(B_form, bool) and B_form >= 1:
+        sweep_pairs = (
+            ("beta_0", "Lp"),
+            ("sigma",  "Lp"),
+            ("sigma",  "beta_1"),
+        )
+    else:
+        sweep_pairs = (
+            ("B",     "Lp"),
+            ("sigma", "Lp"),
+            ("sigma", "B"),
+        )
 
     # Checkpoint: if all expected CSVs already exist and are non-empty, skip.
     # Per-slice resume happens inside the loop below.
@@ -7832,6 +8206,7 @@ def run_nf270_contour_for_sheet(
             workflow_family="DATA3",
             nfe=nfe,
             LOUD=True,
+            band_vials=band_vials,
         )
         if not isinstance(fit_stru, dict):
             raise RuntimeError(
@@ -7885,6 +8260,7 @@ def run_nf270_contour_for_sheet(
                 B_form=B_form,
                 workflow_family="DATA3",
                 nfe=nfe,
+                band_vials=band_vials,
             )
             df.to_csv(csv_path, index=False)
         csv_paths.append(csv_path)
@@ -9855,8 +10231,14 @@ def build_seeded_multistart_starts(
     #   First K entries:    each seed exactly (deterministic restart)
     #   Next n_starts entries: LHS samples clustered around seeds (round-robin)
     keys_for_box = ("Lp", "B", "sigma")
-    # Hard bounds to clip into (matches model_construct_inter bounds)
-    bounds = {"Lp": (0.5, 50.0), "B": (1e-6, 50.0), "sigma": (1e-3, 0.999)}  # B upper bumped 30→50 to match model_construct_inter
+    # Hard bounds to clip into (matches model_construct_inter bounds).
+    # B upper is per-salt for DATA3 NF270 single-salt fits (Architecture.md
+    # §17 + NF270_B_BOUNDS_PER_SALT); DATA1/DATA2 keep the legacy (1e-6, 50).
+    if str(workflow_family).upper() == "DATA3" and str(B_form) == "single":
+        _b_clip = NF270_B_BOUNDS_PER_SALT.get(str(salt_name) if salt_name else "", NF270_B_BOUNDS_DEFAULT)
+    else:
+        _b_clip = (1e-6, 50.0)
+    bounds = {"Lp": (0.5, 50.0), "B": _b_clip, "sigma": (1e-3, 0.999)}
 
     variants = []
     for sd in seeds:
@@ -13638,3 +14020,653 @@ def _register_nf270_table_entry():
 _register_nf270_campaign()
 _register_nf270_paper_index()
 _register_nf270_table_entry()
+
+
+# =============================================================================
+# DATA1 MATLAB → Python ports
+# -----------------------------------------------------------------------------
+# Literal Python equivalents of the four MATLAB contour / sensitivity scripts
+# in legacy/data1_matlab/functions/.  Names mirror the .m filenames with a
+# `_py` suffix.  These wrap the existing DATA3 NF270 forward-sim kernel
+# (_nf270_contour_objectives_at_theta) so they produce the SAME log10-SSR
+# values per channel that the MATLAB pipeline produces — but using the
+# refactored Pyomo + Sundials forward simulator instead of MATLAB's sim_model.
+#
+# Why ports (rather than reusing _nf270_contour_grid_dataframe directly):
+# one-to-one MATLAB↔Python mapping for cross-validation and for anyone
+# reading the .m source alongside the .py source.  Output CSV / PNG filenames
+# match the MATLAB conventions so legacy diff tools work unchanged.
+#
+# All four ports default to workflow_family="DATA3"; pass "DATA1" / "DATA2"
+# to call them from those campaigns.
+# =============================================================================
+
+from collections import namedtuple
+
+_IndObjectivesPy   = namedtuple("_IndObjectivesPy",   ["m", "cp", "cr"])
+_IndObjectives5Py  = namedtuple("_IndObjectives5Py",  ["m", "cp", "cr", "cp_cond", "cr_cond"])
+
+
+def _forward_shedlovsky_mM_to_uS_per_cm(c_mM, salt_name, temp_C=25.0):
+    """Forward-Shedlovsky: convert salt concentration (mM) → conductivity (µS/cm).
+
+    Wraps conductivity_paper.variant_shedlovsky, handling the unit conversions:
+      - input: c in mM and T in °C
+      - shedlovsky wants: c in M, T in K
+      - output: mS/cm → multiply by 1000 → µS/cm
+
+    Parameters
+    ----------
+    c_mM : float or array of floats
+        Salt concentration(s) in mM.
+    salt_name : str
+        Key into CONDUCTIVITY_SALT_PARAMS_25C (e.g. "NaCl", "CaCl2", "LaCl3").
+    temp_C : float
+        Temperature in °C.  Default 25 — matches the temperature-compensation
+        convention used by the data-loader (everything in data_raw is
+        EC25-compensated).
+
+    Returns
+    -------
+    np.ndarray
+        Predicted specific conductivity in µS/cm.
+    """
+    import numpy as np
+    import conductivity_paper as _cp
+    sp = CONDUCTIVITY_SALT_PARAMS_25C.get(salt_name)
+    if sp is None:
+        return np.full_like(np.asarray(c_mM, dtype=float), np.nan)
+    shed_keys = ("epsilon", "eta", "lambda_0", "a",
+                 "z_1", "z_2", "lambda_0_cation", "lambda_0_anion")
+    kw = {k: sp[k] for k in shed_keys}
+    c_arr = np.atleast_1d(np.asarray(c_mM, dtype=float))
+    c_M = c_arr / 1000.0
+    T_K = float(temp_C) + 273.15
+    sigma_mS_cm = np.asarray(_cp.variant_shedlovsky(c_M, T_K, **kw), dtype=float)
+    return sigma_mS_cm * 1000.0   # → µS/cm
+
+
+def calc_ind_objectives_py(
+    theta,
+    data_stru,
+    *,
+    mode="Lag",
+    B_form="single",
+    workflow_family="DATA3",
+    nfe=80,
+):
+    """Python port of legacy/data1_matlab/functions/calc_ind_objectives.m.
+
+    Forward-simulates one (data_stru, theta) and returns three per-channel
+    weighted SSR scalars: (m, cp, cr) — mass, permeate-concentration,
+    retentate-concentration.
+
+    Implementation: thin wrapper over _nf270_contour_objectives_at_theta,
+    which itself calls solve_model(sim_opt=True) → forward DAE solve, then
+    reads the per-channel objective Expressions (obj_m / obj_cv / obj_cr).
+    The weight convention matches the MATLAB weight_config "default" path
+    (best_weight.statistical = .equal_statistical = .L1 = .L2 = .Linf = false).
+    No scaling applied (scale_opt = 0 in the MATLAB; the scale_opt = 1
+    Utopia/Nadir rescaling branch is intentionally omitted — it is not used
+    by the DATA1 contour workflow).
+
+    Parameters
+    ----------
+    theta : dict
+        Must contain Lp, B, sigma, S0, S (load from a warm-start fit, or
+        run a centering fit once).  Missing S0 raises KeyError inside
+        model_construct_inter.
+    data_stru : dict
+        Loaded sheet (from loadxlsx / loadmat).
+
+    Returns
+    -------
+    namedtuple (m, cp, cr) : (float, float, float)
+        Per-channel weighted SSR.  Failed forward sims return (nan, nan, nan).
+
+    Notes
+    -----
+    MATLAB source: legacy/data1_matlab/functions/calc_ind_objectives.m
+                   Lines 56-85 (weighted-residual accumulation),
+                   Lines 87-91 (SSR sum into obj_ind.unscaled).
+    """
+    try:
+        obj_m, obj_cv, obj_cr = _nf270_contour_objectives_at_theta(
+            data_stru, theta,
+            mode=mode, B_form=B_form,
+            workflow_family=workflow_family, nfe=nfe,
+        )
+        if obj_m is None or obj_cv is None or obj_cr is None:
+            return _IndObjectivesPy(float("nan"), float("nan"), float("nan"))
+        return _IndObjectivesPy(float(obj_m), float(obj_cv), float(obj_cr))
+    except Exception:
+        return _IndObjectivesPy(float("nan"), float("nan"), float("nan"))
+
+
+def calc_ind_objectives_5channel_py(
+    theta,
+    data_stru,
+    *,
+    mode="Lag",
+    B_form="single",
+    workflow_family="DATA3",
+    nfe=80,
+    rel_scale_cond=0.03,
+):
+    """5-channel extension of calc_ind_objectives_py — adds conductivity-domain SSRs.
+
+    Returns (m, cp, cr, cp_cond, cr_cond):
+      - m       : mass SSR              (unchanged from 3-channel)
+      - cp      : permeate-conc SSR     (unchanged — vial-level ICP-OES)
+      - cr      : retentate-conc SSR    (unchanged — cF time-series in mM)
+      - cp_cond : permeate-conductivity SSR  (NEW — µS/cm domain, time-series)
+      - cr_cond : retentate-conductivity SSR (NEW — µS/cm domain, time-series)
+
+    For the two new channels:
+      - Forward-Shedlovsky the predicted concentrations cV(t) and cF(t) to
+        µS/cm via _forward_shedlovsky_mM_to_uS_per_cm.
+      - For permeate: compare against ``cV_perm_cond`` (raw 5-Hz probe in µS/cm,
+        EC25-compensated) at probe sample times — note we use m.cH-derived
+        predictions, matching the existing m.obj_cv_perm convention (the
+        in-line probe measures INSTANTANEOUS outlet, not vial-integrated avg).
+      - For retentate: compare against ``cF_exp_conductivity`` (raw inline-probe
+        µS/cm) at probe sample times — bulk cF is what the model fits.
+      - Weighting: relative scaling ``rel_scale_cond * σ_meas`` (default 3 %),
+        matching the existing obj_cv form.
+
+    DATA3-only — returns (m, cp, cr, nan, nan) for non-DATA3 workflows or
+    sheets that don't carry probe time-series data.
+
+    Parameters
+    ----------
+    theta : dict
+        Must contain Lp, B, sigma, S0, S.
+    rel_scale_cond : float
+        Relative scaling for the two new channels.  Default 3 %.
+
+    Returns
+    -------
+    namedtuple (m, cp, cr, cp_cond, cr_cond)
+        Failed forward sims return (nan,)*5.
+
+    Notes
+    -----
+    Posing of the new channels is symmetric to the existing concentration
+    channels in form (weighted SSR with relative scaling) but in the µS/cm
+    domain, giving genuinely new information beyond the mM-domain residuals
+    already in cp and cr.  Mass and the two concentration channels are
+    unchanged from calc_ind_objectives_py.
+    """
+    import numpy as np
+
+    nan5 = _IndObjectives5Py(float("nan"), float("nan"), float("nan"),
+                              float("nan"), float("nan"))
+    if str(workflow_family).upper() != "DATA3":
+        # DATA1/DATA2 — defer to the 3-channel kernel, leave the
+        # conductivity channels as NaN (probe data isn't present in .mat files).
+        ind3 = calc_ind_objectives_py(theta, data_stru,
+                                      mode=mode, B_form=B_form,
+                                      workflow_family=workflow_family, nfe=nfe)
+        return _IndObjectives5Py(ind3.m, ind3.cp, ind3.cr,
+                                  float("nan"), float("nan"))
+
+    try:
+        fit_stru, sim_stru, _ = solve_model(
+            data_stru, mode, theta=theta, sim_opt=True,
+            B_form=B_form, workflow_family=workflow_family, nfe=nfe, LOUD=False,
+        )
+        if not isinstance(fit_stru, dict):
+            return nan5
+
+        obj_m  = float(fit_stru.get("obj_m",  float("nan")))
+        obj_cp = float(fit_stru.get("obj_cv", float("nan")))
+        obj_cr = float(fit_stru.get("obj_cr", float("nan")))
+
+        # ---- Conductivity channels (forward Shedlovsky on predictions) ----
+        salt = str(data_stru.get("data_config", {}).get("namec", "")).strip()
+        n_vials = int(data_stru.get("data_config", {}).get("n", len(sim_stru)))
+        data_raw = data_stru.get("data_raw", [])
+
+        sum_perm_cond = 0.0
+        cnt_perm_cond = 0
+        sum_ret_cond  = 0.0
+        cnt_ret_cond  = 0
+
+        for i in range(min(n_vials, len(sim_stru), len(data_raw))):
+            vial_sim = sim_stru[i] if isinstance(sim_stru, (list, tuple, dict)) else None
+            vial_raw = data_raw[i]
+            if vial_sim is None:
+                continue
+            t_sim = np.asarray(vial_sim.get("time"), dtype=float)
+            cV_pred = np.asarray(vial_sim.get("cH"), dtype=float)  # outlet, matches probe
+            cF_pred = np.asarray(vial_sim.get("cF"), dtype=float)
+            if t_sim.size == 0:
+                continue
+
+            # ---- Permeate conductivity channel ----
+            cV_perm_meas = np.asarray(vial_raw.get("cV_perm_cond", []), dtype=float)
+            t_probe = np.asarray(vial_raw.get("time", []), dtype=float)
+            if cV_perm_meas.size > 0 and t_probe.size == cV_perm_meas.size:
+                cV_pred_at_probe = np.interp(t_probe, t_sim, cV_pred)
+                sigma_pred_perm = _forward_shedlovsky_mM_to_uS_per_cm(cV_pred_at_probe, salt)
+                for k in range(len(t_probe)):
+                    sm = cV_perm_meas[k]
+                    sp = sigma_pred_perm[k]
+                    if not (np.isfinite(sm) and np.isfinite(sp) and sm > 0):
+                        continue
+                    scale = rel_scale_cond * sm
+                    if scale <= 0:
+                        continue
+                    sum_perm_cond += ((sp - sm) / scale) ** 2
+                    cnt_perm_cond += 1
+
+            # ---- Retentate conductivity channel ----
+            cF_cond_meas = np.asarray(vial_raw.get("cF_exp_conductivity", []),
+                                      dtype=float)
+            if cF_cond_meas.size > 0 and t_probe.size == cF_cond_meas.size:
+                cF_pred_at_probe = np.interp(t_probe, t_sim, cF_pred)
+                sigma_pred_ret = _forward_shedlovsky_mM_to_uS_per_cm(cF_pred_at_probe, salt)
+                for k in range(len(t_probe)):
+                    sm = cF_cond_meas[k]
+                    sp = sigma_pred_ret[k]
+                    if not (np.isfinite(sm) and np.isfinite(sp) and sm > 0):
+                        continue
+                    scale = rel_scale_cond * sm
+                    if scale <= 0:
+                        continue
+                    sum_ret_cond += ((sp - sm) / scale) ** 2
+                    cnt_ret_cond += 1
+
+        obj_cp_cond = sum_perm_cond / cnt_perm_cond if cnt_perm_cond > 0 else float("nan")
+        obj_cr_cond = sum_ret_cond  / cnt_ret_cond  if cnt_ret_cond  > 0 else float("nan")
+
+        return _IndObjectives5Py(obj_m, obj_cp, obj_cr, obj_cp_cond, obj_cr_cond)
+    except Exception:
+        return nan5
+
+
+def calc_contour_2d_py(
+    data_stru,
+    theta,
+    x_var,
+    y_var,
+    *,
+    grid_density=50,
+    save_dir,
+    x_bounds=None,
+    y_bounds=None,
+    mode="Lag",
+    B_form="single",
+    workflow_family="DATA3",
+    nfe=80,
+    write_csv=True,
+    include_conductivity=False,
+):
+    """Python port of legacy/data1_matlab/functions/calc_contour_2d.m.
+
+    2D parameter sweep on a linear meshgrid; for every cell, copy theta,
+    override theta[x_var] and theta[y_var], and call calc_ind_objectives_py.
+    Stores log10 of each per-channel SSR.
+
+    Lp special rule (MATLAB lines 42-50): if x_var == "Lp", x_bounds defaults
+    to [0.1 * theta["Lp"], 2 * theta["Lp"]] (and same for y_var == "Lp").
+    For other parameters: sigma defaults to (0, 1); B defaults to the
+    salt-specific NF270_B_BOUNDS_PER_SALT triple in DATA3, else (1e-6, 50).
+
+    Parameters
+    ----------
+    data_stru, theta : dict
+        Loaded sheet + parameter dict (must contain Lp, B, sigma, S0, S).
+    x_var, y_var : {"Lp", "B", "sigma"}
+        The two parameters to sweep.
+    grid_density : int
+        Cells per axis.  Default 50 matches MATLAB.
+    save_dir : Path
+        Output directory; CSV is written as
+        ``contourdata-x_{x_var}-y_{y_var}.csv`` (MATLAB filename convention).
+    x_bounds, y_bounds : (lo, hi), optional
+        Override default bounds.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Long-form with columns [x_var, y_var, Obj_mass, Obj_concentration,
+        Obj_retentate_concentration].  Same 5-column schema as the MATLAB
+        contourdata CSV (line 105-107 in calc_contour_2d.m).
+
+    Notes
+    -----
+    MATLAB source: legacy/data1_matlab/functions/calc_contour_2d.m
+                   Lines 42-50 (Lp special rule), 52-53 (linspace meshgrid),
+                   Lines 65-83 (inner loop), 100-107 (CSV write).
+    """
+    import numpy as np
+    import pandas as pd
+
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    def _default_bounds(var):
+        if var == "Lp":
+            lp = float(theta.get("Lp", 1.0))
+            return (0.1 * lp, 2.0 * lp)
+        if var == "sigma":
+            return (0.0, 1.0)
+        if var == "B":
+            if workflow_family == "DATA3":
+                salt = str(data_stru.get("data_config", {}).get("namec", "")).strip()
+                return NF270_B_BOUNDS_PER_SALT.get(salt, NF270_B_BOUNDS_DEFAULT)
+            return (1e-6, 50.0)
+        raise ValueError(f"unknown var {var!r}")
+
+    x_lb, x_ub = x_bounds or _default_bounds(x_var)
+    y_lb, y_ub = y_bounds or _default_bounds(y_var)
+
+    x_vals = np.linspace(x_lb, x_ub, grid_density)
+    y_vals = np.linspace(y_lb, y_ub, grid_density)
+    XX, YY = np.meshgrid(x_vals, y_vals)
+    xx = XX.ravel()
+    yy = YY.ravel()
+    total = len(xx)
+
+    def _log10_or_nan(v):
+        try:
+            if v is None or not np.isfinite(v) or v <= 0:
+                return float("nan")
+            return float(np.log10(v))
+        except (TypeError, ValueError):
+            return float("nan")
+
+    rows = []
+    for k in range(total):
+        b = dict(theta)
+        b[x_var] = float(xx[k])
+        b[y_var] = float(yy[k])
+        if include_conductivity:
+            ind = calc_ind_objectives_5channel_py(
+                b, data_stru,
+                mode=mode, B_form=B_form,
+                workflow_family=workflow_family, nfe=nfe,
+            )
+            row = {
+                x_var: float(xx[k]),
+                y_var: float(yy[k]),
+                "Obj_mass":                    _log10_or_nan(ind.m),
+                "Obj_concentration":           _log10_or_nan(ind.cp),
+                "Obj_retentate_concentration": _log10_or_nan(ind.cr),
+                "Obj_permeate_conductivity":   _log10_or_nan(ind.cp_cond),
+                "Obj_retentate_conductivity":  _log10_or_nan(ind.cr_cond),
+            }
+        else:
+            ind = calc_ind_objectives_py(
+                b, data_stru,
+                mode=mode, B_form=B_form,
+                workflow_family=workflow_family, nfe=nfe,
+            )
+            row = {
+                x_var: float(xx[k]),
+                y_var: float(yy[k]),
+                "Obj_mass":                    _log10_or_nan(ind.m),
+                "Obj_concentration":           _log10_or_nan(ind.cp),
+                "Obj_retentate_concentration": _log10_or_nan(ind.cr),
+            }
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    if write_csv:
+        csv_path = save_dir / f"contourdata-x_{x_var}-y_{y_var}.csv"
+        df.to_csv(csv_path, index=False)
+    return df
+
+
+def plot_contour_py(
+    df,
+    x_var,
+    y_var,
+    *,
+    save_dir,
+    title="",
+    n_levels=10,
+):
+    """Python port of legacy/data1_matlab/functions/plot_contour.m.
+
+    Render a 14×7-inch figure with three side-by-side log10(SSR) panels —
+    Mass / Permeate concentration / Retentate concentration — each showing
+    labeled iso-objective contour lines and a red triangle at the argmin.
+
+    Matches the MATLAB:
+      - 1×3 subplot layout, default contour levels, no fill, no colorbar.
+      - ``ShowText='on'``         → ``ax.clabel(inline=True)``
+      - ``LineWidth=2``           → ``linewidths=2``
+      - Argmin marker: '^' size 8, edge red, face [1, 0.6, 0.6]
+      - Axis labels via loadlabel(): ``L_p [L/m²/h/bar]``, ``B [µm/s]``,
+        ``σ [dimensionless]``
+      - Saved as: ``objcontour-x_{x_var}-y_{y_var}.png``
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Output of calc_contour_2d_py (long-form 5-col).
+    x_var, y_var : str
+        Axis names — must match column names in df.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the saved PNG.
+
+    Notes
+    -----
+    MATLAB source: legacy/data1_matlab/functions/plot_contour.m
+                   Lines 49-87 (three subplots, contour + clabel + argmin),
+                   Line 95 (saveas/png export).
+    """
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    labels = {
+        "Lp":    r"$L_p$  [L / m² / h / bar]",
+        "B":     r"$B$  [µm / s]",
+        "sigma": r"$\sigma$  [dimensionless]",
+    }
+    # Build the panel list dynamically — 3 panels for legacy DATA1/DATA2-style
+    # contours, 5 panels when conductivity channels are present in df.
+    base_specs = [
+        ("Obj_mass",                    r"$\log_{10}$  Mass Residual Squared [g²]"),
+        ("Obj_concentration",           r"$\log_{10}$  Permeate Concentration Residual Squared [mM²]"),
+        ("Obj_retentate_concentration", r"$\log_{10}$  Retentate Concentration Residual Squared [mM²]"),
+    ]
+    cond_specs = [
+        ("Obj_permeate_conductivity",   r"$\log_{10}$  Permeate Conductivity Residual Squared [(µS/cm)²]"),
+        ("Obj_retentate_conductivity",  r"$\log_{10}$  Retentate Conductivity Residual Squared [(µS/cm)²]"),
+    ]
+    panel_specs = list(base_specs)
+    if all(spec[0] in df.columns for spec in cond_specs):
+        panel_specs.extend(cond_specs)
+
+    n_panels = len(panel_specs)
+    fig, axes = plt.subplots(1, n_panels, figsize=(14 * n_panels / 3, 7))
+    if n_panels == 1:
+        axes = [axes]
+
+    for ax, (col, panel_title) in zip(axes, panel_specs):
+        piv = df.pivot_table(index=y_var, columns=x_var, values=col, aggfunc="mean")
+        X = piv.columns.to_numpy(dtype=float)
+        Y = piv.index.to_numpy(dtype=float)
+        XX, YY = np.meshgrid(X, Y)
+        Z = piv.to_numpy(dtype=float)
+
+        if np.isfinite(Z).any():
+            cp = ax.contour(XX, YY, Z, n_levels, linewidths=2)
+            ax.clabel(cp, inline=True, fontsize=10, fmt="%.1f")
+            flat = np.nanargmin(Z)
+            iy, ix = np.unravel_index(flat, Z.shape)
+            x_min = float(XX[iy, ix])
+            y_min = float(YY[iy, ix])
+            z_min = float(Z[iy, ix])
+            ax.plot(x_min, y_min, "^", markersize=8,
+                    markeredgecolor="red", markerfacecolor=[1, 0.6, 0.6],
+                    zorder=10)
+            # Optimum text box beneath each panel — same convention as the
+            # legacy MATLAB plot_contour.m legend, but rendered as a bordered
+            # text box for visibility.  Format: "(theta_1, theta_2, log10_min)".
+            opt_str = (f"({x_var} = {x_min:.3g},  "
+                       f"{y_var} = {y_min:.3g},  "
+                       f"log₁₀(SSR) = {z_min:.2f})")
+            ax.text(0.5, -0.20, opt_str,
+                    transform=ax.transAxes,
+                    ha="center", va="top", fontsize=9.5,
+                    bbox=dict(boxstyle="round,pad=0.4",
+                              facecolor="white",
+                              edgecolor=[0.6, 0.2, 0.2], linewidth=1.0))
+        ax.set_xlabel(labels.get(x_var, x_var), fontsize=12)
+        ax.set_ylabel(labels.get(y_var, y_var), fontsize=12)
+        ax.set_title(panel_title, fontsize=12)
+        ax.tick_params(labelsize=10)
+
+    if title:
+        fig.suptitle(title, fontsize=14)
+    plt.tight_layout(rect=[0, 0.08, 1, 0.96])
+
+    out_path = save_dir / f"objcontour-x_{x_var}-y_{y_var}.png"
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def sigma_sensitivity_py(
+    data_stru,
+    sigma_values,
+    theta,
+    *,
+    save_dir,
+    mode="Lag",
+    B_form="single",
+    workflow_family="DATA3",
+    nfe=80,
+    LOUD=True,
+):
+    """Python port of legacy/data1_matlab/functions/sigma_sensitivity.m.
+
+    Sweep σ over a caller-supplied 1D array; for each value, copy theta,
+    set theta["sigma"] = σ, run a forward simulation, and store the
+    (time, mV, cF, cV) trajectories.  If LOUD, render a 24×5-inch figure
+    with three subplots — mass(t), retentate concentration cF(t),
+    permeate concentration cV(t) — one colored curve per σ value.
+
+    Matches the MATLAB:
+      - Per-σ simulation copies theta, sets theta[sigma] = σ, runs sim_model.
+      - 1×3 subplot layout, LineWidth=2.
+      - Color cycle 'rbg' for the first 3 σ values (matches MATLAB
+        ``colorstring = 'rbg'``); extended cycle for >3 values.
+      - Save as: ``sigma_sensitivity.png`` in save_dir.
+
+    Parameters
+    ----------
+    sigma_values : sequence of float
+        σ values to sweep.  Typically 3-6 values for diagnostic visibility.
+    theta : dict
+        Base parameters (Lp, B, sigma, S0, S — sigma will be overridden).
+
+    Returns
+    -------
+    tuple (list, Path)
+        - List of {'sigma', 'theta', 'sim_stru'} dicts, one per σ.
+        - Path to the saved PNG (if LOUD else None).
+
+    Notes
+    -----
+    MATLAB source: legacy/data1_matlab/functions/sigma_sensitivity.m
+                   Lines 16-21 (theta override + sim loop),
+                   Lines 24-90 (3-panel time-series plot).
+    """
+    import numpy as np
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    out = []
+    for sg in sigma_values:
+        b = dict(theta)
+        b["sigma"] = float(sg)
+        try:
+            fit_stru, sim_stru, _ = solve_model(
+                data_stru,
+                mode,
+                theta=b,
+                sim_opt=True,
+                B_form=B_form,
+                workflow_family=workflow_family,
+                nfe=nfe,
+                LOUD=False,
+            )
+        except Exception as e:
+            print(f"  sigma_sensitivity_py: σ={sg:.3f} forward sim raised: {e!r}")
+            sim_stru = None
+        out.append({"sigma": float(sg), "theta": dict(b), "sim_stru": sim_stru})
+
+    if not LOUD:
+        return out, None
+
+    salt_label = data_stru.get("data_config", {}).get("namec", "salt")
+    colors = ["red", "blue", "green", "purple", "orange", "brown"]
+    fig, axes = plt.subplots(1, 3, figsize=(24, 5))
+
+    for k, rec in enumerate(out):
+        sim = rec["sim_stru"]
+        if sim is None:
+            continue
+        color = colors[k % len(colors)]
+        label = rf"$\sigma$ = {rec['sigma']:.3f}"
+        traces = sim if isinstance(sim, (list, tuple)) else [sim]
+
+        first_in_group = True
+        for tr in traces:
+            t  = tr.get("time") if isinstance(tr, dict) else getattr(tr, "time", None)
+            mV = tr.get("mV")   if isinstance(tr, dict) else getattr(tr, "mV",   None)
+            cF = tr.get("cF")   if isinstance(tr, dict) else getattr(tr, "cF",   None)
+            cV = tr.get("cV")   if isinstance(tr, dict) else getattr(tr, "cV",   None)
+            if t is None:
+                continue
+            t = np.asarray(t)
+            lab = label if first_in_group else None
+            first_in_group = False
+            if mV is not None:
+                axes[0].plot(t, np.asarray(mV), color=color, linewidth=2, label=lab)
+            if cF is not None:
+                axes[1].plot(t, np.asarray(cF), color=color, linewidth=2, label=lab)
+            if cV is not None:
+                cV_arr = np.asarray(cV)
+                t_for_cv = t[1:] if len(cV_arr) == len(t) - 1 else t
+                if len(t_for_cv) == len(cV_arr):
+                    axes[2].plot(t_for_cv, cV_arr, color=color, linewidth=2, label=lab)
+
+    axes[0].set_xlabel("Time [s]", fontsize=15)
+    axes[0].set_ylabel("Collected Permeate Mass [g]", fontsize=15)
+    axes[0].set_title("Mass Predictions", fontsize=15)
+    axes[0].tick_params(labelsize=12)
+
+    axes[1].set_xlabel("Time [s]", fontsize=15)
+    axes[1].set_ylabel(f"Retentate Concentration of {salt_label} [mmol/L]", fontsize=15)
+    axes[1].set_title("Concentration Predictions", fontsize=15)
+    axes[1].tick_params(labelsize=12)
+    axes[1].legend(fontsize=12, loc="best")
+
+    axes[2].set_xlabel("Time [s]", fontsize=15)
+    axes[2].set_ylabel(f"Permeate Concentration of {salt_label} [mmol/L]", fontsize=15)
+    axes[2].set_title("Concentration Predictions", fontsize=15)
+    axes[2].tick_params(labelsize=12)
+
+    plt.tight_layout()
+    out_path = save_dir / "sigma_sensitivity.png"
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return out, out_path

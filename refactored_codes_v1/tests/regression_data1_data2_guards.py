@@ -152,11 +152,90 @@ for wf, knob, expected, note in ret_cases:
     print(f"{wf:>18s} {str(knob):>32s} {str(use_retentate_anchor):>26s}  {marker:>10s}  [{note}]")
 print(f"\nRetentate ICP anchor guard:  {'PASS' if ret_ok else 'FAIL'}")
 
+# ---------- Per-salt B upper-bound guard (added 2026-06-03) ----------
+# NF270_B_BOUNDS_PER_SALT replaces the single (1e-6, 50) upper with a
+# per-salt triple, gated to DATA3 + B_form=='single'.  DATA1/DATA2 must
+# always see (1e-6, 50) regardless of the dict's contents.  We use the
+# same .mat fixture the sigma-bounds test uses (DATA1) and assert the
+# B Var's (lb, ub) directly; we do not need a DATA3 fixture here because
+# the contract under test is DATA1/DATA2 inertness.
+def b_bounds_for(workflow_family):
+    """Build the model with the given workflow_family + an aggressively
+    distorted NF270_B_BOUNDS_PER_SALT dict, return the B Var's (lb, ub)."""
+    lib.NF270_B_BOUNDS_PER_SALT = {
+        "NaCl":  (1e-6, 3.0),
+        "CaCl2": (1e-6, 1.0),
+        "LaCl3": (1e-6, 0.5),
+    }
+    lib.NF270_SIGMA_INTERIOR_BOUNDS = None
+    lib.NF270_CF_RESIDUAL_FLOOR_MM  = None
+    ds = lib.loadmat("data_library/data_stru-dataset270511.123.mat")['data_stru']
+    m = lib.model_construct_inter(ds, "DATA", theta=None, sim_opt=False,
+                                   B_form="single",
+                                   workflow_family=workflow_family)
+    lb = float(value(m.B.lb))
+    ub = float(value(m.B.ub))
+    return (lb, ub)
+
+print("\n### B per-salt upper bound guard")
+print(f"{'workflow_family':>18s} {'NF270_B_BOUNDS_PER_SALT':>32s} {'B Var bounds':>20s}  {'expected?':>10s}")
+print("-" * 90)
+# DATA1 and DATA2 MUST see (1e-6, 50) regardless of the per-salt dict.
+cases_b = [
+    ("DATA1", (1e-6, 50.0), "legacy"),
+    ("DATA2", (1e-6, 50.0), "legacy"),
+]
+b_ok = True
+for wf, expected, note in cases_b:
+    got = b_bounds_for(wf)
+    match = abs(got[0] - expected[0]) < 1e-12 and abs(got[1] - expected[1]) < 1e-9
+    marker = "yes" if match else "NO!"
+    if not match: b_ok = False
+    got_s = f"({got[0]:.2e},{got[1]:.4f})"
+    print(f"{wf:>18s} {'distorted':>32s} {got_s:>20s}  {marker:>10s}  [{note}]")
+print(f"\nB per-salt upper-bound guard:  {'PASS' if b_ok else 'FAIL'}")
+
+# ---------- B ionic-strength reparam guard (added 2026-06-11) ----------
+# NF270_B_USE_IONIC_STRENGTH scales the concentration argument of the numeric
+# B_form polynomial by k_I, so B becomes a function of ionic strength I = k_I*c
+# instead of bare concentration c.  Gated to DATA3.  DATA1/DATA2 must build a
+# byte-identical b_form constraint regardless of the toggle.  We build at the
+# numeric B_form=1 (which exercises B_form_rule3, where the scaling lives) and
+# compare the constraint expression string with the toggle OFF vs ON.  (The
+# B_form='single' path used by the other guards skips B_form_rule3 entirely,
+# so this guard deliberately uses a numeric form.)
+def b_ionic_constraint_str(workflow_family, toggle):
+    lib.NF270_B_USE_IONIC_STRENGTH  = toggle
+    lib.NF270_SIGMA_INTERIOR_BOUNDS = None
+    lib.NF270_CF_RESIDUAL_FLOOR_MM  = None
+    ds = lib.loadmat("data_library/data_stru-dataset270511.123.mat")['data_stru']
+    m = lib.model_construct_inter(ds, "DATA", theta=None, sim_opt=False,
+                                   B_form=1, workflow_family=workflow_family)
+    keys = list(m.b_form.keys())
+    idx = keys[len(keys) // 2]
+    return str(m.b_form[idx].body)
+
+print("\n### B ionic-strength reparam guard")
+print(f"{'workflow_family':>18s} {'NF270_B_USE_IONIC_STRENGTH':>30s} {'b_form == legacy?':>20s}  {'expected?':>10s}")
+print("-" * 90)
+bion_ok = True
+for wf in ("DATA1", "DATA2"):
+    off = b_ionic_constraint_str(wf, None)
+    on  = b_ionic_constraint_str(wf, True)
+    inert = (off == on)
+    marker = "yes" if inert else "NO!"
+    if not inert:
+        bion_ok = False
+    print(f"{wf:>18s} {'True':>30s} {str(inert):>20s}  {marker:>10s}  [must ignore]")
+print(f"\nB ionic-strength reparam guard:  {'PASS' if bion_ok else 'FAIL'}")
+
 # Reset
 lib.NF270_CF_RESIDUAL_FLOOR_MM     = None
 lib.NF270_SIGMA_INTERIOR_BOUNDS    = None
 lib.NF270_USE_PERMEATE_PROBE       = None
 lib.NF270_USE_RETENTATE_ICP_ANCHOR = None
+lib.NF270_B_USE_IONIC_STRENGTH     = None
+lib.NF270_B_BOUNDS_PER_SALT        = {"NaCl": (1e-6, 30.0), "CaCl2": (1e-6, 15.0), "LaCl3": (1e-6, 10.0)}
 
 print("\n" + "=" * 72)
 print("SUMMARY")
@@ -165,9 +244,11 @@ print(f"  sigma interior-bounds guard:    {'PASS' if sigma_ok else 'FAIL'}")
 print(f"  cF residual-floor guard:        {'PASS' if cf_ok else 'FAIL'}")
 print(f"  permeate-probe guard:           {'PASS' if perm_ok else 'FAIL'}")
 print(f"  Retentate ICP anchor guard:     {'PASS' if ret_ok else 'FAIL'}")
-if sigma_ok and cf_ok and perm_ok and ret_ok:
+print(f"  B per-salt upper-bound guard:   {'PASS' if b_ok else 'FAIL'}")
+print(f"  B ionic-strength reparam guard: {'PASS' if bion_ok else 'FAIL'}")
+if sigma_ok and cf_ok and perm_ok and ret_ok and b_ok and bion_ok:
     print()
-    print("  Conclusion: all four DATA3 knobs are inert for DATA1/DATA2 model")
+    print("  Conclusion: all six DATA3 knobs are inert for DATA1/DATA2 model")
     print("  construction.  DATA1 and DATA2 fits are byte-equivalent to the")
     print("  legacy code path regardless of the constants' values.")
 else:

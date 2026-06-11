@@ -414,6 +414,47 @@ dragging σ to the {0, 1} bound. A floor of 1 mM lets the optimizer release
   so when called with `workflow_family="DATA1"` or `"DATA2"` the legacy
   weight is used regardless of what the constant is set to.
 
+### `NF270_CF_RESIDUAL_SCALE_FRACTION` / `NF270_CP_RESIDUAL_SCALE_FRACTION`  (paper-justified measurement error, 2026-06-11)
+
+Per-channel **relative measurement error** (fraction of concentration) for the
+retentate `cF` and permeate `cV` WLS weights, replacing the hardcoded legacy
+`0.003` (0.3 %) and `0.03` (3 %).
+
+**Why.** The legacy 0.3 % cF weight had **no physical basis** — at cF ≈ 100 mM it
+is a 0.3 mM tolerance, tighter than the conductivity probe itself. Source for the
+honest values: Lilonfe, Estrada, Singh, Ouimet, Phillip, Dowling, *"Soft Sensors
+Enable Real-Time Ion Concentration Measurements"*, ChemRxiv 2026
+(doi:10.26434/chemrxiv.15002541/v1):
+
+- **cF (retentate)** is conductivity/soft-sensor-derived. End-to-end error =
+  soft-sensor MAPE (NaCl 1.0 %, CaCl₂ 2.2 %, LaCl₃ 1.9 %; Table 3) ⊕ regressed
+  cell-constant uncertainty (≈1.38 %, Eq. S5) ≈ **2 %**. **DATA3 default = `0.02`.**
+- **cV (permeate)** is an offline **ICP-OES** scalar — the *reference*. ICP-OES
+  accuracy is ~1–3 %, so the legacy **3 % is already physical**; the paper's
+  "within 5 %" is the soft-sensor↔ICP *agreement*, not ICP's own error.
+  **DATA3 default = `None` (→ 3 %).** (The 5 % soft-sensor figure applies to the
+  conductivity permeate *probe* channel `cH` via `NF270_USE_PERMEATE_PROBE`.)
+
+**One source, three consumers.** All weights flow through the helper
+`_nf270_conc_scales(workflow_family) → (cf_frac, cp_frac)`, used by (a) both
+`obj_rule`s (objective), (b) `calc_FIM` `var_pred` (Fisher-information
+covariance), and (c) `_label_parmest_model` (Pyomo.parmest `measurement_error`).
+Keeping all three on one source prevents an inconsistent reported covariance.
+
+**Guards:** `_nf270_conc_scales` returns the new fraction only when
+`workflow_family == "DATA3"` *and* the constant is non-`None`; otherwise it
+returns the legacy `(0.003, 0.03)`. DATA1/DATA2 are byte-identical (verified by
+`tests/regression_data1_data2_guards.py` + `test_data1/2_regression.py`).
+
+**Empirical finding (cF weight ↔ σ identifiability are coupled).** Relaxing cF
+0.3 %→2 % does **not** rescue σ on low-cF concentrating sheets (still rails to a
+bound — σ is genuinely unidentifiable there because Δπ is tiny), and on the
+high-cF gold-standard sheet it can push σ *toward* the wall — i.e. the interior σ
+under 0.3 % was partly propped up by over-fitting the σ-sensitive retentate
+channel. Conclusion: honest weighting is correct for UQ/covariance, but σ
+identifiability is governed by **experiment design (high-cF / multi-ΔP runs)**,
+not by reweighting. See `_compare_cf_weighting.py`.
+
 ### `NF270_SIGMA_INTERIOR_BOUNDS`  (`refactored_ucb_library.py:279`)
 
 Optional `(lo, hi)` tuple replacing the default σ Var bounds of `(0, 1)`.
@@ -1074,3 +1115,293 @@ Recommended verification: run the DATA1 / DATA2 manifest default trunk and inspe
 | `refactored_codes_v1/collaborator_briefing_2026-05-27/*.pptx` | 3 dated decks (§16.4) |
 | `UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits/` | 23 new files (§16.4) |
 | `UnifiedFramework/DATA3/results/paper_artifacts/nf270/warm_start_fits_with_perm/` | 23 new files (§16.4) |
+
+
+## 17. June 3, 2026 — Per-salt B upper bounds for DATA3 NF270 single-salt fits
+
+This section documents a physics-anchored refinement to the solute-permeability parameter `B` bound used by the DATA3 NF270 single-salt workflow. The change replaces a single dataset-wide `B ∈ (1e-6, 50]` window (set in §12 on May 24 to free the CaCl₂ fits off the prior `B = 30` bound) with a **per-salt, valence-graded** triple — `NaCl (1e-6, 30]`, `CaCl₂ (1e-6, 15]`, `LaCl₃ (1e-6, 10]` — derived from the dielectric-exclusion + Stokes–Einstein picture of nanofiltration through a negatively-charged polyamide layer. The change is **DATA3-only, hard-gated by `workflow_family == "DATA3"`**; DATA1 / DATA2 model builds continue to receive the legacy single-window bound and the published-paper reproductions remain byte-equivalent.
+
+### 17.1  Why the unified `(1e-6, 50]` bound is physically uninformative
+
+The `B` parameter in the Spiegler–Kedem flux equation is the **solute permeability coefficient** (units of length / time after the library's internal unit folding). For a charged-membrane–chloride-salt system, two physics-based predictions for the cation-valence scaling of `B` agree to leading order:
+
+1. **Dielectric exclusion** (Yaroshchuk 2000, *Adv. Colloid Interface Sci.* 85 (2–3): 193–230). For a NF270-like negatively-charged active layer with a low-permittivity pore interior, the partition coefficient of a cation with valence `z` carries a Born-image exclusion factor `exp(−z² ΔW / kT)`. For the chloride salts in scope, the dominant exclusion is on the cation: doubling the cation valence multiplies `z²` by four, which suppresses partitioning sharply. Empirically the suppression is gentler than the bare prediction (counter-ion screening softens the image potential), and the literature consensus on NF-class polyamides is a **roughly halving of B per unit increase in cation valence** for the Na⁺ → Ca²⁺ → La³⁺ sequence on chloride salts. See also Bandini & Vezzani 2003, *Chem. Eng. Sci.* 58 (15): 3303–3326, for the parallel DSPM-DE derivation.
+
+2. **Stokes–Einstein diffusivity** in a partition × diffusion factorization, `B ≈ φ · D_∞ / δ`. The bulk Stokes–Einstein diffusivities `D_∞` for NaCl / CaCl₂ / LaCl₃ are within a factor ~1.25 of each other at 25 °C (1.61, 1.33, 1.29 × 10⁻⁹ m²/s per Vanýsek CRC Handbook + Rard & Miller 1979). The remaining factor in `B` is the partition coefficient `φ`, which is exactly the dielectric-exclusion term above. So the diffusive prefactor is approximately salt-independent and the valence-graded scaling falls entirely on `φ`.
+
+Net: the physics predicts `B(NaCl) > B(CaCl₂) > B(LaCl₃)` with each step roughly halving. A uniform `(1e-6, 50]` bound permits non-physical optima in which CaCl₂ or LaCl₃ end at `B` values comparable to or exceeding NaCl — an outcome the literature explicitly rules out for NF-class chloride rejection.
+
+The full deep-research provenance trail — five-angle web search, twenty-one fetched sources, twenty-five claims with three-vote adversarial verification (two killed, including the Lachheb et al. 2025 NaCl Pₛ as not reproducible) — is workflow `wss0st04w` in the run log. Nair et al. 2018, *Membranes* 8 (3): 78, is the only peer-reviewed NF270-specific anchor that survived verification; their per-ion Pₛ (multi-ion seawater fit) puts NaCl at order ~1.5 µm/s and Cl⁻ at ~21 µm/s, comfortably inside the new `(1e-6, 30]` bound.
+
+### 17.2  The bound triple, gating, and DATA1 / DATA2 inertness
+
+| Salt | New bound `B ∈ (lo, hi]` | Source |
+|---|---|---|
+| NaCl  | `(1e-6, 30]` | Retains the May 24 §12 widening; physical upper for monovalent Cl⁻ salt on NF270 |
+| CaCl₂ | `(1e-6, 15]` | NaCl bound halved, dielectric-exclusion + Nair 2018 rejection survey |
+| LaCl₃ | `(1e-6, 10]` | CaCl₂ bound 2/3-ed (gentler than strict halving — La³⁺ ion-pairing softens predicted suppression) |
+
+**Module-level constants** (`refactored_ucb_library.py` lines 281–296, immediately following `NF270_SIGMA_INTERIOR_BOUNDS`):
+
+- `NF270_B_BOUNDS_PER_SALT = {"NaCl": (1e-6, 30.0), "CaCl2": (1e-6, 15.0), "LaCl3": (1e-6, 10.0)}`
+- `NF270_B_BOUNDS_DEFAULT = (1e-6, 50.0)` — fallback for any DATA3 sheet whose `namec` doesn't match a key in the dict.
+
+**Read sites and guards** (`refactored_ucb_library.py`):
+
+- The `B` Pyomo `Var` declaration inside `model_construct_inter` at the `B_form == 'single'` branch (was the single-line bound at line 1683; now a 5-line `if workflow_family == "DATA3":` block followed by `m.B = Var(bounds=_b_bounds, initialize=param_in['B'])`). The salt key is `str(data_stru['data_config'].get('namec') or "").strip()` — the canonical salt-name field already consumed at the diffusivity branch (line ~1566) and populated by the DATA3 Excel ingest (line ~4422) and by both .mat loaders for DATA1 / DATA2.
+- The multistart clip-bound dict in `build_seeded_multistart_starts` (was line 9859, now reads `NF270_B_BOUNDS_PER_SALT.get(salt_name, NF270_B_BOUNDS_DEFAULT)` when `str(workflow_family).upper() == "DATA3" and str(B_form) == "single"`). Without this update the clip site would silently widen DATA3 multistart seed B values back to 50 on CaCl₂/LaCl₃ sheets and re-trigger the W1002 projection warnings the clip was introduced to silence.
+- Both gates are explicit `workflow_family == "DATA3"` checks; DATA1 / DATA2 always see `(1e-6, 50)` exactly, regardless of the dict's contents.
+
+`solve_model_B_fix` does not redeclare `m.B` — it routes through `model_construct_inter`, so the single Pyomo-Var-declaration site above is the only fit-time read.
+
+The regression test `refactored_codes_v1/tests/regression_data1_data2_guards.py` is extended with a new fifth guard block (`b_bounds_for`) asserting the `B` `Var` ends up with `bounds == (1e-6, 50)` for DATA1 and DATA2 builds even when `NF270_B_BOUNDS_PER_SALT` is set to a deliberately distorted triple (3.0 / 1.0 / 0.5) — the same contract pattern used for the other four DATA3-only knobs. SUMMARY block and conclusion wording updated from "all four DATA3 knobs" to "all five DATA3 knobs".
+
+### 17.3  The σ-vs-B "ordering" surprise — not a contradiction
+
+A subtlety surfaced during review: the experimentally-observed rejection ordering on NF270 with these three chloride salts is **NaCl > CaCl₂ > LaCl₃** (multivalent salts are *less* rejected than NaCl — a Donnan-attraction consequence: higher-valence cation pulls Cl⁻ co-ion through to maintain electroneutrality, and the convective leak dominates rejection). The new `B` bound ordering goes the **same direction** as the rejection ordering — `B(NaCl) > B(CaCl₂) > B(LaCl₃)` — which at first glance reads as backwards: "less rejected" usually intuits as "leakier in every sense."
+
+This is **not a contradiction**. The two orderings describe physically distinct transport mechanisms in the Spiegler–Kedem model, and the data has to distinguish them:
+
+- **σ (the reflection coefficient)** governs the *convective coupling* term `σ · Δπ` in the water flux equation. Lower σ means salt rides through with the water flow more easily; "rejection at the bench" in the high-flux limit is primarily a σ phenomenon.
+- **B (the solute permeability)** governs the *diffusive partitioning* term in the solute flux equation. Lower B means the solute partitions weakly into the pore phase and diffuses slowly across it.
+
+Both mechanisms attenuate with increasing cation valence on a negatively-charged NF membrane because the dielectric exclusion is shared between them. On a CaCl₂ or LaCl₃ run, salt mostly passes through by **riding the water flow** (Route 1, σ-controlled); diffusing through alone (Route 2, B-controlled) is a smaller channel where multivalent salts face a steeper energy cost. So the bench rejection drops (the σ effect dominates), *and* the B upper bound tightens (physics constrains the secondary diffusive channel) — both can be true, and the new bounds are internally consistent with the rejection data, not in conflict with it.
+
+The cF-channel-dominance pathology documented in §12.3 / §13 is precisely the symptom of weak σ-vs-B identifiability — when `Δπ_end / ΔP ≪ 1` (§15.4) the convective coupling is weak and the data has nothing to separate σ from B. Tightening the B bound *helps* identifiability by reducing the σ↔B trade-off feasible region.
+
+### 17.4  Open questions and caveats
+
+1. **CaCl₂ S2 clipping at B = 30 even before this tightening.** The May 24 widening (§12) reported CaCl₂ S2 sheets pinning at `B = 30` — at the time interpreted as the optimizer wanting to go higher. Under the new bound `B ∈ (1e-6, 15]` those sheets will pin lower. Whether the new pin is at the bound or in the interior is the first thing to check after re-running the campaign with the per-salt bounds active.
+2. **No peer-reviewed NF270 LaCl₃ B value in the literature.** Nair 2018 and the Bandini–Vezzani treatment both stop at divalent; Lachheb et al. 2025 attempted NaCl Pₛ but did not reproduce in the verification audit (workflow `wss0st04w`). The `(1e-6, 10]` LaCl₃ bound is a physics extrapolation from the z² Born scaling, not literature-pinned. The upper edge could move ±50 % once a direct LaCl₃ measurement appears.
+3. **Ion-pairing physics gap for La³⁺.** The dielectric-exclusion picture treats the cation as a point charge. La³⁺ in chloride solution forms LaCl²⁺ and LaCl₂⁺ ion pairs at non-negligible fractions even at sub-millimolar concentration; these pairs partition differently than the free trivalent cation and bias `B` upward. The current bound does not encode this — it is the "no ion-pairing" upper. A future revision may need to widen the LaCl₃ bound modestly (e.g. `(1e-6, 12]`) and add a free-vs-paired species sub-model. This is also the open question flagged on slide 12 of the deck.
+4. **The bound triple should be revisited if KCl is added to the DATA3 campaign.** The library already supports KCl conductivity inversion via `CONDUCTIVITY_SALT_PARAMS_25C`; KCl is monovalent so the NaCl bound (`(1e-6, 30]`) would be a reasonable seed by valence-equivalence, but KCl's limiting equivalent conductivity is ~25 % higher than NaCl, which lifts the diffusive prefactor slightly. Open until experimentally needed. Unknown salt strings fall through to the (1e-6, 50] default — same behavior as before the change for any DATA3 sheet that isn't NaCl/CaCl₂/LaCl₃.
+
+### 17.5  Slide deck cross-references
+
+The physics summary, the σ-vs-B reconciliation, and the literature anchors are slides **§10A**, **§10B**, and **§10C** respectively in `DATA3_single_salt_analysis_v10.pptx` (slides 31, 32, and 104). Slide 30's `B ∈ (10⁻⁶, 30)` line was corrected to `(10⁻⁶, 50)` in the same v10 revision to match the bumped library bound from §12. Speaker notes for slides 10A/10B/10C carry the deep-research citation graph for anyone needing the full literature picture. The deep-research provenance for the literature anchors is workflow `wss0st04w` in the run log.
+
+### 17.6  Files changed in this section
+
+| File | Change |
+|---|---|
+| `refactored_codes_v1/refactored_ucb_library.py` | New constants `NF270_B_BOUNDS_PER_SALT` + `NF270_B_BOUNDS_DEFAULT` after line 279 (+17); gated read in `model_construct_inter` at the `B_form == 'single'` branch (was line 1683, +14 / −1); gated read in `build_seeded_multistart_starts` clip dict (was line 9859, +6 / −1) |
+| `refactored_codes_v1/tests/regression_data1_data2_guards.py` | New `b_bounds_for` helper + 5th guard block asserting DATA1 / DATA2 always see `(1e-6, 50)` regardless of `NF270_B_BOUNDS_PER_SALT` contents; SUMMARY line + "all four → all five" wording updated (+50 / −2) |
+| `refactored_codes_v1/Architecture.md` | This section (§17) |
+| `refactored_codes_v1/DATA3_single_salt_analysis_v10.pptx` | Slides 31, 32, 104 (referenced in §17.5) — already landed in the deck-version commit |
+
+---
+
+## 18. June 11, 2026 — Post-meeting follow-up (DATA3-only)
+
+Everything in §18 is **DATA3-scoped**; DATA1/DATA2 published-figure reproduction is
+unchanged (verified by `tests/regression_data1_data2_guards.py` + the IPOPT
+`test_data1/2_regression.py`).
+
+### 18.1  Paper-justified measurement error  (cF 0.3 % → 2 %)
+
+Documented in full at §5b. Summary: the legacy 0.3 % retentate-cF weight had no
+physical basis; the soft-sensor paper (Lilonfe et al., ChemRxiv 2026,
+doi:10.26434/chemrxiv.15002541/v1) gives the honest values — cF (conductivity
+soft-sensor) ≈ 2 % (MAPE ⊕ cell-constant), cV (ICP reference) ≈ 3 % (kept). One
+helper `_nf270_conc_scales()` feeds the objective, `calc_FIM`, and parmest so the
+covariance stays self-consistent.
+
+**Key empirical finding (`_compare_cf_weighting.py`, multistart-verified).** σ's
+global minimizer **flips between interior and a bound depending on the cF weight**:
+MC3 SNaCl goes 0.42(interior, 0.3 %) → 1.0(wall, 2 %); MC5 S2NaCl goes 0.0(wall,
+0.3 %) → 0.35(interior, 2 %). Conclusion: the interior-σ values were **partly an
+artifact of the over-tight 0.3 % weight**; with honest weighting σ is revealed to
+be **poorly identified** from single-salt runs. This is a sensitivity-analysis
+result, not a fit improvement — it strengthens the case that σ needs **better
+experiments** (high-cF / multi-ΔP DoE), not reweighting. WSSE magnitudes are NOT
+comparable across weightings (the weight rescales the objective).
+
+### 18.2  Plot-axis convention — Y-priority `L_p > B > σ`
+
+Rule of thumb (apply unless overridden): when two of {L_p, B, σ} are on a 2-D
+plane, the **higher-priority** variable goes on **Y**, the other on X.
+So: L_p×B → L_p on Y; L_p×σ → L_p on Y; **σ×B → B on Y**.
+
+In `(x_var, y_var)` code, `y_var` is the Y axis. Audit + fixes:
+
+| Generator | pair | axes | status |
+|---|---|---|---|
+| `_make_3d_contour_animations.py` σ-scrub | was `x=Lp,y=B` | B on Y | **FIXED → `x=B,y=Lp`** (file `scrub-sigma_LpvsB.gif`) |
+| `_make_3d_contour_animations.py` Lp-scrub | `x=σ,y=B` | B on Y | already compliant |
+| `_make_3d_contour_animations.py` B-scrub | `x=σ,y=Lp` | L_p on Y | already compliant |
+| `refactored_ucb_library.py` `sweep_pairs` | `("sigma","B")` | B on Y | already compliant (the prior synthesis was wrong) |
+| `_run_all_pairs_5channel.py` `SWEEPS[2]` | was `("B","sigma")` | σ on Y | **FIXED → `("sigma","B")`** (file `objcontour-x_sigma-y_B.png`) |
+
+Stale old-axis files (`scrub-sigma_BvsLp.gif`, `objcontour-x_B-y_sigma.png`) are
+superseded; delete or ignore so deck-builders don't mix conventions.
+
+### 18.3  β(c) → β(I):  concentration-dependent B, plotted and ionic-strength-based
+
+NF270's solute permeability is concentration-dependent, so the lumped constant
+`B` (`B_form='single'`) is an average. With numeric `B_form`:
+`B = J_w·[β₀ + β₁·c^(B_form−1) + β₂·c^B_form]` (β saved by `save_model`).
+
+- **Plotting β vs L_p / σ (IMPLEMENTED).** `_axis_values()` accepts
+  `beta_0/beta_1/beta_2` axes (β₀ ∈ [0.1,3]×fit; β₁,β₂ centered ±2·span, allowing
+  negatives), the contour-axis validator now admits them, and `sweep_pairs` in
+  `run_nf270_contour_for_sheet` switches to the β slices `(beta_0,Lp)`,
+  `(sigma,Lp)`, `(sigma,beta_1)` **gated on `isinstance(B_form,int) and
+  B_form>=1`** (bool excluded) so `'single'`/`'pervial'` keep the lumped-B slices.
+  Y-priority preserved: β plays B's role (Lp on Y vs β; β on Y vs σ). The B_form=1
+  centering fit is fragile single-shot, so the fast driver
+  `_run_beta_contour_fast.py` warm-starts it from a `'single'` fit (B→β₀, β₁=0)
+  and sweeps with a 300-iter/15 s per-cell cap + worker pool (the library path is
+  correct but slow on extreme β cells). On MC3 SNaCl the B_form=1 fit centers near
+  Lp≈9, B = β₀ + β₁·cIn with β₀≈1, β₁≈0.009.
+- **Ionic strength (IMPLEMENTED — `NF270_B_USE_IONIC_STRENGTH`).** Inside the
+  active B-polynomial rule `B_form_rule3` (and the dead `B_form_rule2`), the
+  concentration argument is bound to `cc = (k_I·cIn) if use_I else cIn`, where
+  `k_I = nf270_ionic_strength_factor(salt)` (NaCl 1, CaCl₂ 3, LaCl₃ 6;
+  `½·z·(z+1)`). Because `cc` IS the same Pyomo component as `cIn` when the toggle
+  is off, the constraint is **byte-identical** to legacy; the toggle is gated to
+  `workflow_family=="DATA3"` so DATA1/DATA2 are unaffected (6th guard in
+  `regression_data1_data2_guards.py`, build-based). **k_I scales the INTERFACIAL
+  cIn, not bulk cF** — B physically acts at the membrane wall (`Js=B·(cIn−cH)`),
+  which is also why rule3 (cIn) is the live rule and rule2 (cF) is dead. Smoke
+  test confirms engagement: CaCl₂ `β₀+β₁·cIn` → `β₀+β₁·(3.0·cIn)`.
+  - *Single-salt rescale identity (validated, deterministic).* Forward-sim B(c) at
+    (β₀,β₁) vs B(I) at (β₀,β₁/k_I) match **to machine precision** (max rel-diff
+    across mass/cV/cR channels: NaCl 0, CaCl₂ 2.1e-15, LaCl₃ 3.1e-15;
+    `_run_b_ionic_validation.py` Part A) — a single-salt B(I) fit is provably a
+    pure rescaling β_k→β_k/k_I^(cIn-power).
+  - *Cross-salt transfer — NEGATIVE (honest).* Ionic strength does **not** unify B
+    across NaCl/CaCl₂/LaCl₃. The fitted slope β₁ does not cluster tighter in
+    I-space (CV(β₁_I)=3.45 > CV(β₁_c)=1.92) and even flips sign by salt, while β₀
+    spans 1.5 / 0.32 / 0.11 — B itself is far more salt-specific than k_I predicts
+    (multivalent ions are much more strongly rejected via dielectric/Donnan
+    exclusion). So B(I) is **necessary but not sufficient** for cross-salt
+    prediction; a salt/valence-specific exclusion term is also needed. Caveat: the
+    B_form=1 slope fits on the tiny-B multivalent salts are fragile
+    (retry/multistart), so β₁ magnitudes carry fit noise — but the β₀ spread and
+    sign disagreement are robust. The clean, certain result is the single-salt
+    identity; cross-salt unification by ionic strength alone is refuted here.
+- **Why break/group concentration ranges:** the per-vial trend (§18.4) shows an
+  approximately monotone B–c rise within a sheet (MC3 SNaCl B 12→21 μm/s,
+  corr 0.93); piecewise-linear (per-band) β is the empirical linearization, and
+  B(I) is the physical law that unifies the bands across salts.
+
+### 18.4  Concentration-range & per-vial parameter grouping (IMPLEMENTED 2026-06-10)
+
+Motivation: a single sheet spans ~5→100 mM, over which σ and B genuinely change
+(through ionic strength). One θ per sheet averages over that. The order of rigor
+below is now **implemented and validated** on a GOOD / OKAY / POOR triple
+(`MC3.07.22.24_SNaCl` / `MC2.05.07.24_NaCl` / `MC2.05.21.24_LaCl3`); all 10-vial
+sheets.
+
+**Mechanism (objective band mask, DATA1/DATA2 byte-identical).** `solve_model`
+and `solve_model_B_fix` take an optional `band_vials=` (1-indexed vial set);
+their `obj_rule` per-vial loop `continue`s past out-of-band vials, and the
+per-channel denominators are floored at 1 only when a band is active
+(`_den_m/_den_cp/_den_cr/_den_cf`), so `band_vials=None` is byte-identical to the
+legacy objective. `calc_FIM` takes the same `band_vials` and masks **both** the
+covariance (`var_pred`) and the Jacobian (`jac`) loops identically, giving a
+per-band FIM. Guard `regression_data1_data2_guards.py` (6th case) builds DATA1 &
+DATA2 at `B_form=1` with the toggle on/off and asserts an identical constraint.
+
+1. **Per-band θ — `solve_model_per_concentration_band()`** (new). Partitions the
+   fitted vials by terminal cF (`partition_vials_by_terminal_cf`, median/quantile
+   split, low→high), warm-starts each band from a full-sheet seed fit, and checks
+   each band's FIM for non-singularity. Restricted to ≥6 fitted vials, ≤2 bands;
+   violations are returned in a `warnings` list rather than raising.
+
+   **Result (median 2-band split).** On GOOD and OKAY the **full-sheet fit rails
+   σ→1.0, but the HIGH-cF band alone recovers an interior σ** (MC3 SNaCl 28-70 mM
+   → σ=0.83; MC2 NaCl 25-36 mM → σ=0.56); the low-cF band still rails. σ's
+   information lives in the high-Δπ vials, and pooling all vials lets the low-cF
+   vials drag σ to the wall. **B drifts with concentration within MC3 SNaCl**
+   (band B 12.9→18.2 μm/s); MC2 NaCl's B is flat (~10). On POOR LaCl3 (cF 1.6-9.7
+   mM) both bands rail to *opposite* σ bounds — the flat-surface signature; banding
+   cannot manufacture identifiability. **All per-band FIMs are non-singular**
+   (min-eig > 0) but the railed-σ bands carry high condition numbers (1e8-1e10) —
+   the FIM confirms L_p/B are jointly identifiable while flagging σ as the weak
+   direction. Caveat: per-band WSSE is **not** comparable across bands (different
+   vials, cF magnitudes, band normalization) — read σ-identifiability and B-drift,
+   not WSSE magnitude. Driver: `_run_band_value_test.py`, `_run_band_wrapper.py`;
+   artifacts under `…/nf270/band_value_test/`.
+
+2. **Per-vial θ trend — `_run_per_vial_trend.py`.** Rather than the invasive joint
+   per-vial-parameter model (declaring `m.Lp[n]/m.sigma[n]`, which would risk
+   DATA1/DATA2 byte-identity), the per-vial trend is traced with **rolling 3-vial
+   windows** through the same validated band mask (warm-started = regularized).
+   The joint `m.Lp[n]/m.sigma[n]` model (mirroring `B_form='pervial'`) remains the
+   available heavier escalation. **Result:** MC3 SNaCl shows **B rising
+   monotonically with concentration** (corr(cF,B)=+0.93, B 12→21 μm/s across
+   12.8→55.8 mM windows) — direct per-vial evidence of concentration-dependent B,
+   the same signal §18.3's B(I) law targets — while σ only leaves the σ=1 wall in
+   the highest-cF window. MC2 NaCl: σ is the concentration-dependent quantity
+   (corr(cF,σ)=−0.81), B flat. LaCl3: σ flips walls 1→0 across cF (flat-surface
+   artifact), B tiny.
+
+3. **Correlate vials with contour groups.** Two views: (a) `_run_band_contour.py`
+   re-runs the σ×Lp sweep with the **band mask** → per-band objective surfaces.
+   On MC3 SNaCl the **low-cF band's surface is flat in σ** (cannot constrain σ,
+   rails to 1) while the **high-cF band's surface is curved with an interior
+   minimum at σ≈0.83** — the two bands occupy structurally different basins. (b)
+   The per-vial-trend plot overlays each window's optimum on the full σ×Lp contour
+   colored by concentration, showing the optima migrate off the σ=1 wall as cF
+   rises (the vial↔contour-group correlation).
+
+Statistical guard: each band's FIM must stay non-singular — verified by
+`solve_model_per_concentration_band(compute_fim=True)` (all bands passed).
+
+### 18.5  Runfile operator guide  (`refactored_ucb_runfile.py`)
+
+Entry: `python refactored_ucb_runfile.py` → prompts Root → Subset → Trunk →
+Branches. For DATA3 use Root `3`; Subset `2` = single-salt 11 (default), `3` = one
+run_id, `4` = fast smoke (3).
+
+| Want | Trunk | Branches |
+|---|---|---|
+| Fitted mass + concentration plots | `3` fit_multistart | `m,c` |
+| Pressure / osmotic (per-vial ΔP, σ·Δπ) | any | `r` |
+| Objective contours (σ×Lp, B×Lp, B×σ) | `1` simulate | `o` |
+| FIM heatmap | `4` fit_FIM | `f` |
+| DoE next-experiment | `5` fit_FIM_DoE | `d` |
+| Parameter table (JSON) | `2`/`3` | `p` |
+| Forward-sim at given θ (no fit) | `1` simulate | `m,c` |
+| Mass litmus (σ=0 closed-form Lp) | `6` mass_litmus | `m` |
+
+**Inject a chosen θ and render fitted mass+conc plots** (the runfile has no θ
+prompt — call the library directly):
+
+```python
+import sys; sys.path.insert(0, "<repo>/refactored_codes_v1")
+import refactored_ucb_library as lib
+ds = lib.loadxlsx("<wb>/NF270_MC3.xlsx", sheet="07.22.24_SNaCl")["data_stru"]
+theta = {"Lp": 8.5, "B": 14.0, "sigma": 0.45}           # your guess
+fit, sim, _ = lib.solve_model(ds, ds["mode"], theta, sim_opt=True,  # True = forward-sim at fixed θ
+                              B_form="single", workflow_family="DATA3", LOUD=True)
+lib.run_data3_time_series_plots({"data": ds, "sim_stru": sim,
+        "model_settings": {"workflow_family": "DATA3"}}, save_dir="<out>")
+```
+
+Set `sim_opt=False` to FIT from `theta` as the seed. For a per-band/per-concentration
+guess, set the band mask first (§18.4). The sheet→workbook map is
+`lib.NF270_RUN_REGISTRY[run_id]` (`{"workbook","sheet"}`); the helper that does
+load→fit→plot end-to-end is `_warm_anchor_worker.py`.
+
+### 18.6  Files changed in §18
+
+| File | Change |
+|---|---|
+| `refactored_ucb_library.py` | `_nf270_conc_scales()` + `NF270_C{F,P}_RESIDUAL_SCALE_FRACTION` (cF 2 %, cV None→3 %); applied in both `obj_rule`s, `calc_FIM` `var_pred`, `_label_parmest_model` (now takes `workflow_family`); `nf270_ionic_strength_factor()` + `NF270_IONIC_STRENGTH_FACTOR`; `_axis_values()` β₀/β₁/β₂ support |
+| `_make_3d_contour_animations.py` | σ-scrub axes → `x=B, y=Lp` (Lp on Y); output `scrub-sigma_LpvsB.gif` |
+| `_run_all_pairs_5channel.py` | `SWEEPS[2]` → `("sigma","B")` (B on Y); output `objcontour-x_sigma-y_B.png` |
+| `_compare_cf_weighting.py`, `_verify_goldstd_cf.py` | new: cF-weight before/after + multistart verification |
+| `Architecture.md` | §5b measurement-error subsection + this §18 |
+
+**Implementation pass (2026-06-10): β contours, B(I), per-band θ.**
+
+| File | Change |
+|---|---|
+| `refactored_ucb_library.py` | **Task 1:** contour-axis validator admits `beta_0/1/2`; `run_nf270_contour_for_sheet` `sweep_pairs` switches to β slices when `isinstance(B_form,int) and B_form>=1`. **Task 2:** `NF270_B_USE_IONIC_STRENGTH` toggle; `B_form_rule2/3` bind `cc=(k_I·conc) if use_I else conc` (byte-identical when off), gated DATA3. **Task 3:** `band_vials=` on `solve_model`, `solve_model_B_fix`, `calc_FIM` (masks `var_pred`+`jac`), and the contour path (`_nf270_contour_objectives_at_theta`/`_grid_dataframe`/`run_nf270_contour_for_sheet`); guarded denominators `_den_*`; new `solve_model_per_concentration_band()` + `partition_vials_by_terminal_cf()` + `_vial_terminal_cf()` |
+| `tests/regression_data1_data2_guards.py` | 6th guard (B ionic-strength reparam): DATA1/DATA2 at `B_form=1` byte-identical with toggle on/off |
+| `_run_beta_contour.py`, `_run_beta_contour_fast.py` | new: β-vs-Lp/σ contour drivers (warm-started B_form=1; fast = capped solver + pool) |
+| `_run_b_ionic_validation.py` | new: B(I) rescale-identity (Part A, deterministic) + cross-salt β₁ clustering (Part B) |
+| `_run_band_value_test.py`, `_run_band_wrapper.py`, `_run_band_contour.py`, `_run_per_vial_trend.py` | new: per-band value test, formal wrapper+FIM, band-masked contours, per-vial θ trend + vial↔contour correlation |
+| `Architecture.md` | §18.3 (β contours + B(I) implemented) + §18.4 (per-band implemented, with GOOD/OKAY/POOR results) |
