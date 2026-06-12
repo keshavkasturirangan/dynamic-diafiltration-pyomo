@@ -99,30 +99,32 @@ def main():
         rows = sweep_band(RUN_ID, band, bt, GRID)
         panels.append({"band": band, "cf": [min(cfs), max(cfs)], "theta": bt, "rows": rows})
 
-    # render
-    fig, axes = plt.subplots(1, len(panels), figsize=(6.2 * len(panels), 5.0), squeeze=False)
+    # render in the canonical figure_s5 contour-LINE style via lib._plot_heatmap_frame
+    import pandas as pd
+    fig, axes = plt.subplots(1, len(panels), figsize=(6.0 * len(panels), 5.2), squeeze=False)
     for ax, p in zip(axes[0], panels):
         arr = np.array(p["rows"])
-        sig = np.unique(arr[:, 0]); lp = np.unique(arr[:, 1])
-        Z = arr[:, 2].reshape(len(lp), len(sig))
-        X, Y = np.meshgrid(sig, lp)
-        cs = ax.contourf(X, Y, Z, levels=18, cmap="viridis")
-        ax.contour(X, Y, Z, levels=10, colors="k", linewidths=0.3, alpha=0.4)
-        fig.colorbar(cs, ax=ax, label="log10 band WSSE_cr")
+        df = pd.DataFrame({"sigma": arr[:, 0], "Lp": arr[:, 1],
+                           "Obj_retentate_concentration": arr[:, 2]})
+        # persist the grid so the panel can be re-rendered without recompute
+        df.to_csv(OUT / f"band_masked_contourdata-{RUN_ID}-band{p['band'][0]}_{p['band'][-1]}.csv",
+                  index=False)
+        lib._plot_heatmap_frame(df, "sigma", "Lp", "Obj_retentate_concentration",
+                                ax=ax, show_title=False)
         t = p["theta"]
-        ax.scatter([t["sigma"]], [t["Lp"]], s=180, marker="*", c="#ffe14d",
-                   edgecolors="k", linewidths=1.4, zorder=6,
-                   label=f"band θ: σ={t['sigma']:.2f} Lp={t['Lp']:.2f}")
-        ax.scatter([full_t["sigma"]], [full_t["Lp"]], s=120, marker="o", c="white",
-                   edgecolors="k", linewidths=1.2, zorder=5,
-                   label=f"full θ: σ={full_t['sigma']:.2f} Lp={full_t['Lp']:.2f}")
-        ax.set_xlabel("σ"); ax.set_ylabel("Lp")
-        ax.set_title(f"band cF {p['cf'][0]:.0f}-{p['cf'][1]:.0f} mM (vials {p['band']})\nobjective MASKED to this band")
+        ax.plot([t["sigma"]], [t["Lp"]], "*", markersize=18, markerfacecolor="#ffe14d",
+                markeredgecolor="k", markeredgewidth=1.4, clip_on=False, zorder=7,
+                label=f"band θ: σ={t['sigma']:.2f} Lp={t['Lp']:.2f}")
+        ax.plot([full_t["sigma"]], [full_t["Lp"]], "o", markersize=11, markerfacecolor="white",
+                markeredgecolor="k", markeredgewidth=1.2, clip_on=False, zorder=6,
+                label=f"full θ: σ={full_t['sigma']:.2f} Lp={full_t['Lp']:.2f}")
+        ax.set_title(f"band cF {p['cf'][0]:.0f}-{p['cf'][1]:.0f} mM (vials {p['band']})\n"
+                     f"objective MASKED to this band", fontsize=10)
         ax.legend(loc="lower left", fontsize=7, frameon=True)
-    fig.suptitle(f"{RUN_ID} · band-masked σ×Lp contours (B pinned per band)", y=1.02)
+    fig.suptitle(f"{RUN_ID} · band-masked σ×Lp contours (figure_s5 style; B pinned per band)", y=1.02)
     fig.tight_layout()
     out_png = OUT / f"band_masked_contour-{RUN_ID}.png"
-    fig.savefig(out_png, dpi=130, bbox_inches="tight")
+    fig.savefig(out_png, dpi=160, bbox_inches="tight")
     plt.close(fig)
     with open(OUT / f"band_masked_contour-{RUN_ID}.json", "w") as fh:
         json.dump({"run_id": RUN_ID, "full_theta": full_t,

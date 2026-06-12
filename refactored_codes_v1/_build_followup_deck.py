@@ -1116,6 +1116,117 @@ def s_directions():
     return s
 
 
+# ---- follow-up RESULTS slides (implementation pass 2026-06-10) --------------
+BVT = NF270 / "band_value_test"
+BIO = NF270 / "b_ionic_strength"
+BETA = NF270 / "beta_contours"
+
+
+def s_band_result():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · PER-BAND θ",
+                "Split by concentration: the high-cF band recovers the interior σ",
+                "Fit one θ per cF band by masking the objective to that band's vials (solve_model_per_concentration_band)")
+    # left: σ-recovery table
+    rect(s, 0.6, 1.9, 5.7, 3.05, PANEL, line=RGBColor(0xD7, 0xDC, 0xE1), line_w=0.75, round_=True)
+    textbox(s, 0.8, 2.0, 5.3, 0.35, [[{"text": "σ:  whole-sheet  vs  high-cF band", "size": 13.5, "color": NAVY, "bold": True, "font": HFONT}]])
+    textbox(s, 0.8, 2.46, 2.5, 0.3, [[{"text": "experiment", "size": 10.5, "color": GRAY, "bold": True}]])
+    textbox(s, 3.3, 2.46, 1.3, 0.3, [[{"text": "full σ", "size": 10.5, "color": GRAY, "bold": True}]])
+    textbox(s, 4.5, 2.46, 1.7, 0.3, [[{"text": "high-cF band σ", "size": 10.5, "color": GRAY, "bold": True}]])
+    rows = [("GOOD  MC3 SNaCl", "1.00 ⊣", "0.83  interior", S1),
+            ("OKAY  MC2 NaCl",  "1.00 ⊣", "0.56  interior", S2),
+            ("POOR  MC2 LaCl₃", "0.00 ⊣", "0.00  still wall", S3)]
+    yy = 2.82
+    for name, fs, hb, col in rows:
+        textbox(s, 0.8, yy, 2.5, 0.3, [[{"text": name, "size": 11.5, "color": col, "bold": True}]])
+        textbox(s, 3.3, yy, 1.3, 0.3, [[{"text": fs, "size": 11.5, "color": GRAY}]])
+        textbox(s, 4.5, yy, 1.7, 0.3, [[{"text": hb, "size": 11.5, "color": INK, "bold": True}]])
+        yy += 0.46
+    textbox(s, 0.8, yy + 0.05, 5.3, 0.95,
+            [[{"text": "σ's information lives in the high-Δπ (high-cF) vials; pooling all vials lets the low-cF vials drag σ to the wall.  Within MC3 SNaCl B also rises 12.9 → 18.2 µm/s low→high band.",
+               "size": 10.5, "color": GRAY, "italic": True}]])
+    # right: GOOD band overlay (figure_s5 style)
+    add_image(s, BVT / "band_overlay-MC3.07.22.24_SNaCl.png", 6.55, 1.78, 4.35)
+    # bottom takeaway
+    rect(s, 0.6, 5.15, 12.13, 1.4, NAVY, round_=True)
+    textbox(s, 0.85, 5.25, 12.0, 0.4, [[{"text": "Takeaway", "size": 13, "color": GOLD, "bold": True, "font": HFONT}]])
+    textbox(s, 0.85, 5.6, 12.0, 0.85,
+            [[{"text": "Estimate σ from the high-cF band. ", "size": 13.5, "color": WHITE, "bold": True},
+              {"text": "All per-band FIMs are non-singular; per-band WSSE is NOT comparable across bands.  POOR LaCl₃ rails to opposite σ bounds in the two bands (flat surface) — banding can't manufacture identifiability.",
+               "size": 12, "color": RGBColor(0xCC, 0xD6, 0xE2)}]], space_after=3)
+    return s
+
+
+def s_band_contour():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · BAND-MASKED CONTOURS",
+                "The two bands occupy genuinely different basins",
+                "Re-run the σ×Lₚ sweep with the objective masked to each band — low-cF flat in σ, high-cF curved (interior min)")
+    add_image(s, BVT / "band_masked_contour-MC3.07.22.24_SNaCl.png", 1.35, 1.8, 10.65)
+    textbox(s, 0.9, 6.6, 11.5, 0.6,
+            [[{"text": "Left (low-cF 10–23 mM): the objective is flat in σ → σ rails to 1.  Right (high-cF 28–70 mM): a curved basin with an interior minimum at σ ≈ 0.83.  Same sheet, opposite identifiability.",
+               "size": 10.5, "color": GRAY, "italic": True}]])
+    return s
+
+
+def s_per_vial():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · PER-VIAL θ TREND",
+                "B rises with concentration within a single experiment",
+                "Rolling 3-vial windows (low→high cF) through the band mask — the empirical basis for per-concentration seeding")
+    add_image(s, BVT / "per_vial_trend-MC3.07.22.24_SNaCl.png", 0.45, 2.1, 12.45)
+    textbox(s, 0.55, 6.55, 12.3, 0.7,
+            [[{"text": "MC3 SNaCl:  B climbs 12 → 21 µm/s as window cF goes 13 → 56 mM (corr +0.93) — direct per-vial evidence of concentration-dependent B (the B(I) signal).  σ only leaves the σ=1 wall in the highest-cF window; right panel colours each window's optimum on the σ×Lₚ contour by concentration (vial↔contour-group correlation).",
+               "size": 10.5, "color": GRAY, "italic": True}]])
+    return s
+
+
+def s_bI():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · B = f(IONIC STRENGTH)",
+                "Exact per salt — but ionic strength doesn't unify B",
+                "B_form_rule3:  cIn → k_I·cIn  (NaCl 1 · CaCl₂ 3 · LaCl₃ 6), gated DATA3, byte-identical off")
+    # left card: identity PASS
+    rect(s, 0.6, 1.95, 6.0, 2.35, WHITE, line=S1, line_w=1.4, round_=True)
+    rect(s, 0.6, 1.95, 6.0, 0.6, S1, round_=True)
+    textbox(s, 0.78, 2.05, 5.6, 0.4, [[{"text": "✓  Single-salt rescale identity", "size": 14, "color": WHITE, "bold": True, "font": HFONT}]], align=PP_ALIGN.LEFT)
+    textbox(s, 0.8, 2.72, 5.6, 1.5,
+            [[{"text": "B(c) at (β₀,β₁)  ≡  B(I) at (β₀, β₁/k_I)", "size": 12.5, "color": INK, "bold": True, "font": "Consolas"}],
+             [{"text": "max rel-diff across channels:", "size": 11.5, "color": GRAY}],
+             [{"text": "NaCl 0 · CaCl₂ 2e-15 · LaCl₃ 3e-15  →  identical to machine precision", "size": 11.5, "color": S1, "bold": True}],
+             [{"text": "A B(I) fit on one salt is a pure rescaling β_k → β_k/k_I^k.", "size": 11, "color": GRAY, "italic": True}]], space_after=3)
+    # right card: cross-salt NEGATIVE
+    rect(s, 6.75, 1.95, 5.98, 2.35, WHITE, line=S3, line_w=1.4, round_=True)
+    rect(s, 6.75, 1.95, 5.98, 0.6, S3, round_=True)
+    textbox(s, 6.93, 2.05, 5.6, 0.4, [[{"text": "✗  Cross-salt transfer", "size": 14, "color": WHITE, "bold": True, "font": HFONT}]])
+    textbox(s, 6.95, 2.72, 5.7, 1.5,
+            [[{"text": "β₀ spans 1.5 / 0.32 / 0.11  (NaCl/CaCl₂/LaCl₃)", "size": 11.5, "color": INK}],
+             [{"text": "CV(β₁_I)=3.45  >  CV(β₁_c)=1.92  — slopes even flip sign", "size": 11.5, "color": INK}],
+             [{"text": "B is far more salt-specific than k_I predicts", "size": 12, "color": S3, "bold": True}],
+             [{"text": "(multivalent ions are much more strongly rejected).", "size": 11, "color": GRAY, "italic": True}]], space_after=3)
+    # takeaway
+    rect(s, 0.6, 4.5, 12.13, 2.05, NAVY, round_=True)
+    textbox(s, 0.85, 4.62, 12.0, 0.4, [[{"text": "Takeaway", "size": 14, "color": GOLD, "bold": True, "font": HFONT}]])
+    textbox(s, 0.85, 5.02, 12.0, 1.4,
+            [[{"text": "B(I) is necessary but not sufficient for multisalt. ", "size": 14, "color": WHITE, "bold": True},
+              {"text": "The ionic-strength reparameterization is exact and makes the per-salt fit invariant, but a shared β across salts is refuted by the data — the next step is a salt/valence-specific exclusion term (or a joint multisalt fit sharing β in I-space with per-salt Lₚ/σ).",
+               "size": 12.5, "color": RGBColor(0xCC, 0xD6, 0xE2)}]], space_after=3)
+    return s
+
+
+def s_beta_contour():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · β CONTOURS",
+                "Sweeping the β coefficients instead of the lumped B",
+                "B_form=1 centering fit (B = β₀ + β₁·cIn) on the gold sheet — β slices replace the lumped-B slices when B_form is numeric")
+    add_image(s, BETA / "beta_contours-MC3.07.22.24_SNaCl.png", 1.47, 1.8, 10.4)
+    textbox(s, 0.9, 6.55, 11.5, 0.6,
+            [[{"text": "Left: β₀×Lₚ — the basin mirrors the lumped B×Lₚ slice (β₀ carries the constant part of B).  Right: σ×β₁ — the feasible β₁ band is narrow "
+                       "(B = β₀ + β₁·cIn must stay within its physical bounds over the sheet's 10–70 mM span), and σ stays unidentified at fixed β₁.",
+               "size": 10.5, "color": GRAY, "italic": True}]])
+    return s
+
+
 # ===========================================================================
 # assemble order
 # ===========================================================================
@@ -1124,6 +1235,12 @@ builders.append(s_title)
 # ---- post-meeting follow-up headlines (new) ----
 builders.append(s_meas_error)
 builders.append(s_directions)
+# ---- post-meeting follow-up RESULTS (implementation pass) ----
+builders.append(s_band_result)
+builders.append(s_band_contour)
+builders.append(s_per_vial)
+builders.append(s_bI)
+builders.append(s_beta_contour)
 builders.append(s_thesis)
 # section 01 — the model
 builders.append(s_model_math)

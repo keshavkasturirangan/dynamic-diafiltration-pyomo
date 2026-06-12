@@ -89,12 +89,22 @@ def main():
           f"beta_1={base['beta_1']:.4g} sigma={base['sigma']:.3f}")
 
     Lp, b0, b1 = float(base["Lp"]), float(base["beta_0"]), float(base["beta_1"])
-    b1span = max(abs(b1), 1.0)
+    # beta_1 range derived from feasibility of B = beta_0 + beta_1*cIn over the
+    # sheet's concentration span: B must stay in (0, B_max] up to cIn ~ cmax, so
+    # beta_1 in (-beta_0/cmax, (B_max - beta_0)/cmax].  A naive ±2 span sweeps
+    # mostly infeasible cells (B<0 or B over its Var bound) and renders blank.
+    cmax = max(lib._vial_terminal_cf(ds, i)
+               for i in range(1, ds["data_config"]["n"] + 1)
+               if np.isfinite(lib._vial_terminal_cf(ds, i)))
+    b_max = lib.NF270_B_BOUNDS_PER_SALT.get(
+        str(ds["data_config"].get("namec") or "").strip(), lib.NF270_B_BOUNDS_DEFAULT)[1]
+    b1_lo = -0.9 * b0 / cmax            # keep B > 0.1*beta_0 at cmax
+    b1_hi = (b_max - b0) / cmax         # keep B <= bound at cmax
     sweeps = {
         "beta_0-Lp": dict(xname="beta_0", xvals=np.linspace(0.1 * abs(b0) + 1e-6, 3.0 * abs(b0) + 1e-3, GRID),
                           yname="Lp", yvals=np.linspace(0.1 * Lp, 2.0 * Lp, GRID)),
         "sigma-beta_1": dict(xname="sigma", xvals=np.linspace(0.0, 1.0, GRID),
-                             yname="beta_1", yvals=np.linspace(b1 - 2 * b1span, b1 + 2 * b1span, GRID)),
+                             yname="beta_1", yvals=np.linspace(b1_lo, b1_hi, GRID)),
     }
     panels = {}
     for key, s in sweeps.items():
@@ -108,22 +118,24 @@ def main():
             for r in rows:
                 w.writerow(r)
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.2))
+    # render in the canonical figure_s5 contour-LINE style via lib._plot_heatmap_frame
+    import pandas as pd
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.4))
     for ax, (key, p) in zip(axes, panels.items()):
-        arr = np.array(p["rows"]); x = np.unique(arr[:, 0]); y = np.unique(arr[:, 1])
-        Z = arr[:, 2].reshape(len(y), len(x)); X, Y = np.meshgrid(x, y)
-        cs = ax.contourf(X, Y, Z, levels=18, cmap="viridis")
-        ax.contour(X, Y, Z, levels=10, colors="k", linewidths=0.3, alpha=0.4)
-        fig.colorbar(cs, ax=ax, label="log10 WSSE_cr")
-        ax.scatter([base[p["xname"]]], [base[p["yname"]]], s=200, marker="*",
-                   c="#ffe14d", edgecolors="k", linewidths=1.4, zorder=6, label="fit θ")
-        ax.set_xlabel(p["xname"]); ax.set_ylabel(p["yname"])
-        ax.set_title(f"{key}  ({p['yname']} on Y)")
+        arr = np.array(p["rows"])
+        df = pd.DataFrame({p["xname"]: arr[:, 0], p["yname"]: arr[:, 1],
+                           "Obj_retentate_concentration": arr[:, 2]})
+        lib._plot_heatmap_frame(df, p["xname"], p["yname"], "Obj_retentate_concentration",
+                                ax=ax, show_title=False)
+        ax.plot([base[p["xname"]]], [base[p["yname"]]], "*", markersize=18,
+                markerfacecolor="#ffe14d", markeredgecolor="k", markeredgewidth=1.4,
+                clip_on=False, zorder=7, label="fit θ")
+        ax.set_title(f"{key}  ({p['yname']} on Y)", fontsize=10)
         ax.legend(loc="lower left", fontsize=8)
-    fig.suptitle(f"{RUN_ID} · β contours (B_form=1: B=β₀+β₁·cIn)", y=1.02)
+    fig.suptitle(f"{RUN_ID} · β contours (figure_s5 style; B_form=1: B=β₀+β₁·cIn)", y=1.02)
     fig.tight_layout()
     out_png = OUT / f"beta_contours-{RUN_ID}.png"
-    fig.savefig(out_png, dpi=130, bbox_inches="tight")
+    fig.savefig(out_png, dpi=160, bbox_inches="tight")
     plt.close(fig)
     with open(OUT / f"beta_contours-{RUN_ID}.json", "w") as fh:
         json.dump({"run_id": RUN_ID, "center_theta": base}, fh, indent=2, default=float)

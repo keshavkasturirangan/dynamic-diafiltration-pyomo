@@ -18,27 +18,19 @@ refactored_codes_v1/tests/test_data2_regression.py` (2 passed, 2 skipped).
 - Architecture §18.3/§18.4/§18.6 updated.
 - **Contour restyle:** band overlays + per-vial trends re-rendered in the canonical
   figure_s5 line style (`_rerender_band_style.py`).
+- **Contour restyle COMPLETE (2026-06-12):** band-masked (`_run_band_contour.py`) and
+  β (`_run_beta_contour_fast.py`) renderers now route through `lib._plot_heatmap_frame`
+  + save grid CSVs; both reran. β driver now derives the β₁ sweep range from
+  feasibility (B = β₀+β₁·cIn within bounds over the cF span) so the σ×β₁ panel
+  isn't blank.
+- **Deck DONE (2026-06-12):** 5 result slides added to `_build_followup_deck.py`
+  (per-band σ-recovery table + overlay, band-masked contours, per-vial B-vs-cF
+  trend, B(I) identity/cross-salt, β contours); rebuilt (41 slides) and PDF-verified
+  via LibreOffice. The `.pptx` is NOT committed (large binary — see item 1 below).
 
 ## To run when you return (ordered)
 
-1. **Finish the figure_s5 restyle** (band overlays + per-vial already done):
-   - The band-MASKED contour (`_run_band_contour.py`) and β contour
-     (`_run_beta_contour_fast.py`) renderers still use `contourf` fill. Route them
-     through `lib._plot_heatmap_frame(df, x, y, z, ax=...)` like
-     `_rerender_band_style.py` does, then re-run:
-     ```
-     python3 refactored_codes_v1/_run_band_contour.py MC3.07.22.24_SNaCl 16
-     python3 refactored_codes_v1/_run_beta_contour_fast.py MC3.07.22.24_SNaCl 18
-     ```
-   - (The fast β-contour run was started then killed to free CPU — never finished;
-     it needs the restyle + a clean run. ~5 min.)
-
-2. **Deck update** — add slides to `_build_followup_deck.py` for: B(I) rescale
-   identity + cross-salt negative; per-band σ-recovery table (GOOD/OKAY/POOR);
-   band-masked contour (flat-σ vs curved-σ basins); per-vial B-vs-cF trend.
-   Rebuild → `DATA3_followup_analysis_2026-06-11.pptx`.
-
-3. **Large-binary tracking decision (BLOCKING for a clean repo).** NOT committed:
+1. **Large-binary tracking decision (BLOCKING for a clean repo).** NOT committed:
    - decks `refactored_codes_v1/*.pptx,*.pdf` (~204 MB)
    - artifacts `UnifiedFramework/DATA3/results/paper_artifacts/nf270/{animations3d 65M,
      contour3d 24M, meeting_prep_2026-06-10 5.9M, matlab_ports* , band_value_test 1.1M, …}`
@@ -46,16 +38,20 @@ refactored_codes_v1/tests/test_data2_regression.py` (2 passed, 2 skipped).
    Decide: git-lfs, external store, or `.gitignore` (then `git rm --cached`). The
    small deliverables (`band_value_test/`, `b_ionic_strength/`) you may want tracked.
 
-4. **Task 2 deeper (optional):** cross-salt was negative — B is more salt-specific
+2. **Task 2 deeper (optional):** cross-salt was negative — B is more salt-specific
    than k_I explains. Next: add a salt/valence exclusion term, or a JOINT multi-salt
    fit sharing β in I-space with per-salt Lp/σ, and re-test transferability.
 
-5. **Per-vial joint model (optional escalation):** the per-vial trend used rolling
+3. **Per-vial joint model (optional escalation):** the per-vial trend used rolling
    windows. The heavier `m.Lp[n]/m.sigma[n]` joint model (mirroring `B_form='pervial'`)
    is the next step IF the trend warrants — gate carefully to preserve DATA1/DATA2.
 
-6. **Broaden band analysis:** extend to all ≥6-vial sheets; try 3 bands on ≥9-vial
+4. **Broaden band analysis:** extend to all ≥6-vial sheets; try 3 bands on ≥9-vial
    sheets (`solve_model_per_concentration_band(n_bands=3, max_bands=3)`).
+
+5. **Deck polish (optional):** the 5 new result-slides (deck slides 4–8) are
+   PDF-verified for layout; review wording/emphasis with the collaborators and
+   re-order vs. the existing narrative if desired.
 
 ## Re-run cheatsheet
 ```
