@@ -1227,6 +1227,21 @@ def s_beta_contour():
     return s
 
 
+def s_band_campaign():
+    s = slide(); bg(s, WHITE); logo(s)
+    title_block(s, "FOLLOW-UP RESULT · CAMPAIGN-WIDE",
+                "σ-recovery is sheet-specific; B-drift is the robust signal",
+                "All 11 single-salt sheets via solve_model_per_concentration_band (2-band split)")
+    add_image(s, BVT / "band_campaign_sigma.png", 2.07, 1.68, 9.2)
+    rect(s, 0.6, 6.42, 12.13, 0.78, NAVY, round_=True)
+    textbox(s, 0.85, 6.49, 12.0, 0.68,
+            [[{"text": "high-cF band recovers an interior σ (full fit railed):  3 / 11  — sheet-specific (needs high-cF Δπ + a non-flat σ surface).   ",
+               "size": 11.5, "color": WHITE, "bold": True},
+              {"text": "B rises with concentration low→high band:  9 / 11  — the generalizable signal (concentration-dependent B → the B(I) law).",
+               "size": 11.5, "color": GOLD, "bold": True}]], space_after=2)
+    return s
+
+
 # ===========================================================================
 # assemble order
 # ===========================================================================
@@ -1239,6 +1254,7 @@ builders.append(s_directions)
 builders.append(s_band_result)
 builders.append(s_band_contour)
 builders.append(s_per_vial)
+builders.append(s_band_campaign)
 builders.append(s_bI)
 builders.append(s_beta_contour)
 builders.append(s_thesis)

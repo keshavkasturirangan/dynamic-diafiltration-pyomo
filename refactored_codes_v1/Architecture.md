@@ -1324,6 +1324,17 @@ DATA2 at `B_form=1` with the toggle on/off and asserts an identical constraint.
    not WSSE magnitude. Driver: `_run_band_value_test.py`, `_run_band_wrapper.py`;
    artifacts under `…/nf270/band_value_test/`.
 
+   **Campaign check (all 11 single-salt sheets, `_run_band_campaign.py`).** The
+   σ-recovery is **sheet-specific, not universal**: the high-cF band recovers an
+   interior σ (whole-sheet fit railed) on only **3/11** sheets (MC3 SNaCl 0.83,
+   MC2 NaCl 0.56, MC3 SCaCl₂ 0.20); on others the high-cF band rails to the *other*
+   wall (σ=0) or both rail — banding rescues σ only where the high-cF band carries
+   enough Δπ and the σ surface isn't flat. The **robust, generalizable** campaign
+   signal is **B rising with concentration on 9/11 sheets** (low→high band B-drift,
+   strongest CaCl₂ +8.5, MC4 SNaCl +6.5, MC3 SNaCl +5.4 µm/s) — concentration-
+   dependent B, i.e. the §18.3 B(I) signal. The headline that generalizes is the
+   B–concentration trend, not σ-recovery-by-banding.
+
 2. **Per-vial θ trend — `_run_per_vial_trend.py`.** Rather than the invasive joint
    per-vial-parameter model (declaring `m.Lp[n]/m.sigma[n]`, which would risk
    DATA1/DATA2 byte-identity), the per-vial trend is traced with **rolling 3-vial

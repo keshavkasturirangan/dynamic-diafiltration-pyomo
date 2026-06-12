@@ -23,10 +23,15 @@ refactored_codes_v1/tests/test_data2_regression.py` (2 passed, 2 skipped).
   + save grid CSVs; both reran. β driver now derives the β₁ sweep range from
   feasibility (B = β₀+β₁·cIn within bounds over the cF span) so the σ×β₁ panel
   isn't blank.
-- **Deck DONE (2026-06-12):** 5 result slides added to `_build_followup_deck.py`
+- **Deck DONE (2026-06-12):** 6 result slides added to `_build_followup_deck.py`
   (per-band σ-recovery table + overlay, band-masked contours, per-vial B-vs-cF
-  trend, B(I) identity/cross-salt, β contours); rebuilt (41 slides) and PDF-verified
-  via LibreOffice. The `.pptx` is NOT committed (large binary — see item 1 below).
+  trend, campaign-wide σ-recovery, B(I) identity/cross-salt, β contours); rebuilt
+  (42 slides) and PDF-verified via LibreOffice. `.pptx` NOT committed (item 1).
+- **Campaign band run DONE (2026-06-12, `_run_band_campaign.py`):** all 11 single-salt
+  sheets. HONEST finding — σ-recovery (high-cF band interior, full railed) is
+  **sheet-specific: 3/11**; the robust generalizable signal is **B rising with cF
+  on 9/11**. Tempers the clean 3-sheet value-test; deck slide 7 + Architecture §18.4
+  + memory updated. (This was old to-run item 4.)
 
 ## To run when you return (ordered)
 
@@ -46,10 +51,11 @@ refactored_codes_v1/tests/test_data2_regression.py` (2 passed, 2 skipped).
    windows. The heavier `m.Lp[n]/m.sigma[n]` joint model (mirroring `B_form='pervial'`)
    is the next step IF the trend warrants — gate carefully to preserve DATA1/DATA2.
 
-4. **Broaden band analysis:** extend to all ≥6-vial sheets; try 3 bands on ≥9-vial
-   sheets (`solve_model_per_concentration_band(n_bands=3, max_bands=3)`).
+4. **3-band test (optional):** the campaign used 2 bands. Try 3 bands on ≥9-vial
+   sheets (`solve_model_per_concentration_band(n_bands=3, max_bands=3)`) to resolve
+   finer B–cF structure.
 
-5. **Deck polish (optional):** the 5 new result-slides (deck slides 4–8) are
+5. **Deck polish (optional):** the 6 new result-slides (deck slides 4–9) are
    PDF-verified for layout; review wording/emphasis with the collaborators and
    re-order vs. the existing narrative if desired.
 
