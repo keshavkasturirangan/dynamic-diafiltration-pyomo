@@ -258,6 +258,52 @@ non-identifiability), consistent across forms and salts.
 
 ---
 
+## Task 9 — Profile-likelihood WSSE contour surfaces (rigorous counterpart of Task 8)
+
+**Objective.** Same scope as Task 8 — every DATA3 single-salt experiment × every B(c) form × the
+Task-5 response channels — but compute the **profile-likelihood** surface: at each grid node, **do
+NOT pre-fix the non-axis coefficients — re-optimize them.**
+
+**Method (per node).** Clamp the two axes (σ and the chosen B parameter), hold `Lp`, `S0`, `S`
+fixed (`Lp` optimum; `S0`/`S` recorded, per Task 7), then solve a sub-optimization over the
+remaining free parameters λ (the non-axis B coefficients):
+
+```
+Phi_profile(psi)  =  min over lambda  of  WSSE(psi, lambda | Lp, S0, S fixed)
+```
+
+Record `Phi_profile` as the pixel value, AND store `lambda*(psi)` (the profiled nuisance values).
+
+**Why (vs Task 8).** Task 8 pins λ at the MLE → a *conditional* (slice) surface, which is **not** a
+valid confidence region. The profile re-optimizes λ → the surface supports **likelihood-ratio
+confidence regions**:
+
+```
+CR  =  { psi :  Phi_profile(psi) - Phi_min  <=  chi-square threshold }
+```
+
+Use it when the goal is honest identifiability / confidence intervals on σ and the B parameters.
+
+**By-product to plot.** The profiled trajectories `lambda*(psi)` (e.g. β₀ as σ varies) directly
+visualize the parameter correlations (the β₀–β₁ trade-off; whether β₁ tracks σ).
+
+**Cost & machinery (NOT square).** This is a nonlinear optimization at every node — you cannot keep
+it a forward solve. Reuse the existing `_run_profile_contours.py` `method="profile"` campaign:
+- warm-start continuation (seed each node from a converged neighbour — a *guess*, not a fix),
+- per-node IPOPT CPU cap + a bounded / `skip_sim_init` CasADi init,
+- watchdog kill-restart + JSONL resume for stiff nodes (expect occasional holes).
+Task 7 (fixed S0/S) shrinks λ, so each per-node solve is faster and more robust.
+
+**Deliverable.** One multi-panel profile contour per (experiment × B-form) — a panel per response
+channel — with the LR confidence regions overlaid (optionally the profiled-λ trajectories); all
+DATA3 single-salt sheets × all six forms.
+
+**Acceptance.** Profile surfaces produced for every (experiment, B-form, channel); each minimum
+coincides with the fit; LR confidence regions drawn; the flat-σ non-identifiability is confirmed
+**rigorously** (not just conditionally), and any difference from the Task-8 slice is noted.
+
+---
+
 ## Verification checklist (run at the end)
 - `pytest` DATA1 + DATA2 smoke/paper-comparison green (DATA1/DATA2 untouched).
 - Per-sheet concentration-range table (Task 4) emitted as CSV + markdown for each DATA3 sheet.
@@ -270,6 +316,9 @@ non-identifiability), consistent across forms and salts.
 - Square forward-solve WSSE contour surfaces (Task 8) generated for every DATA3 single-salt
   experiment × every B(c) form × every Task-5 response channel, with non-axis coefficients pinned
   at the per-form MLE; each surface's minimum coincides with the fit.
+- Profile-likelihood WSSE contour surfaces (Task 9) generated per experiment × B-form × channel
+  with non-axis coefficients re-optimized per node; LR confidence regions drawn; flat-σ confirmed
+  rigorously vs the Task-8 slice.
 - A DATA3 sheet loads with the time correction on via config; metadata recorded.
 - All regenerated/new figures rendered to PNG and visually inspected (legend clear of data,
   DATA2 colors/markers).
