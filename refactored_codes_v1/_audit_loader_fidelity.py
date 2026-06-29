@@ -8,8 +8,9 @@ For each sheet:
         - Mass: subtract initial mass per vial (each vial starts at 0)
         - Retentate Cond: EC25 temperature compensation
               σ_25 = σ_T · (1 + alpha · (25 - T))
-        - Permeate Cond: EC25 temperature compensation (and tube-transit
-              time correction is on the time axis, handled separately)
+        - Permeate Cond: EC25 temperature compensation (the retired V_tube
+              tube-transit time shift is no longer applied; per-vial ICP
+              cV_avg is anchored at vial close per the DATA2 convention)
         - Other columns: 1:1 preserved, no transformation expected
   4. Compare expected-after-transform against actually-loaded, point-by-point.
   5. Compute residual + relative error per data point.
@@ -576,7 +577,7 @@ def main():
             {"Variable": "Retentate Temp (°C)", "Loader transformation": "1:1 preserved", "Why": "Needed for EC25 compensation of conductivity."},
             {"Variable": "Retentate Cond (μS/cm)", "Loader transformation": "EC25 temperature compensation: σ_25 = σ_T · (1 + α · (25 - T))", "Why": "Probe reports σ at measured T; the model needs σ at 25°C so concentration inversion (Shedlovsky) is consistent across temperatures."},
             {"Variable": "Permeate Temp (°C)", "Loader transformation": "1:1 preserved", "Why": "Needed for EC25 compensation of permeate conductivity."},
-            {"Variable": "Permeate Cond (μS/cm)", "Loader transformation": "EC25 temperature compensation (same formula as retentate); tube-transit-time correction applied to TIME axis, not to value", "Why": "Same as retentate. Tube transit τ = V_tube / (dm/dt) shifts the permeate time axis to account for the 0.3 g dead volume between membrane and probe."},
+            {"Variable": "Permeate Cond (μS/cm)", "Loader transformation": "EC25 temperature compensation (same formula as retentate); 1:1 in time", "Why": "Same as retentate. The retired V_tube tube-transit time shift is no longer applied; the per-vial ICP (cV_avg) is anchored at vial close per the DATA2 convention."},
             {"Variable": "Vial Swap", "Loader transformation": "1:1 preserved", "Why": "Index flag; used by loader to slice the continuous time-series into per-vial blocks."},
             # — extended audit blocks (added v2 2026-05-27) —
             {"Variable": "ICP vial block (cols 14–21)", "Loader transformation": "Per-vial: label (Feed/Diafiltrate/Retentate/Final Tube/Vial N), Sample Vol (mL), Nitric Acid Vol (mL), ICP intensity (cps), ICP (mg/L) read 1:1 from rows 3+. ICP (mg/L) → mM converted using salt molar mass + dilution factor ((sample+acid)/sample).", "Why": "ICP-OES gives ion-specific concentrations; the loader applies acid dilution + calibration + molar mass to produce cF_feed_icp_mM, cF_diafiltrate_icp_mM, cF_retentate_icp_mM, icp_final_tube_mM, and per-vial cV_avg used by the model."},

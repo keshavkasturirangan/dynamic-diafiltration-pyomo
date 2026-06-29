@@ -299,13 +299,40 @@ NF270_CF_RESIDUAL_FLOOR_MM = None
 NF270_CF_RESIDUAL_SCALE_FRACTION = 0.02
 NF270_CP_RESIDUAL_SCALE_FRACTION = None
 
+# DATA3-workflow toggle. When True, the DATA3 measurement-error spec (cF 2% /
+# cV 3%) is used regardless of the `workflow_family` string threaded through a
+# given call — i.e. it can only PROMOTE to DATA3, never demote. Default False, so
+# DATA1 and DATA2 are completely unaffected. This guards the DATA3 path against
+# the fragility the port audit flagged (e.g. calc_FIM's default workflow_family
+# is 'DATA1', so a DATA3 call that forgets to pass workflow_family='DATA3' would
+# silently revert the retentate weight to the legacy 0.3%). The DATA3 workflow
+# entry points flip this on FOR THE DURATION OF A RUN and restore it in a
+# finally, so it never bleeds into a subsequent DATA1/DATA2 run. DATA1/DATA2
+# never set it. Set it directly (with try/finally) or via run_with_data3_spec().
+NF270_FORCE_DATA3_SPEC = False
+
+
+def run_with_data3_spec(func, *args, **kwargs):
+    """Call ``func(*args, **kwargs)`` with NF270_FORCE_DATA3_SPEC forced on, then
+    restore the prior value — a safe, exception-proof way for a DATA3 workflow to
+    guarantee the DATA3 error spec without leaking the toggle into later runs."""
+    global NF270_FORCE_DATA3_SPEC
+    _prior = NF270_FORCE_DATA3_SPEC
+    NF270_FORCE_DATA3_SPEC = True
+    try:
+        return func(*args, **kwargs)
+    finally:
+        NF270_FORCE_DATA3_SPEC = _prior
+
 
 def _nf270_conc_scales(workflow_family):
     """Return (cf_frac, cp_frac): the retentate/permeate concentration relative
     measurement-error fractions for the WLS weight 1/(frac*c).  DATA3 uses the
     paper-justified NF270_*_RESIDUAL_SCALE_FRACTION when set; DATA1/DATA2 (and
-    unset DATA3 knobs) fall back to the legacy 0.003 / 0.03."""
-    is_data3 = str(workflow_family).upper() == "DATA3"
+    unset DATA3 knobs) fall back to the legacy 0.003 / 0.03.  The DATA3 path is
+    selected by workflow_family=='DATA3' OR the NF270_FORCE_DATA3_SPEC toggle
+    (promote-only; never demotes DATA1/DATA2)."""
+    is_data3 = (str(workflow_family).upper() == "DATA3") or NF270_FORCE_DATA3_SPEC
     cf = (float(NF270_CF_RESIDUAL_SCALE_FRACTION)
           if is_data3 and NF270_CF_RESIDUAL_SCALE_FRACTION is not None else 0.003)
     cp = (float(NF270_CP_RESIDUAL_SCALE_FRACTION)
@@ -351,6 +378,23 @@ def nf270_ionic_strength_factor(salt, cation_valence=None):
 # DATA1/DATA2 the legacy B(c) constraint is used byte-identically regardless of
 # value.  Set to True (or any truthy) to activate.  See Architecture.md §18.3.
 NF270_B_USE_IONIC_STRENGTH = None
+
+
+# Optional fix of the Donnan-dielectric steric*Born factor k.  The donnan B-form
+# has three correlated parameters (P0, X, k); fixing k at a physical value turns
+# the DAE fit into a well-conditioned 2-parameter (P0, X) problem.  When set to a
+# float (DATA3 only), m.k_dd is a fixed Param instead of a free Var; when None,
+# all three are estimated (legacy).  Used as a fallback retry by the campaign.
+NF270_DONNAN_FIX_K = None
+
+
+# Optional fix of the Donnan fixed-charge scale X [mM].  X carries the entire
+# c-dependence of the Donnan B(c): X->0 collapses B to the constant Jw*P0*k
+# (flat curve).  Fitting it freely on single-salt DATA3 rails X to its lower
+# bound (1e-3), so this toggle pins X at a chosen value (DATA3 only) to PROFILE
+# the objective cost of forcing the curve to bend.  When None, X is a free Var
+# (legacy).  Mirrors NF270_DONNAN_FIX_K.
+NF270_DONNAN_FIX_X = None
 
 
 # Optional interior bound on sigma to prevent the optimizer from pinning at
@@ -492,12 +536,15 @@ CONDUCTIVITY_TEMP_COEFF_PER_C = {
 }
 CONDUCTIVITY_TEMP_COEFF_DEFAULT = 0.024
 
-# Permeate time correction — dead-volume / tube-transit shift.
-# Single apparatus constant for the MC2-MC5 UCB diafiltration rig (same
-# plumbing throughout the campaign). Reverse-engineered from the DATA2
-# paper's time-corrected dataset 270511.123, which placed cV_avg
-# measurements ~67-80 s before vial midpoint at avg permeate flow
-# ~5 mg/s → V_tube ≈ 0.3 g across 10 corrected vials.
+# DEPRECATED / UNUSED — permeate tube-transit shift (dead-volume model).
+# The loader no longer applies this: per collaborator feedback we follow the
+# DATA2 convention and anchor the single permeate ICP value at vial close
+# (compared against the model cV at tau.last()), keeping mass/retentate/permeate
+# on one shared time axis. This constant + `_nf270_corrected_cv_index` are kept
+# only for the retired-model diagnostic in `_preflight_audit.py`.
+# Original note: single apparatus constant for the MC2-MC5 UCB diafiltration rig,
+# reverse-engineered from the DATA2 paper's time-corrected dataset 270511.123
+# (cV_avg ~67-80 s before vial midpoint, avg flow ~5 mg/s → V_tube ≈ 0.3 g).
 # Formula: t_corr = (t_open + t_close)/2 - V_tube / (dm/dt)_avg
 NF270_TUBE_VOLUME_G = 0.3
 
@@ -582,8 +629,13 @@ def _ec25_compensate(cond_at_T_uS_per_cm, T_celsius, salt_name):
 
 
 def _nf270_corrected_cv_index(vial_time, vial_mass, V_tube_g=NF270_TUBE_VOLUME_G):
-    """Find the timestamp inside a vial where the ICP-OES concentration
-    measurement *truly* belongs (because of tubing dead-volume delay).
+    """DEPRECATED / UNUSED by the loader. Find the timestamp inside a vial where
+    the ICP-OES concentration measurement *would* belong under the retired
+    tube-transit (dead-volume) model.
+
+    The loader now follows the DATA2 convention and anchors the single permeate
+    ICP value at vial close instead (see the per-vial build loop). This helper is
+    retained only for the `_preflight_audit.py` retired-model diagnostic.
 
     Why this matters — the picture
     -------------------------------
@@ -1396,6 +1448,13 @@ def save_model(m, LO=True, B_form='single', LOUD=False):
     elif B_form=='convection':   
         fit_stru['parameters']['beta_0'] = value(m.beta_0)
         fit_stru['parameters']['beta_1'] = value(m.beta_1)
+    elif isinstance(B_form, str) and B_form == 'sat':
+        fit_stru['parameters']['B_inf'] = value(m.B_inf)
+        fit_stru['parameters']['c_star'] = value(m.c_star)
+    elif isinstance(B_form, str) and B_form == 'donnan':
+        fit_stru['parameters']['P0'] = value(m.P0)
+        fit_stru['parameters']['X'] = value(m.X)
+        fit_stru['parameters']['k_dd'] = value(m.k_dd)
     else:
         fit_stru['parameters']['beta_0'] = value(m.beta_0)
         if not isinstance(B_form, str) and B_form != 0:
@@ -1438,6 +1497,10 @@ def save_model(m, LO=True, B_form='single', LOUD=False):
             elif B_form=='convection':   
                 print('D/l = ',value(m.beta_0))
                 print('H = ',value(m.beta_1))
+            elif B_form=='sat':
+                print('B = Jw*B_inf*(1 - exp(-c_in/c_star)); B_inf =',value(m.B_inf),' c_star =',value(m.c_star),' mM')
+            elif B_form=='donnan':
+                print('B = Jw*P0*(-X+sqrt(X^2+4k^2 c_in^2))/(2 c_in); P0 =',value(m.P0),' X =',value(m.X),' mM  k =',value(m.k_dd))
         else:
             if B_form > 2:
                 print('B = Jw*[',value(m.beta_0),'+',value(m.beta_1),'* c_in ^',B_form-2,'+',value(m.beta_2),'* c_in ^',B_form-1,'+',value(m.beta_3),'* c_in ^',B_form, ']')
@@ -1735,6 +1798,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
         param_in['beta_1'] = 1
         param_in['beta_2'] = 0
         param_in['beta_3'] = 0
+        # Seeds for the DATA3 mechanistic partition B-forms (Js = Jw*B*Δc, so the
+        # plateau amplitude is seeded from the same B->partition conversion as beta_0).
+        _B_amp0 = param_in['B']*36000/param_in['Lp']/delP
+        param_in.setdefault('B_inf', _B_amp0)   # saturating plateau  B_inf
+        param_in.setdefault('c_star', 20.0)     # saturating knee scale  c*  [mM]
+        param_in.setdefault('P0', _B_amp0)       # Donnan bare permeability  P0
+        param_in.setdefault('X', 8.0)            # Donnan fixed-charge scale  X  [mM]
+        param_in.setdefault('k_dd', 0.5)         # Donnan steric x Born factor  k
         if mode == 'Lag':
             param_in['S0'] = 0      
         elif mode == 'Overflow':
@@ -1755,6 +1826,19 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
         elif B_form=='convection':    
             m.beta_0 = Param(initialize=param_in['beta_0'])
             m.H = Var(m.n_vial, m.tau,initialize=0.5)    
+        elif isinstance(B_form, str) and B_form in ('sat', 'donnan'):
+            # DATA3 NF270 mechanistic partition B-forms (Js = Jw*B*Δc).
+            if B_form == 'sat':
+                m.B_inf  = Param(initialize=param_in.get('B_inf', 10.0), mutable=True)
+                m.c_star = Param(initialize=param_in.get('c_star', 20.0), mutable=True)
+            else:
+                m.P0   = Param(initialize=param_in.get('P0', 10.0), mutable=True)
+                m.X    = Param(initialize=param_in.get('X', 8.0), mutable=True)
+                m.k_dd = Param(initialize=param_in.get('k_dd', 0.5), mutable=True)
+            # unbounded B[n,t] (matches the polynomial forms): positivity is
+            # enforced by the defining constraint, and a hard box makes the DAE
+            # infeasible on transient IPOPT steps.
+            m.B = Var(m.n_vial, m.tau)
         else:
             m.beta_0 = Param(initialize=param_in['beta_0'],mutable=True)
             if not isinstance(B_form, str):
@@ -1800,15 +1884,56 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
             m.beta_0 = Var(bounds=(1+1e-6,50),initialize=param_in['beta_0'])
             m.H = Var(m.n_vial, m.tau,initialize=0.5)  
             m.beta_1 = Var(bounds=(0.0,1.0),initialize=0.5)         
-        else:    
+        elif isinstance(B_form, str) and B_form in ('sat', 'donnan'):
+            # DATA3 NF270 mechanistic partition B-forms.
+            #   saturating:  B = B_inf*(1 - exp(-cc/c_star))
+            #   donnan:      B*2cc = P0*(-X + sqrt(X^2 + 4 k^2 cc^2))   (cc = cIn or k_I*cIn)
+            if B_form == 'sat':
+                m.B_inf  = Var(bounds=(1e-6, 50.0), initialize=param_in.get('B_inf', 10.0))
+                m.c_star = Var(bounds=(1e-3, 500.0), initialize=param_in.get('c_star', 20.0))
+            else:
+                m.P0   = Var(bounds=(1e-6, 100.0), initialize=param_in.get('P0', 10.0))
+                if workflow_family == "DATA3" and NF270_DONNAN_FIX_X is not None:
+                    m.X = Param(initialize=float(NF270_DONNAN_FIX_X), mutable=True)  # X-profile probe
+                else:
+                    m.X    = Var(bounds=(1e-3, 200.0), initialize=param_in.get('X', 8.0))
+                if workflow_family == "DATA3" and NF270_DONNAN_FIX_K is not None:
+                    m.k_dd = Param(initialize=float(NF270_DONNAN_FIX_K))  # fixed-k fallback
+                else:
+                    m.k_dd = Var(bounds=(1e-3, 5.0), initialize=param_in.get('k_dd', 0.5))
+            # unbounded B[n,t] (matches the polynomial forms): positivity comes
+            # from the defining constraint; a hard box makes the DAE infeasible
+            # on transient IPOPT steps.
+            m.B = Var(m.n_vial, m.tau)
+        else:
             m.beta_0 = Var(initialize=param_in['beta_0'])
             m.B = Var(m.n_vial, m.tau)
+            # Coefficient bounds.  DATA1/DATA2 keep the legacy +/-20 exactly.  For
+            # DATA3 the term beta_k * c_in^k is badly scaled at high feed
+            # concentration (c_in ~ 95 mM lets beta_2*c^2 reach ~2e5 under the
+            # legacy bound, so the quadratic/cubic DAE fit is numerically
+            # infeasible).  Scale each bound by the in-run feed range so the term
+            # stays physically bounded (|beta_k| * c_max^k <= 30).  Gated on
+            # workflow_family => DATA1/DATA2 reproductions are byte-identical.
+            def _beta_bnd(_k):
+                if workflow_family != "DATA3":
+                    return 20.0
+                try:
+                    _cm = np.nanmax([np.nanmax(np.asarray(r.get('cF_exp', [np.nan]), float))
+                                     for r in data_stru['data_raw']])
+                    _cm = float(_cm) if (np.isfinite(_cm) and _cm > 1.0) else 100.0
+                except Exception:
+                    _cm = 100.0
+                return 30.0 / (_cm ** _k)
             if B_form != 0:
-                m.beta_1 = Var(bounds=(-20,20),initialize=param_in['beta_1'])
+                _bb1 = _beta_bnd(1)
+                m.beta_1 = Var(bounds=(-_bb1, _bb1), initialize=param_in['beta_1'])
             if B_form > 1:
-                m.beta_2 = Var(bounds=(-20,20),initialize=param_in['beta_2'])
+                _bb2 = _beta_bnd(2)
+                m.beta_2 = Var(bounds=(-_bb2, _bb2), initialize=param_in['beta_2'])
             if B_form > 2:
-                m.beta_3 = Var(bounds=(-20,20),initialize=param_in['beta_3'])
+                _bb3 = _beta_bnd(3)
+                m.beta_3 = Var(bounds=(-_bb3, _bb3), initialize=param_in['beta_3'])
                 
         # Honor module-level interior-bound override for NF270 corner-pin
         # diagnostics.  GUARDED to DATA3 only — DATA1/DATA2 always use (0, 1)
@@ -2281,6 +2406,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
     # B(cIn) polynomial form used by the DATA1/DATA2 model variants.
     # The exponent p is controlled by B_form.
     def B_form_rule3(m,n,t):
+        # DATA3 mechanistic partition forms (string B_form): defined on the same
+        # interfacial concentration cc (= cIn, or k_I*cIn under the ionic-strength
+        # toggle) and the same Jw-scaled Js as the polynomial forms.
+        if isinstance(B_form, str) and B_form in ('sat', 'donnan'):
+            cc = (_b_kI * m.cIn[n,t]) if _b_use_I else m.cIn[n,t]
+            if B_form == 'sat':
+                return m.B[n,t] == m.B_inf * (1 - exp(-cc / m.c_star))
+            return m.B[n,t] * (2.0*cc) == m.P0 * (-m.X + sqrt(m.X**2 + 4.0*(m.k_dd**2)*(cc**2)))
         if not isinstance(B_form, str):
             # cc == m.cIn[n,t] when the ionic-strength toggle is off (byte-identical);
             # k_I*m.cIn[n,t] when on, so B is driven by the INTERFACIAL ionic
@@ -2354,6 +2487,7 @@ def solve_model(
     multistart_iterations=10,
     multistart_seed=13,
     band_vials=None,
+    skip_sim_init=False,
 ):
     """
     Solve pyomo model
@@ -2755,17 +2889,23 @@ def solve_model(
         instance.Obj = Objective(rule=obj_rule, sense=minimize)
 
     # Try initialize
-    try:
-        # Simulate the model using scipy
-        sim = Simulator(instance, package='casadi') 
-        tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
-        # Discretize the model using finite_difference
+    if skip_sim_init:
+        # DATA3 opt-in (default False -> DATA1/DATA2 byte-identical): skip the uncapped
+        # casadi/idas Simulator init, which grinds on stiff/fragile cases (e.g. LaCl3)
+        # regardless of seed.  Discretize and let CPU-capped IPOPT solve from the seed.
         TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
-        # Initialize the discretized model using the simulator profiles
-        sim.initialize_model()
-    except Exception as e:
-        print(f"Initialization failed: {e}. Applying discretization without initialization.")
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
+    else:
+        try:
+            # Simulate the model using scipy
+            sim = Simulator(instance, package='casadi')
+            tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
+            # Discretize the model using finite_difference
+            TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
+            # Initialize the discretized model using the simulator profiles
+            sim.initialize_model()
+        except Exception as e:
+            print(f"Initialization failed: {e}. Applying discretization without initialization.")
+            TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
 
     solver = _build_ipopt_solver()
     cpu_time_limit = _resolve_ipopt_cpu_time_limit(
@@ -3291,6 +3431,8 @@ def solve_model_B_fix(
     solver_max_iter=3000,
     solver_retry_max_iter=5000,
     solver_max_cpu_time=None,
+    fix_vars=None,
+    skip_sim_init=False,
 ):
     """
     Solve pyomo model
@@ -3495,15 +3637,28 @@ def solve_model_B_fix(
     
     # pyomo model instance
     instance = model_construct_inter(data_stru, mode, theta, sim_opt, B_form, workflow_family=workflow_family)
-    if B_form=='single':
-        instance.B.fixed=True
+    if fix_vars:
+        # Profile-contour mode: fix exactly the named Vars at the given grid values
+        # and leave every other parameter (incl. the B(c) coefficients) FREE to be
+        # solved.  This is the inverse of the default (fix-B) behaviour and is used
+        # to draw WSSE landscapes where B genuinely varies with concentration.
+        for _name, _val in fix_vars.items():
+            if hasattr(instance, _name):
+                getattr(instance, _name).fix(float(_val))
     else:
-        instance.beta_0.fixed=True
-        instance.beta_1.fixed=True
-        if B_form > 1:
-            instance.beta_2.fixed=True
-    if sigma_fixed:
-        instance.sigma.fixed=True
+        if B_form=='single':
+            instance.B.fixed=True
+        elif isinstance(B_form, str) and B_form in ('sat', 'donnan'):
+            for _p in ('B_inf', 'c_star', 'P0', 'X', 'k_dd'):
+                if hasattr(instance, _p):
+                    getattr(instance, _p).fixed = True
+        else:
+            instance.beta_0.fixed=True
+            instance.beta_1.fixed=True
+            if not isinstance(B_form, str) and B_form > 1:
+                instance.beta_2.fixed=True
+        if sigma_fixed:
+            instance.sigma.fixed=True
     if sim_opt:
         instance.Obj_1 = Objective(expr = 1)
         instance.Obj = Expression(rule=obj_rule)
@@ -3511,16 +3666,24 @@ def solve_model_B_fix(
         instance.Obj = Objective(rule=obj_rule, sense=minimize)
 
     # Try initialize
-    try:
-        # Simulate the model using scipy
-        sim = Simulator(instance, package='casadi') 
-        tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
-        # Discretize the model using finite difference
+    if skip_sim_init:
+        # DATA3 profile-contour path (opt-in only -> DATA1/DATA2 byte-identical): skip the
+        # UNCAPPED casadi/idas Simulator init, which grinds for minutes on intrinsically
+        # stiff (high-sigma) grid nodes regardless of the seed.  Discretize directly and
+        # let the warm-started, CPU-capped IPOPT solve from the seed Var values; a stiff
+        # node then fails FAST under the cap instead of hanging the integrator.
         TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
-        # Initialize the discretized model using the simulator profiles
-        sim.initialize_model()
-    except:
-        TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
+    else:
+        try:
+            # Simulate the model using scipy
+            sim = Simulator(instance, package='casadi')
+            tsim, profiles = sim.simulate(numpoints=300, integrator='idas')
+            # Discretize the model using finite difference
+            TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
+            # Initialize the discretized model using the simulator profiles
+            sim.initialize_model()
+        except:
+            TransformationFactory('dae.finite_difference').apply_to(instance, nfe=nfe, scheme='BACKWARD')
 
     solver = _build_ipopt_solver()
     cpu_time_limit = _resolve_ipopt_cpu_time_limit(
@@ -4300,6 +4463,41 @@ def _segment_indices_by_swap(swap_flags: np.ndarray) -> list[tuple[int, int]]:
     return segments
 
 
+# Sidecar table of CURATED holdup-fill boundaries (DATA2-style), keyed by
+# (workbook filename, sheet name). The experimenter records the true end of the
+# tube-fill / holdup period in seconds (sheet time axis) in the `holdup_end_s`
+# column; the loader honors it instead of the mass-rise auto-detect. Blank →
+# fall back to auto-detect. See _make_holdup_boundary_table.py to (re)generate
+# the pre-filled table + the per-sheet diagnostic plots used to curate it.
+_NF270_HOLDUP_TABLE_PATH = Path(__file__).resolve().parent / "nf270_holdup_boundaries.csv"
+_NF270_HOLDUP_TABLE_CACHE = None  # {(workbook, sheet): holdup_end_s}
+
+
+def _nf270_curated_holdup_end_s(workbook_name, sheet_name):
+    """Return the curated holdup-end time [s] for a sheet, or None.
+
+    Reads the sidecar CSV once and caches it. A row contributes an override only
+    when its `holdup_end_s` cell is a finite number; otherwise the loader falls
+    back to the mass-rise auto-detect. Any read/parse problem degrades silently
+    to None so the loader never breaks on a missing or malformed table."""
+    global _NF270_HOLDUP_TABLE_CACHE
+    if _NF270_HOLDUP_TABLE_CACHE is None:
+        table = {}
+        try:
+            if _NF270_HOLDUP_TABLE_PATH.exists():
+                df = pd.read_csv(_NF270_HOLDUP_TABLE_PATH)
+                for _, row in df.iterrows():
+                    wb = str(row.get("workbook", "")).strip()
+                    sh = str(row.get("sheet", "")).strip()
+                    val = pd.to_numeric(row.get("holdup_end_s"), errors="coerce")
+                    if wb and sh and np.isfinite(val):
+                        table[(wb, sh)] = float(val)
+        except Exception:
+            table = {}
+        _NF270_HOLDUP_TABLE_CACHE = table
+    return _NF270_HOLDUP_TABLE_CACHE.get((str(workbook_name).strip(), str(sheet_name).strip()))
+
+
 _CATION_MW_G_PER_MOL = {
     "NaCl":  22.99,    # Na
     "KCl":   39.10,    # K
@@ -4652,20 +4850,18 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         else:
             seg_mass = seg_mass_cum
         cV_scalar = icp_per_vial.get(idx, np.nan)
-        # Permeate time correction (DATA2 paper convention): place the single
-        # ICP measurement in a NaN-padded array at the membrane-event time,
-        # not at vial close. Falls back to a length-1 scalar array if the
-        # correction can't be computed (e.g. startup vial with no mass).
+        # Permeate placement (DATA2 convention): the single ICP measurement is a
+        # per-vial scalar with no recorded sample time, so anchor it at vial
+        # close. The fit objective then compares it against the model permeate
+        # concentration at tau.last() (see the cV residual branch in
+        # model_construct_inter). All three streams (mass, retentate, permeate)
+        # stay on ONE shared time axis — we deliberately do NOT displace the
+        # permeate to an interior membrane-event index (the retired V_tube
+        # tube-transit model), which would desynchronise it from mass/retentate.
         vial_time = time_all[a:b]
         cV_avg_arr = np.full(len(vial_time), np.nan, dtype=float)
-        if np.isfinite(cV_scalar):
-            idx_corr = _nf270_corrected_cv_index(vial_time, seg_mass, NF270_TUBE_VOLUME_G)
-            if idx_corr is not None:
-                cV_avg_arr[idx_corr] = float(cV_scalar)
-            elif len(vial_time) > 0:
-                # Fallback: anchor at vial close (legacy behavior) so we
-                # don't silently drop the measurement.
-                cV_avg_arr[-1] = float(cV_scalar)
+        if np.isfinite(cV_scalar) and len(vial_time) > 0:
+            cV_avg_arr[-1] = float(cV_scalar)
         row = {
             "number":          idx,
             "time":            vial_time,
@@ -4709,11 +4905,14 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
             "reference_C": 25.0,
             "method": "sigma_25 = sigma_T * (1 + alpha * (25 - T_celsius))",
         },
-        "permeate_time_corrected": True,
+        "permeate_time_corrected": False,
         "permeate_time_correction": {
-            "method": "tube_transit_shift",
-            "V_tube_g": float(NF270_TUBE_VOLUME_G),
-            "formula": "t_corr = (t_open + t_close)/2 - V_tube / (dm/dt)_avg",
+            "method": "vial_close",
+            "note": (
+                "DATA2 convention: the single permeate ICP value is anchored at "
+                "vial close and compared against the model cV at tau.last(). All "
+                "streams share one time axis; no tube-transit (V_tube) displacement."
+            ),
         },
         "measured_ret_temp_C": measured_ret_temp_all,
         "measured_perm_temp_C": measured_perm_temp_all,
@@ -4796,6 +4995,7 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     cfg["vial1_split_status"] = "skip_no_data"
     cfg["t_perm_start_s"]     = None
     cfg["n_holdup_samples"]   = 0
+    cfg["holdup_boundary_source"] = None
     if data_raw:
         v1 = data_raw[0]
         t = np.asarray(v1["time"], dtype=float).reshape(-1)
@@ -4806,57 +5006,71 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         min_real    = 10
         if nN >= (min_holdup + min_real + 1):
             t = t[:nN]; m = m[:nN]
-            m_base = float(m[0])
-            rose = (m - m_base) >= threshold_g
-            if rose.any():
-                i_start = int(np.argmax(rose))
-                if i_start >= min_holdup and (nN - i_start) >= min_real:
-                    t_perm_start = float(t[i_start])
-                    # Build holdup row (slice every per-sample array; per-vial
-                    # scalars get NaN since no ICP for the holdup).
-                    def _slice_row(orig_row, lo, hi, *, drop_per_vial_scalars):
-                        new = {}
-                        for key, val in orig_row.items():
-                            try:
-                                arr = np.asarray(val)
-                            except Exception:
-                                new[key] = val
-                                continue
-                            if arr.ndim >= 1 and arr.shape[0] == nN:
-                                new[key] = arr[lo:hi].copy()
-                            elif arr.ndim == 0 or arr.shape == () or arr.size == 1:
-                                new[key] = float("nan") if drop_per_vial_scalars else val
-                            else:
-                                new[key] = val
-                        return new
-                    holdup_row = _slice_row(v1, 0, i_start, drop_per_vial_scalars=True)
-                    real_row   = _slice_row(v1, i_start, nN, drop_per_vial_scalars=False)
-                    # Renumber and reset real-vial mass to start at ~0.
-                    holdup_row["number"] = 1
-                    real_row["number"]   = 2
-                    if isinstance(real_row.get("mass"), np.ndarray) and real_row["mass"].size:
-                        real_row["mass"] = real_row["mass"] - real_row["mass"][0]
-                    # Also zero the holdup mass (it's tiny but consistent).
-                    if isinstance(holdup_row.get("mass"), np.ndarray) and holdup_row["mass"].size:
-                        holdup_row["mass"] = holdup_row["mass"] - holdup_row["mass"][0]
-                    # Renumber subsequent vials.
-                    new_data_raw = [holdup_row, real_row]
-                    for j, r in enumerate(data_raw[1:], start=3):
-                        r["number"] = j
-                        new_data_raw.append(r)
-                    data_stru["data_raw"] = new_data_raw
-                    cfg["n"]                  = len(new_data_raw)
-                    cfg["n_v0"]               = 2
-                    cfg["n_extra"]            = 1
-                    cfg["n_h"]                = 1
-                    cfg["n_A"]                = 1
-                    cfg["vial1_split_status"] = "split"
-                    cfg["t_perm_start_s"]     = t_perm_start
-                    cfg["n_holdup_samples"]   = i_start
-                else:
-                    cfg["vial1_split_status"] = "skip_no_lag"
+            # Holdup boundary: a curated (DATA2-style) override wins; otherwise
+            # auto-detect the first mass rise above baseline. Curated boundaries
+            # are honored whenever they leave >=1 holdup and >=1 real sample;
+            # auto-detected ones keep the stricter min_holdup / min_real guards.
+            curated_s = _nf270_curated_holdup_end_s(Path(path).name, sheet_name)
+            if curated_s is not None:
+                i_start = int(np.argmin(np.abs(t - float(curated_s))))
+                boundary_source = "curated"
+                valid = 1 <= i_start <= nN - 1
             else:
+                m_base = float(m[0])
+                rose = (m - m_base) >= threshold_g
+                i_start = int(np.argmax(rose)) if rose.any() else None
+                boundary_source = "auto_mass_rise"
+                valid = i_start is not None and i_start >= min_holdup and (nN - i_start) >= min_real
+            if valid:
+                t_perm_start = float(t[i_start])
+                # Build holdup row (slice every per-sample array; per-vial
+                # scalars get NaN since no ICP for the holdup).
+                def _slice_row(orig_row, lo, hi, *, drop_per_vial_scalars):
+                    new = {}
+                    for key, val in orig_row.items():
+                        try:
+                            arr = np.asarray(val)
+                        except Exception:
+                            new[key] = val
+                            continue
+                        if arr.ndim >= 1 and arr.shape[0] == nN:
+                            new[key] = arr[lo:hi].copy()
+                        elif arr.ndim == 0 or arr.shape == () or arr.size == 1:
+                            new[key] = float("nan") if drop_per_vial_scalars else val
+                        else:
+                            new[key] = val
+                    return new
+                holdup_row = _slice_row(v1, 0, i_start, drop_per_vial_scalars=True)
+                real_row   = _slice_row(v1, i_start, nN, drop_per_vial_scalars=False)
+                # Renumber and reset real-vial mass to start at ~0.
+                holdup_row["number"] = 1
+                real_row["number"]   = 2
+                if isinstance(real_row.get("mass"), np.ndarray) and real_row["mass"].size:
+                    real_row["mass"] = real_row["mass"] - real_row["mass"][0]
+                # Also zero the holdup mass (it's tiny but consistent).
+                if isinstance(holdup_row.get("mass"), np.ndarray) and holdup_row["mass"].size:
+                    holdup_row["mass"] = holdup_row["mass"] - holdup_row["mass"][0]
+                # Renumber subsequent vials.
+                new_data_raw = [holdup_row, real_row]
+                for j, r in enumerate(data_raw[1:], start=3):
+                    r["number"] = j
+                    new_data_raw.append(r)
+                data_stru["data_raw"] = new_data_raw
+                cfg["n"]                  = len(new_data_raw)
+                cfg["n_v0"]               = 2
+                cfg["n_extra"]            = 1
+                cfg["n_h"]                = 1
+                cfg["n_A"]                = 1
+                cfg["vial1_split_status"] = "split"
+                cfg["t_perm_start_s"]     = t_perm_start
+                cfg["n_holdup_samples"]   = i_start
+                cfg["holdup_boundary_source"] = boundary_source
+            elif boundary_source == "curated":
+                cfg["vial1_split_status"] = "skip_curated_out_of_range"
+            elif i_start is None:
                 cfg["vial1_split_status"] = "skip_no_rise"
+            else:
+                cfg["vial1_split_status"] = "skip_no_lag"
 
     # ------ Lp seed from vial-1 slope (data-driven) ---------------------
     # Use the first REAL vial (index n_v0, 1-indexed) for the slope fit.
@@ -5466,10 +5680,12 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
     plt.close(mass_fig)
 
     # Concentration vs time — paper Figure 6 panel B/E styling
-    PAPER_RET_FILL         = "#C71585"   # mediumvioletred — retentate squares
-    PAPER_VIAL_FILL        = "#008B8B"   # darkcyan        — vial squares
-    PAPER_RET_LINE         = "#2E8B57"   # seagreen        — retentate prediction
-    PAPER_PERM_LINE        = "#D62728"   # publication red — permeate prediction & vial triangle
+    # DATA3 (2026-06-19b): one color per STREAM by user request — retentate (data + ICP
+    # + prediction) = TEAL; permeate (data + prediction) = RED.  Guarded: only this DATA3 fn uses them.
+    PAPER_RET_FILL         = "#008B8B"   # retentate — data squares + ICP diamonds (teal)
+    PAPER_VIAL_FILL        = "#D62728"   # permeate  — vial data squares (red)
+    PAPER_RET_LINE         = "#008B8B"   # retentate — prediction line (teal, unified w/ data)
+    PAPER_PERM_LINE        = "#D62728"   # permeate  — prediction line (red, unified w/ data)
     PAPER_EDGE_COLOR       = "k"
     PAPER_EDGE_WIDTH       = 0.6         # vial squares + prediction triangles
     PAPER_RET_MARKER_SIZE  = 4           # dense retentate trace — small, no edge
@@ -5481,6 +5697,18 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
     seen_ret_pred = False
     seen_perm_pred = False
     seen_vial_pred = False
+    seen_ret_icp = False
+    # DATA3 concentration-plot refinements (2026-06-19): retentate-ICP 2-pt anchor (feed=start,
+    # cF_retentate_icp_mM=end) + lag boundary for zeroing the predicted permeate before permeate
+    # begins.  All reads are NaN/None-guarded so a sheet missing the key degrades gracefully.
+    _cfg = data_payload.get("data_config", {})
+    _ret_icp_start = float(_cfg.get("C_F0", np.nan))
+    _ret_icp_end = float(_cfg.get("cF_retentate_icp_mM", np.nan))
+    _last_t = np.asarray(data_raw[-1].get("time", []), dtype=float).reshape(-1) if data_raw else np.array([])
+    _ret_icp_t_start_min = 0.0
+    _ret_icp_t_end_min = float(_plot_time_minutes(_last_t[-1], t_delay=t_delay)) if _last_t.size else np.nan
+    _t_perm_start_s = _cfg.get("t_perm_start_s")
+    _lag_boundary_min = (_plot_time_minutes(_t_perm_start_s, t_delay=t_delay) if _t_perm_start_s is not None else None)
     for i, row in enumerate(data_raw):
         time = np.asarray(row.get("time", []), dtype=float).reshape(-1)
         if time.size == 0:
@@ -5562,10 +5790,28 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
                 label="Retentate (Predictions)" if not seen_ret_pred else None,
             )
             seen_ret_pred = True
+        # DATA3: retentate ICP — 2-pt scatter (start=feed, end=cF_retentate_icp_mM), drawn once.
+        if not seen_ret_icp:
+            _icp_t, _icp_c = [], []
+            if np.isfinite(_ret_icp_start):
+                _icp_t.append(_ret_icp_t_start_min); _icp_c.append(_ret_icp_start)
+            if np.isfinite(_ret_icp_end) and np.isfinite(_ret_icp_t_end_min):
+                _icp_t.append(_ret_icp_t_end_min); _icp_c.append(_ret_icp_end)
+            if _icp_c:
+                conc_ax.plot(_icp_t, _icp_c, marker="D", linestyle="None",
+                             color=PAPER_RET_FILL, markersize=PAPER_VIAL_MARKER_SIZE,
+                             markeredgecolor=PAPER_EDGE_COLOR, markeredgewidth=PAPER_EDGE_WIDTH,
+                             clip_on=False, label="Retentate (ICP)")
+                seen_ret_icp = True
         if cH.size:
+            # DATA3: zero the predicted permeate through the lag startup (no permeate yet).
+            _cH_t = _plot_time_minutes(sim_time, t_delay=t_delay)
+            _cH_plot = cH.copy()
+            if _lag_boundary_min is not None:
+                _cH_plot = np.where(np.asarray(_cH_t) < _lag_boundary_min, 0.0, _cH_plot)
             conc_ax.plot(
-                _plot_time_minutes(sim_time, t_delay=t_delay),
-                cH,
+                _cH_t,
+                _cH_plot,
                 color=PAPER_PERM_LINE,
                 linestyle="-",
                 linewidth=2.5,
@@ -5573,36 +5819,8 @@ def run_data3_time_series_plots(results, save_dir=None, show=False):
                 label="Permeate (Predictions)" if not seen_perm_pred else None,
             )
             seen_perm_pred = True
-        if cV.size:
-            if cV_avg_arr.ndim == 0 or cV_avg_arr.size == 1:
-                conc_ax.plot(
-                    _plot_time_minutes(sim_time[-1], t_delay=t_delay),
-                    float(cV[-1]),
-                    marker="^", linestyle="None",
-                    color=PAPER_PERM_LINE,
-                    markersize=PAPER_VIAL_MARKER_SIZE,
-                    markeredgecolor=PAPER_EDGE_COLOR,
-                    markeredgewidth=PAPER_EDGE_WIDTH,
-                    alpha=1.0,
-                    label="Vial (Predictions)" if not seen_vial_pred else None,
-                )
-            else:
-                valid = ~np.isnan(cV_avg_arr[: min(len(time), len(cV_avg_arr))])
-                if np.any(valid):
-                    time_shifted = time[: min(len(time), len(cV_avg_arr))]
-                    interp_cv = interpolate.interp1d(sim_time, cV, fill_value="extrapolate")
-                    conc_ax.plot(
-                        _plot_time_minutes(time_shifted[valid], t_delay=t_delay),
-                        interp_cv(time_shifted[valid]),
-                        marker="^", linestyle="None",
-                        color=PAPER_PERM_LINE,
-                        markersize=PAPER_VIAL_MARKER_SIZE,   # typo fix: was PAPER_MARKER_SIZE
-                        markeredgecolor=PAPER_EDGE_COLOR,
-                        markeredgewidth=PAPER_EDGE_WIDTH,
-                        alpha=1.0,
-                        label="Vial (Predictions)" if not seen_vial_pred else None,
-                    )
-            seen_vial_pred = True
+        # DATA3: per-vial permeate PREDICTION markers removed — continuous cH line is the only
+        # permeate prediction now (change 3).
     conc_ax.set_xlabel("Time [min]", fontsize=16, fontweight="bold")
     conc_ax.set_ylabel("Concentration [mM]", fontsize=16, fontweight="bold")
     conc_ax.tick_params(direction="in")
@@ -8301,6 +8519,168 @@ def run_nf270_contour_for_sheet(
     }
 
 
+def run_nf270_matlab_ports(
+    run_ids,
+    *,
+    save_dir,
+    grid_density=20,
+    sigma_levels=6,
+    nfe=80,
+    data_root=None,
+    mode=None,
+    B_form="single",
+    do_2d=True,
+    do_3d=True,
+    do_doe=False,
+    do_sigma_heatmap=False,
+    condition_var=None,
+    condition_values=None,
+    delp_values_psi=None,
+):
+    """Runfile-facing driver for the MATLAB-port analyses on NF270 sheets.
+
+    Single entry point the runfile can call to exercise the Python ports of the
+    legacy MATLAB toolchain — all evaluated with the DATA3 model + error spec:
+
+        calc_contour_2d_py            -> contourdata-x_<x>-y_<y>.csv  (B-Lp, sigma-Lp, sigma-B)
+        calc_contour_3d_py            -> contour3ddata.csv
+        doe_heatmap_py                -> doe_heatmap-<cond>.csv         (A/D/E/modE optimality)
+        heatmap_sigma_sensitivity_py  -> sigma_sensitivity_heatmap-<cond>.csv
+
+    For each sheet a single-shot centering fit provides theta (cached as
+    centering_fit.json and reused on resume). Heavy MBDoE sweeps (DoE / sigma
+    heatmaps) are OFF by default; enable with do_doe / do_sigma_heatmap.
+
+    Arguments mirror run_nf270_contour_branch; condition_* override the default
+    MBDoE grid (C_F0 for filtration / C_D for diafiltration; 5-80 mM x 20-120 psi).
+
+    Returns one dict per processed sheet: {run_id, theta, files}.
+    """
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    if run_ids is None or run_ids == "all":
+        resolved = tuple(NF270_RUN_REGISTRY.keys())
+    else:
+        resolved = tuple(str(r) for r in run_ids)
+    resolved = tuple(r for r in resolved if r in NF270_RUN_REGISTRY)
+    if not resolved:
+        print("\n[matlab-ports] no NF270 sheets in the selection; nothing to do.")
+        return []
+
+    root = Path(data_root) if data_root else NF270_DEFAULT_ROOT
+    print(f"\n[matlab-ports] {len(resolved)} sheet(s); "
+          f"2d={do_2d} 3d={do_3d} doe={do_doe} sigma_heatmap={do_sigma_heatmap}")
+    # Capture any explicit mode override; otherwise each sheet drives the model
+    # in its OWN detected mode (data_stru["mode"] in {Lag, Overflow, DATA}).
+    mode_override = mode
+    outputs = []
+    for run_id in resolved:
+        fam = NF270_RUN_REGISTRY[run_id]
+        sheet_dir = save_dir / run_id
+        sheet_dir.mkdir(parents=True, exist_ok=True)
+        print(f"\n[matlab-ports] === {run_id} ===")
+        try:
+            data_stru = loadxlsx(root / fam["workbook"], sheet=fam["sheet"])["data_stru"]
+        except Exception as exc:
+            print(f"[matlab-ports] load failed for {run_id}: {exc!r}")
+            continue
+        # Per-sheet mode: an explicit `mode` arg wins; else use the sheet's own
+        # detected mode so Lag/Overflow/DATA sheets are each modeled correctly.
+        mode = str(mode_override or data_stru.get("mode") or "Lag")
+        # Mode detection is heuristic (_detect_nf270_mode); log the source so a
+        # mis-detected sheet is catchable rather than silently mis-modeled.
+        print(f"[matlab-ports] mode = {mode} (source: {data_stru.get('mode_source', 'unknown')})")
+
+        # Centering fit -> theta (reuse cached centering_fit.json on resume).
+        theta = None
+        cached = sheet_dir / "centering_fit.json"
+        if cached.exists():
+            try:
+                theta = dict(json.loads(cached.read_text()).get("theta_fit", {}))
+            except Exception:
+                theta = None
+        if not theta:
+            try:
+                fit_stru, _s, _i = solve_model(
+                    data_stru, mode, sim_opt=False, B_form=B_form,
+                    workflow_family="DATA3", nfe=nfe, LOUD=False,
+                )
+                theta = dict(fit_stru.get("parameters", {})) if isinstance(fit_stru, dict) else None
+            except Exception as exc:
+                print(f"[matlab-ports] centering fit failed for {run_id}: {exc!r}")
+                theta = None
+            if theta:
+                try:
+                    cached.write_text(json.dumps(
+                        {"run_id": run_id, "theta_fit": theta}, indent=2, default=float))
+                except Exception:
+                    pass
+        if not theta:
+            print(f"[matlab-ports] no theta for {run_id}; skipping.")
+            continue
+
+        rec = {"run_id": run_id, "theta": theta, "files": []}
+
+        if do_2d:
+            for x_var, y_var in (("B", "Lp"), ("sigma", "Lp"), ("sigma", "B")):
+                try:
+                    calc_contour_2d_py(
+                        data_stru, theta, x_var, y_var,
+                        grid_density=grid_density, save_dir=sheet_dir,
+                        mode=mode, B_form=B_form, workflow_family="DATA3", nfe=nfe,
+                    )
+                    rec["files"].append(str(sheet_dir / f"contourdata-x_{x_var}-y_{y_var}.csv"))
+                except Exception as exc:
+                    print(f"[matlab-ports] 2D {x_var}-{y_var} failed: {exc!r}")
+
+        if do_3d:
+            try:
+                calc_contour_3d_py(
+                    data_stru, theta, grid_density=grid_density,
+                    sigma_levels=sigma_levels, save_dir=sheet_dir,
+                    mode=mode, B_form=B_form, workflow_family="DATA3", nfe=nfe,
+                )
+                rec["files"].append(str(sheet_dir / "contour3ddata.csv"))
+            except Exception as exc:
+                print(f"[matlab-ports] 3D failed: {exc!r}")
+
+        if do_doe or do_sigma_heatmap:
+            # NF270 sheets carry mode in {Lag, Overflow, DATA}, never "D"; detect
+            # diafiltration from a nonzero dialysate concentration instead.
+            _dc = data_stru.get("data_config", {})
+            _is_diaf = float(_dc.get("C_D", 0.0) or 0.0) > 0.0
+            cv = condition_var or ("C_D" if _is_diaf else "C_F0")
+            vals = list(condition_values) if condition_values else list(range(5, 81, 15))
+            dps = list(delp_values_psi) if delp_values_psi else list(range(20, 121, 25))
+            if do_doe:
+                try:
+                    doe_heatmap_py(
+                        data_stru, theta, condition_var=cv, condition_values=vals,
+                        delp_values_psi=dps, mode=mode, B_form=B_form,
+                        workflow_family="DATA3", nfe=nfe, save_dir=sheet_dir,
+                    )
+                    rec["files"].append(str(sheet_dir / f"doe_heatmap-{cv}.csv"))
+                except Exception as exc:
+                    print(f"[matlab-ports] DoE heatmap failed: {exc!r}")
+            if do_sigma_heatmap:
+                try:
+                    heatmap_sigma_sensitivity_py(
+                        data_stru, theta, condition_var=cv, condition_values=vals,
+                        delp_values_psi=dps, mode=mode, B_form=B_form,
+                        workflow_family="DATA3", nfe=nfe, save_dir=sheet_dir,
+                    )
+                    rec["files"].append(str(sheet_dir / f"sigma_sensitivity_heatmap-{cv}.csv"))
+                except Exception as exc:
+                    print(f"[matlab-ports] sigma-sensitivity heatmap failed: {exc!r}")
+
+        outputs.append(rec)
+        print(f"[matlab-ports] {run_id}: {len(rec['files'])} file(s)")
+
+    print(f"\n[matlab-ports] done: {len(outputs)} sheet(s)")
+    return outputs
+
+
 def run_nf270_contour_branch(
     run_ids,
     *,
@@ -9940,6 +10320,14 @@ def _multistart_theta_defaults(theta, workflow_family="DATA1", B_form="single"):
     base.setdefault("beta_1", 1.0)
     base.setdefault("beta_2", 0.0)
     base.setdefault("beta_3", 0.0)
+    # Mechanistic partition B-forms (DATA3): ensure their parameters exist on
+    # every theta so model_construct_inter / multistart trials stay complete.
+    _amp = float(base.get("beta_0", 1e-6))
+    base.setdefault("B_inf", _amp if _amp > 0 else 10.0)
+    base.setdefault("c_star", 20.0)
+    base.setdefault("P0", _amp if _amp > 0 else 10.0)
+    base.setdefault("X", 8.0)
+    base.setdefault("k_dd", 0.5)
     return base
 
 
@@ -9961,6 +10349,18 @@ def _multistart_theta_specs(theta, workflow_family="DATA1", B_form="single"):
             specs["beta_0"] = ("log", 1e-6, 5.0)
         if "beta_1" in theta and np.isscalar(theta["beta_1"]):
             specs["beta_1"] = ("linear", 0.0, 1.0)
+    elif b_form_str == "sat":
+        if "B_inf" in theta and np.isscalar(theta["B_inf"]):
+            specs["B_inf"] = ("log", 1e-3, 30.0)
+        if "c_star" in theta and np.isscalar(theta["c_star"]):
+            specs["c_star"] = ("log", 1.0, 200.0)
+    elif b_form_str == "donnan":
+        if "P0" in theta and np.isscalar(theta["P0"]):
+            specs["P0"] = ("log", 1e-3, 50.0)
+        if "X" in theta and np.isscalar(theta["X"]):
+            specs["X"] = ("log", 1.0, 100.0)
+        if "k_dd" in theta and np.isscalar(theta["k_dd"]):
+            specs["k_dd"] = ("linear", 0.05, 2.0)
     else:
         if "beta_0" in theta and np.isscalar(theta["beta_0"]):
             specs["beta_0"] = ("log", 1e-6, 5.0)
@@ -14670,3 +15070,382 @@ def sigma_sensitivity_py(
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
     return out, out_path
+
+
+def calc_contour_3d_py(
+    data_stru,
+    theta,
+    *,
+    grid_density=20,
+    sigma_levels=6,
+    save_dir,
+    b_bounds=None,
+    lp_bounds=None,
+    sigma_bounds=None,
+    mode="Lag",
+    B_form="single",
+    workflow_family="DATA3",
+    nfe=80,
+    write_csv=True,
+):
+    """Python port of legacy/data1_matlab/functions/calc_contour_3d.m.
+
+    3D parameter sweep over (B, Lp, sigma). B and Lp use ``grid_density`` linear
+    points each; sigma uses ``sigma_levels`` points (MATLAB hard-codes 6). For
+    every (B, Lp, sigma) node, theta is copied, the three params overridden, and
+    calc_ind_objectives_py evaluated; log10 of each per-channel SSR is stored.
+
+    Bounds (MATLAB calc_contour_3d.m lines 39-49):
+      - Lp    -> [0.1*theta.Lp, 2*theta.Lp]
+      - B     -> MATLAB uses [0, 2]; here the salt-specific
+                 NF270_B_BOUNDS_PER_SALT triple for DATA3, else (1e-6, 2)
+      - sigma -> theta bounds (0, 1)
+
+    Output CSV ``contour3ddata.csv`` columns
+    [B, Lp, sigma, Obj_mass, Obj_concentration, Obj_retentate_concentration]
+    (MATLAB calc_contour_3d.m lines 98-100, with Obj_perm_conc/Obj_reten_conc
+    renamed to Obj_concentration/Obj_retentate_concentration so the existing
+    Python contour readers and the 2D schema line up).
+
+    Returns pandas.DataFrame.
+
+    Notes
+    -----
+    Evaluations = grid_density**2 * sigma_levels forward solves — heavy. Use a
+    small grid_density (e.g. 8-12) for previews.
+    """
+    import numpy as np
+    import pandas as pd
+
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    def _b_default():
+        if workflow_family == "DATA3":
+            salt = str(data_stru.get("data_config", {}).get("namec", "")).strip()
+            return NF270_B_BOUNDS_PER_SALT.get(salt, NF270_B_BOUNDS_DEFAULT)
+        # Non-DATA3 fallback mirrors MATLAB calc_contour_3d.m:44-45 (B hard-coded
+        # to [0, 2]). DATA3 always uses NF270_B_BOUNDS_PER_SALT above, so DATA3
+        # contour outputs are unaffected by this legacy bound.
+        return (1e-6, 2.0)
+
+    lp0 = float(theta.get("Lp", 1.0))
+    b_lb, b_ub = b_bounds or _b_default()
+    lp_lb, lp_ub = lp_bounds or (0.1 * lp0, 2.0 * lp0)
+    s_lb, s_ub = sigma_bounds or (0.0, 1.0)
+
+    B_vals = np.linspace(b_lb, b_ub, grid_density)
+    Lp_vals = np.linspace(lp_lb, lp_ub, grid_density)
+    S_vals = np.linspace(s_lb, s_ub, sigma_levels)
+
+    def _log10_or_nan(v):
+        try:
+            if v is None or not np.isfinite(v) or v <= 0:
+                return float("nan")
+            return float(np.log10(v))
+        except (TypeError, ValueError):
+            return float("nan")
+
+    rows = []
+    for bb in B_vals:
+        for ll in Lp_vals:
+            for ss in S_vals:
+                b = dict(theta)
+                b["B"] = float(bb)
+                b["Lp"] = float(ll)
+                b["sigma"] = float(ss)
+                ind = calc_ind_objectives_py(
+                    b, data_stru,
+                    mode=mode, B_form=B_form,
+                    workflow_family=workflow_family, nfe=nfe,
+                )
+                rows.append({
+                    "B": float(bb),
+                    "Lp": float(ll),
+                    "sigma": float(ss),
+                    "Obj_mass":                    _log10_or_nan(ind.m),
+                    "Obj_concentration":           _log10_or_nan(ind.cp),
+                    "Obj_retentate_concentration": _log10_or_nan(ind.cr),
+                })
+
+    df = pd.DataFrame(rows)
+    if write_csv:
+        df.to_csv(save_dir / "contour3ddata.csv", index=False)
+    return df
+
+
+def _apply_sweep_condition(ds, condition_var, cval):
+    """Apply a swept experiment condition to a (deep-copied) data_stru so it
+    actually changes the simulated trajectory.
+
+    ``C_D`` is read straight from data_config by the Pyomo model (m.cD), so
+    setting data_config['C_D'] is sufficient. ``C_F0`` is the initial RETENTATE
+    concentration, which the Lag/Overflow model anchors to the first finite
+    cF_exp of vial 0 (m.cF[1,0] == firstNonNan(data_raw[0]['cF_exp'])) — the
+    data_config['C_F0'] entry alone is only a solver-init hint. So for a C_F0
+    sweep we must also override that first-finite cF_exp anchor, otherwise the
+    swept value never reaches the IC and the whole concentration axis is inert.
+    """
+    import numpy as _np
+    dc = ds.setdefault("data_config", {})
+    dc[condition_var] = float(cval)
+    if condition_var == "C_F0" and ds.get("data_raw"):
+        row = ds["data_raw"][0]
+        cf = row.get("cF_exp")
+        if cf is not None:
+            arr = _np.asarray(cf, dtype=float)
+            flat = arr.reshape(-1)
+            fin = _np.where(_np.isfinite(flat))[0]
+            if fin.size:
+                flat = flat.copy()
+                flat[fin[0]] = float(cval)
+                row["cF_exp"] = flat.reshape(arr.shape)
+
+
+def _initial_retentate_cF(ds):
+    """First finite retentate concentration of vial 0 (the osmotic driver), used
+    as the cF proxy in the Jw feasibility filter; falls back to data_config C_F0."""
+    import numpy as _np
+    try:
+        flat = _np.asarray(ds["data_raw"][0].get("cF_exp"), dtype=float).reshape(-1)
+        fin = flat[_np.isfinite(flat)]
+        if fin.size:
+            return float(fin[0])
+    except Exception:
+        pass
+    return float(ds.get("data_config", {}).get("C_F0", 0.0) or 0.0)
+
+
+def doe_heatmap_py(
+    data_stru,
+    theta,
+    *,
+    condition_var,
+    condition_values,
+    delp_values_psi,
+    mode=None,
+    B_form="single",
+    workflow_family="DATA3",
+    end_vial=None,
+    step=1e-3,
+    formula="forward",
+    nfe=120,
+    jw_filter=True,
+    save_dir=None,
+    write_csv=True,
+):
+    """Python port of legacy/data1_matlab/doe_heatmap_{filtration,diafiltration}.m.
+
+    Sweeps experiment conditions (``condition_var`` x applied pressure) and, at
+    each node, builds the FIM via calc_FIM and records the four MBDoE optimality
+    metrics: A (trace), D (det), E (min eigenvalue) and modified-E (cond).
+
+    One Python function covers both MATLAB drivers via ``condition_var``:
+      - "C_F0": initial feed concentration sweep (doe_heatmap_filtration, cf0)
+      - "C_D" : dialysate concentration sweep    (doe_heatmap_diafiltration, cd)
+
+    ``delp_values_psi`` are converted to bar (/14.504) before entering
+    data_config, matching the MATLAB ``delP/14.504``.
+
+    Jw feasibility filter (MATLAB lines ~56-72): a node is dropped to NaN when
+    delP - ni*R*T*sigma*cF < 1e-8 (osmotically infeasible). NOTE: MATLAB takes
+    max(cF) from a forward sim; to avoid doubling the solve count this port uses
+    the swept concentration as the cF proxy (documented approximation).
+
+    Returns dict: condition_var, condition_values, delp,
+    A_trace / D_det / E_min_eig / modE_cond matrices shaped
+    [len(delp) x len(condition_values)] (MATLAB orientation).
+    """
+    import numpy as np
+    import pandas as pd
+    import copy
+
+    mode = mode or str(data_stru.get("mode") or "Lag")
+    cond_values = [float(c) for c in condition_values]
+    delp_values = [float(p) for p in delp_values_psi]
+    nC, nP = len(cond_values), len(delp_values)
+    A = np.full((nP, nC), np.nan)
+    D = np.full((nP, nC), np.nan)
+    E = np.full((nP, nC), np.nan)
+    ME = np.full((nP, nC), np.nan)
+
+    R = 8.314e-5  # cm^3 bar / micromol / K
+    sig = float(theta.get("sigma", 1.0))
+
+    for ci, cval in enumerate(cond_values):
+        for pi, dpsi in enumerate(delp_values):
+            ds = copy.deepcopy(data_stru)
+            ds["data_config"]["delP"] = dpsi / 14.504
+            _apply_sweep_condition(ds, condition_var, cval)
+            if end_vial is not None:
+                ds["data_config"]["n"] = int(end_vial)
+            if jw_filter:
+                ni = float(ds["data_config"].get("ni", 1.0))
+                T = float(ds["data_config"].get("Temp", 298.15))
+                # Retentate osmotic driver: the swept feed conc for a C_F0 sweep,
+                # else the data's initial retentate conc (a C_D sweep changes the
+                # dialysate, not the retentate driver).
+                cF_proxy = cval if condition_var == "C_F0" else _initial_retentate_cF(ds)
+                if ds["data_config"]["delP"] - ni * R * T * sig * cF_proxy < 1e-8:
+                    continue
+            try:
+                doe = calc_FIM(
+                    ds, mode, theta=theta, step=step, formula=formula,
+                    B_form=B_form, workflow_family=workflow_family, nfe=nfe,
+                )
+            except Exception:
+                doe = None
+            if not doe:
+                continue
+            A[pi, ci] = float(doe.get("trace", np.nan))
+            D[pi, ci] = float(doe.get("det", np.nan))
+            E[pi, ci] = float(doe.get("min_eig", np.nan))
+            ME[pi, ci] = float(doe.get("cond", np.nan))
+
+    result = {
+        "condition_var": condition_var,
+        "condition_values": cond_values,
+        "delp": delp_values,
+        "A_trace": A.tolist(),
+        "D_det": D.tolist(),
+        "E_min_eig": E.tolist(),
+        "modE_cond": ME.tolist(),
+    }
+    if write_csv and save_dir is not None:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        rows = []
+        for ci, cval in enumerate(cond_values):
+            for pi, dpsi in enumerate(delp_values):
+                rows.append({
+                    condition_var: cval, "delP_psi": dpsi,
+                    "A_trace": A[pi, ci], "D_det": D[pi, ci],
+                    "E_min_eig": E[pi, ci], "modE_cond": ME[pi, ci],
+                })
+        pd.DataFrame(rows).to_csv(save_dir / f"doe_heatmap-{condition_var}.csv", index=False)
+    return result
+
+
+def heatmap_sigma_sensitivity_py(
+    data_stru,
+    theta,
+    *,
+    condition_var,
+    condition_values,
+    delp_values_psi,
+    sigma=(0.9, 1.0),
+    mode=None,
+    B_form="single",
+    workflow_family="DATA3",
+    end_vial=None,
+    nfe=120,
+    scale=True,
+    save_dir=None,
+    write_csv=True,
+):
+    """Python port of legacy/data1_matlab/heatmap_sigma_sensitivity_{filtration,diafiltration}.m.
+
+    At each (``condition_var`` x applied pressure) node, forward-simulates the
+    model at each sigma in ``sigma`` and records the RANGE (max-min across sigma)
+    of the end-of-run mass (mV), retentate (cF) and permeate (cV/cH) predictions.
+
+    With ``scale=True`` the ranges are divided by the measurement uncertainty:
+    mass 0.01 g, and retentate/permeate relative fractions from
+    _nf270_conc_scales(workflow_family) — DATA3 uses cF 2% / cV 3%, while
+    DATA1/DATA2 fall back to 0.3% / 3%. (MATLAB hard-codes 0.3%/3% at lines
+    122-127; sourcing the fractions from the DATA3 helper here keeps the
+    diagnostic consistent with the DATA3 error model instead of undoing it.)
+
+    Returns dict with range_mV / range_cF / range_cP matrices shaped
+    [len(delp) x len(condition_values)].
+    """
+    import numpy as np
+    import pandas as pd
+    import copy
+
+    cond_values = [float(c) for c in condition_values]
+    delp_values = [float(p) for p in delp_values_psi]
+    mode = mode or str(data_stru.get("mode") or "Lag")
+    sig_list = [float(s) for s in sigma]
+    # DATA3 measurement-error fractions (cF 2% / cV 3%); legacy fallback 0.3%/3%.
+    cf_frac, cp_frac = _nf270_conc_scales(workflow_family)
+    nC, nP = len(cond_values), len(delp_values)
+    range_mV = np.full((nP, nC), np.nan)
+    range_cF = np.full((nP, nC), np.nan)
+    range_cP = np.full((nP, nC), np.nan)
+
+    def _endval(sim_stru, vial, *keys):
+        try:
+            tr = sim_stru[vial]
+        except Exception:
+            return float("nan")
+        for key in keys:
+            arr = tr.get(key) if isinstance(tr, dict) else getattr(tr, key, None)
+            if arr is None:
+                continue
+            arr = np.asarray(arr, dtype=float).reshape(-1)
+            if arr.size:
+                return float(arr[-1])
+        return float("nan")
+
+    for ci, cval in enumerate(cond_values):
+        for pi, dpsi in enumerate(delp_values):
+            ds = copy.deepcopy(data_stru)
+            ds["data_config"]["delP"] = dpsi / 14.504
+            _apply_sweep_condition(ds, condition_var, cval)
+            if end_vial is not None:
+                ds["data_config"]["n"] = int(end_vial)
+            vial_idx = (int(end_vial) - 1) if end_vial is not None else (int(ds["data_config"]["n"]) - 1)
+            mV, cF, cP = [], [], []
+            for sg in sig_list:
+                b = dict(theta)
+                b["sigma"] = sg
+                try:
+                    _, sim_stru, _ = solve_model(
+                        ds, mode, theta=b, sim_opt=True,
+                        B_form=B_form, workflow_family=workflow_family,
+                        nfe=nfe, LOUD=False,
+                    )
+                except Exception:
+                    sim_stru = None
+                if not sim_stru:
+                    mV.append(np.nan); cF.append(np.nan); cP.append(np.nan)
+                    continue
+                mV.append(_endval(sim_stru, vial_idx, "mV"))
+                cF.append(_endval(sim_stru, vial_idx, "cF"))
+                cP.append(_endval(sim_stru, vial_idx, "cH", "cV"))
+            mV = np.asarray(mV); cF = np.asarray(cF); cP = np.asarray(cP)
+            r_m = float(np.nanmax(mV) - np.nanmin(mV)) if np.isfinite(mV).any() else np.nan
+            r_cf = float(np.nanmax(cF) - np.nanmin(cF)) if np.isfinite(cF).any() else np.nan
+            r_cp = float(np.nanmax(cP) - np.nanmin(cP)) if np.isfinite(cP).any() else np.nan
+            if scale:
+                r_m = r_m / 0.01
+                mcf = np.nanmean(cF)
+                r_cf = r_cf / (mcf * cf_frac) if np.isfinite(mcf) and mcf != 0 else np.nan
+                mcp = np.nanmean(cP)
+                r_cp = r_cp / (mcp * cp_frac) if np.isfinite(mcp) and mcp != 0 else np.nan
+            range_mV[pi, ci] = r_m
+            range_cF[pi, ci] = r_cf
+            range_cP[pi, ci] = r_cp
+
+    result = {
+        "condition_var": condition_var,
+        "condition_values": cond_values,
+        "delp": delp_values,
+        "range_mV": range_mV.tolist(),
+        "range_cF": range_cF.tolist(),
+        "range_cP": range_cP.tolist(),
+    }
+    if write_csv and save_dir is not None:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        rows = []
+        for ci, cval in enumerate(cond_values):
+            for pi, dpsi in enumerate(delp_values):
+                rows.append({
+                    condition_var: cval, "delP_psi": dpsi,
+                    "range_mV": range_mV[pi, ci], "range_cF": range_cF[pi, ci],
+                    "range_cP": range_cP[pi, ci],
+                })
+        pd.DataFrame(rows).to_csv(save_dir / f"sigma_sensitivity_heatmap-{condition_var}.csv", index=False)
+    return result

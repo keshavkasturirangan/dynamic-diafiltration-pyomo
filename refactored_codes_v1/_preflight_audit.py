@@ -134,9 +134,10 @@ def check_vtube_sanity(rep_run="MC3.07.22.24_SNaCl"):
         f"**Apparatus constant:** V_tube = {V_tube} g\n"
     )
     rows.append(
-        "Per-vial t_corr placement (`t_corr` is where the ICP value gets planted "
-        "in the NaN-padded cV_avg array; *t_close* is where it would land WITHOUT "
-        "the correction):\n"
+        "NOTE: the loader now anchors the permeate ICP at **vial close** (DATA2 "
+        "convention); the V_tube tube-transit shift is RETIRED. The table below is "
+        "kept only as a diagnostic of what the old correction *would* have done — "
+        "`t_corr` is the old planted index; *t_close* is where the value now lands.\n"
     )
     rows.append(
         "| Vial | t_open (s) | t_close (s) | m_total (g) | dm/dt (mg/s) | "
@@ -171,15 +172,12 @@ def check_vtube_sanity(rep_run="MC3.07.22.24_SNaCl"):
         )
 
     interpretation = (
-        "\n**Interpretation:** "
-        "If V_tube ≈ 0.3 g is right for this apparatus, t_corr typically lands "
-        "30-50% into each vial (well inside the collection window). "
-        "If t_corr lands near 0% or near 100%, V_tube may be off — "
-        "near 0% means V_tube is too LARGE (over-correcting backward); "
-        "near 100% means V_tube is too SMALL (no correction happening). "
-        "Visually look at the **% of vial** column — values should cluster around 30-50%."
+        "\n**Interpretation (diagnostic only — correction is retired):** "
+        "the live loader plants the permeate ICP at *t_close* (100% of vial), per the "
+        "DATA2 vial-close convention. The `t_corr` / `% of vial` columns merely show "
+        "where the old V_tube ≈ 0.3 g shift would have landed it (~30-50% into the vial)."
     )
-    return f"## 2. V_tube sanity\n\n" + "\n".join(rows) + interpretation + "\n"
+    return f"## 2. Permeate placement (vial close; retired V_tube diagnostic)\n\n" + "\n".join(rows) + interpretation + "\n"
 
 
 # -----------------------------------------------------------------------------

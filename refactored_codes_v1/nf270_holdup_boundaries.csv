@@ -1,0 +1,12 @@
+run_id,workbook,sheet,mode,auto_split_status,auto_holdup_end_s,auto_n_holdup,holdup_end_s,notes
+MC2.05.07.24_NaCl,NF270_MC2.xlsx,05.07.24_NaCl,Lag,split,287.4,43,274.8,collection-line extrapolation to mass=0
+MC3.07.22.24_SNaCl,NF270_MC3.xlsx,07.22.24_SNaCl,Lag,split,439.0,65,428.8,collection-line extrapolation to mass=0
+MC4.07.11.24_SNaCl,NF270_MC4.xlsx,07.11.24_SNaCl,Lag,split,233.5,35,227.9,collection-line extrapolation to mass=0
+MC5.07.23.24_NaCl,NF270_MC5.xlsx,07.23.24_NaCl,Lag,split,275.1,41,263.6,collection-line extrapolation to mass=0
+MC5.07.23.24_SNaCl,NF270_MC5.xlsx,07.23.24_SNaCl,Lag,split,277.9,41,265.1,collection-line extrapolation to mass=0
+MC5.07.23.24_S2NaCl,NF270_MC5.xlsx,07.23.24_S2NaCl,Lag,split,372.6,55,366.4,collection-line extrapolation to mass=0
+MC2.05.07.24_CaCl2,NF270_MC2.xlsx,05.07.24_CaCl2,Lag,split,302.0,45,291.9,collection-line extrapolation to mass=0
+MC3.07.11.24_SCaCl2,NF270_MC3.xlsx,07.11.24_SCaCl2,Lag,split,283.2,42,286.8,collection-line extrapolation to mass=0
+MC3.07.12.24_S2CaCl2,NF270_MC3.xlsx,07.12.24_S2CaCl2,Lag,split,406.8,60,391.3,collection-line extrapolation to mass=0
+MC2.05.21.24_LaCl3,NF270_MC2.xlsx,05.21.24_LaCl3,Lag,split,300.7,45,292.9,collection-line extrapolation to mass=0
+MC4.07.11.24_SLaCl3,NF270_MC4.xlsx,07.11.24_SLaCl3,Lag,split,314.7,47,306.7,collection-line extrapolation to mass=0

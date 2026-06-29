@@ -860,9 +860,9 @@ This is the authoritative reference for what the loader does to each raw Excel c
 | **Retentate Temp (°C)** | 1:1 preserved | Needed for EC25 compensation of conductivity. |
 | **Retentate Cond (μS/cm)** | EC25 temperature compensation: `σ_25 = σ_T · (1 + α · (25 − T))` | Probe reports σ at measured T; the model needs σ at 25 °C so concentration inversion (Shedlovsky) is consistent across temperatures. |
 | **Permeate Temp (°C)** | 1:1 preserved | Needed for EC25 compensation of permeate conductivity. |
-| **Permeate Cond (μS/cm)** | EC25 temperature compensation (same formula as retentate); tube-transit-time correction applied to **TIME axis**, not to value | Same as retentate. Tube transit τ = V_tube / (dm/dt) shifts the permeate time axis to account for the 0.3 g dead volume between membrane and probe. |
+| **Permeate Cond (μS/cm)** | EC25 temperature compensation (same formula as retentate); 1:1 in time | Same as retentate. (The retired V_tube tube-transit *time* shift is no longer applied — see ICP row.) |
 | **Vial Swap** | 1:1 preserved | Index flag; used by loader to slice the continuous time-series into per-vial blocks. |
-| **ICP (cV_avg per vial)** | Extracted from vial-data block (cols 14–21), one scalar per vial. Conductivity calibration applied if needed. | Vial ICP-OES gives ion-specific concentrations; reduced to one mM scalar per vial for the model. |
+| **ICP (cV_avg per vial)** | Extracted from vial-data block (cols 14–21), one scalar per vial. Anchored at **vial close** (DATA2 convention; compared against model cV at `tau.last()`). | Vial ICP-OES gives ion-specific concentrations; reduced to one mM scalar per vial. No recorded sample time, so it shares the vial time axis and is read off at vial close — not displaced by a tube-transit model. |
 
 **Salt-specific α** (used by EC25 compensation, from `CONDUCTIVITY_TEMP_COEFF_PER_C`):
 
@@ -1416,3 +1416,110 @@ load→fit→plot end-to-end is `_warm_anchor_worker.py`.
 | `_run_b_ionic_validation.py` | new: B(I) rescale-identity (Part A, deterministic) + cross-salt β₁ clustering (Part B) |
 | `_run_band_value_test.py`, `_run_band_wrapper.py`, `_run_band_contour.py`, `_run_per_vial_trend.py` | new: per-band value test, formal wrapper+FIM, band-masked contours, per-vial θ trend + vial↔contour correlation |
 | `Architecture.md` | §18.3 (β contours + B(I) implemented) + §18.4 (per-band implemented, with GOOD/OKAY/POOR results) |
+
+## 19. June 18, 2026 — B×σ identifiability contour at fixed L_p (DATA3 single-salt only)
+
+All DATA3-scoped; DATA1/DATA2 reproduction unchanged. Scope is now **DATA3 NF270
+single-salt experiments, constant-B (`single`) form** — the form where "B vs σ" is a
+genuine scalar plane.
+
+### 19.1  The workflow — show L_p is identifiable, *then* collapse to one L_p
+
+This is the DATA1 `calc_contour_2d.m` method (brute-force forward sweep, third
+parameter pinned at the fit, three log₁₀ noise-weighted SSE surfaces, ▲ at argmin) —
+applied in two stages:
+
+1. **L_p identifiability (the licence).** From the 3-D L_p×B×σ grid (`grid3d.csv`),
+   render the **B-scrub** animation — σ×L_p contour as B sweeps (`scrub-B_Lpvssigma.gif`,
+   `_make_3d_contour_animations.py`). The L_p minimum stays pinned across all B ⇒ L_p is
+   identifiable; read off L_p\*. (σ is *not* — its min slides/rails, consistent with §18.1.)
+2. **B×σ at the single L_p\*.** Having shown L_p is pinned, we no longer need the contour
+   at every discretised L_p — only at L_p\*. `_run_Bsigma_fixedLp.py` forward-sims a
+   (σ, B) grid with **L_p fixed at the fit**, B swept by scaling the magnitude coefficient
+   so the realised membrane B@feed (read from `sim_stru[0]['B'][0]`) equals the axis value.
+   Per-experiment + **pooled** (summed-group = summed Fisher info; pooled σ localises off
+   the rail, e.g. NaCl-dil 0.75, LaCl₃ 0.38). Outputs `contour.png` + DATA1-schema
+   `contourdata-x_sigma-y_B.csv` (log₁₀) for quick retrieval.
+
+### 19.2  Why only `single` (constant-B) slices cleanly
+
+A pure slice forward-sim is feasible only where `m.B` is **unbounded**: `single` (B a
+scalar Param), `sat` (`B_inf`), `donnan` (`P0`). The **polynomial forms use a bounded
+`m.B = Var(1e-6,50)`**; off-optimum the curve hits the bound and the square DAE solve
+goes locally-infeasible, so a slice contour is essentially all holes (verified: poly2 @
+CaCl₂ infeasible at every node but the exact optimum). The B(c) forms' identifiability
+picture is instead the σ×L_p **profile** contour (B re-solved) or the DATA1 driver's
+`beta_0`/`beta_1` sweeps (`run_nf270_contour_for_sheet`, §18.3) — *not* a lumped-B slice.
+
+### 19.3  Weighting correction — pure 2 %, no floor (consistency)
+
+The contour objective reads the same noise weights as the fit (mass 0.01 g, permeate 3 %,
+retentate **2 %** per §5b/§18.1). **Correction:** the existing `contour3d/*/grid3d.csv`
+were computed under the **legacy 0.3 %** cF weight (stored `Obj_cr` ≈ recompute + log₁₀44,
+i.e. `(0.02/0.003)²`), so they were **regenerated at pure 2 %, no floor**. Both the 3-D
+grid driver and the B×σ driver now set the weighting **explicitly per worker** rather than
+relying on module defaults, and record it in the meta. The 1 mM `NF270_CF_RESIDUAL_FLOOR_MM`
+floor (loosens cF only at cF < 50 mM, i.e. low-concentration/diluting) is **off** in the
+canonical (`2pct_nofloor`) variant; the floored variant is kept side-by-side for comparison
+(`BSIGMA_VARIANT=2pct_floor1mm`).
+
+| File | Change |
+|---|---|
+| `_run_Bsigma_fixedLp.py` | **new:** L_p-fixed (σ, B) slice (per-exp + pooled), B@feed scaling, v7 line-contour style, DATA1-schema CSV export. `BSIGMA_VARIANT` env → `2pct_nofloor` (default, dir `Bsigma_fixedLp_nofloor/`) or `2pct_floor1mm` (dir `Bsigma_fixedLp/`); `_set_weighting()` pins cF=2 %/floor explicitly; `single` command = all 11 single-salt sheets + 4 pooled stacks |
+| `_run_3d_contour_concentrating.py` | `SHEETS_DEFAULT` → all 11 single-salt sheets; explicit `CF_RESIDUAL_SCALE_FRACTION=0.02`/`FLOOR_MM=None` set per worker + recorded in `_meta.json`; regenerated all `grid3d.csv` (were stale legacy-0.3 %) |
+| `_render_data1_panels.py` | **new:** re-render the existing DATA1 3-slice CSVs (σ×L_p, B×L_p, σ×B) per salt in the v7 line-contour style → `bform_study/Lp_identifiability_panels/<rid>_identifiability.png` |
+
+---
+
+## 20. June 23, 2026 — Vial-close permeate, curated holdup boundaries, MATLAB-port analysis functions, DATA3-spec toggle (DATA3-only)
+
+All work this session is **DATA3 / NF270 only**. DATA1 (`.csv`) and DATA2 (`.mat`) loaders/paths and the legacy MATLAB are **unchanged** (no `.m` file edited). The DATA2 + smoke pytest stayed green (98 passed). See `DATA3_SESSION_HANDOFF_2026-06-23.md` for the outstanding work (notably the heavy refit/figure/deck regeneration).
+
+### 20.1 Vial-close permeate time correction (revert to the DATA2 convention)
+
+**Why.** Collaborator feedback on the figure-pitch deck: the DATA3 time correction for mass/retentate/permeate differed from DATA2; revert to DATA2.
+
+**Root cause.** NF270 sheets carry one scalar ICP permeate value per vial with **no recorded sample time**. The refactored loader had *invented* a tube-transit model (`NF270_TUBE_VOLUME_G = 0.3`, `_nf270_corrected_cv_index`) that planted that value at an **interior** index `t_mid − V_tube/(dm/dt)`, displacing it relative to mass/retentate. DATA2 instead keeps all three streams on **one shared time axis** and compares the single permeate value at **vial close** (`m.cV[vial, tau.last()]`).
+
+**Change** (`refactored_ucb_library.py`, `_load_legacy_data_stru_from_excel` per-vial loop, ~`:4783`): `cV_avg` is now anchored at the **last index** (vial close); the V_tube interior placement is removed. `_nf270_corrected_cv_index` / `NF270_TUBE_VOLUME_G` are **retired** (kept only as a diagnostic in `_preflight_audit.py`). `data_stru["permeate_time_correction"]["method"] = "vial_close"`. Stale "tube-transit" notes corrected in `_preflight_audit.py`, `_audit_loader_fidelity.py`, and the loader-field table above. Residual *count* per vial is unchanged (still one permeate residual, now at vial close).
+
+### 20.2 Curated holdup-boundary table (DATA2-style override)
+
+The vial-1 holdup/real split boundary can now be **curated per sheet** instead of relying only on the mass-rise auto-detect:
+
+| Piece | What |
+|---|---|
+| `nf270_holdup_boundaries.csv` | sidecar table (run_id, workbook, sheet, mode, auto values, **`holdup_end_s`** override, notes). Blank override → auto-detect. |
+| `_nf270_curated_holdup_end_s(workbook, sheet)` | loader helper (cached) reading the CSV; the vial-1 split honors a finite `holdup_end_s` (nearest sample), else the mass-rise auto-detect. Records `data_config["holdup_boundary_source"]`. |
+| `_make_holdup_boundary_table.py` | regenerates the pre-filled CSV + per-sheet startup diagnostics (`holdup_diagnostics/<run_id>.png`). |
+| `_curate_holdup_boundaries.py` | fills `holdup_end_s` via **collection-line extrapolation to mass = 0** (the DATA2 idea); before/after plots in `holdup_diagnostics/curated/`. |
+
+All 11 single-salt sheets are curated (shifts −15…+4 s; modest).
+
+### 20.3 MATLAB analysis functions ported to Python (no MATLAB changed)
+
+A feasibility workflow concluded the legacy MATLAB contour objective **cannot** represent the DATA3 spec without a near-total rewrite (its contour path is unity-weighted, has no B-forms/EC25, hard σ∈[0,1]), and the Python pipeline already emits the identical `contourdata-x_*-y_*.csv` schema. So the MATLAB **functionality** was reimplemented natively in Python, evaluated through the **DATA3 model + spec** (`solve_model` / `calc_ind_objectives_py` / `calc_FIM`).
+
+New in `refactored_ucb_library.py` (existing: `calc_ind_objectives_py`, `calc_contour_2d_py`, `sigma_sensitivity_py`, `calc_FIM`):
+- `calc_contour_3d_py` → `contour3ddata.csv` (B×Lp×σ).
+- `doe_heatmap_py` → `doe_heatmap-<cond>.csv` (A/D/E/mod-E optimality over condition×ΔP via `calc_FIM`).
+- `heatmap_sigma_sensitivity_py` → `sigma_sensitivity_heatmap-<cond>.csv` (range of mV/cF/cV across σ, scaled by `_nf270_conc_scales` = DATA3 0.01 g / 2% / 3%).
+- `run_nf270_matlab_ports(...)` — runfile-facing per-sheet driver (centering fit → ports). Exposed as **branch `x`** in `refactored_ucb_runfile.py` (opt-in; 2D+3D default, DoE/σ heatmaps off).
+
+**Bugs found by adversarial review + fixed:** the `C_F0` sweep was inert (the model IC is `firstNonNan(data_raw[0]['cF_exp'])`, not `data_config['C_F0']`) → `_apply_sweep_condition` now moves the IC; diafiltration detected via `C_D > 0` (mode is never `"D"`); the `C_D` Jw filter uses the data's initial retentate cF as the osmotic proxy.
+
+### 20.4 Per-sheet mode propagation
+
+`run_nf270_matlab_ports`, `doe_heatmap_py`, `heatmap_sigma_sensitivity_py` now default `mode=None` and resolve each sheet's **detected** `data_stru["mode"]` (explicit arg overrides), and log `mode_source`. All 11 single-salt sheets are `Lag` (no behavior change), but Overflow/DATA sheets are no longer forced to Lag.
+
+### 20.5 DATA3-spec toggle — `NF270_FORCE_DATA3_SPEC`
+
+To guarantee the DATA3 error spec without relying on every call threading `workflow_family="DATA3"` (e.g. `calc_FIM` defaults to `'DATA1'`):
+- `NF270_FORCE_DATA3_SPEC` — module toggle, **default `False`** (DATA1/DATA2 untouched). Promote-only.
+- `run_with_data3_spec(func, …)` — exception-safe wrapper that flips it on for one call and restores it.
+- `_nf270_conc_scales` selects DATA3 weights when `workflow_family=="DATA3"` **or** the toggle is on.
+- Wired into the **runfile NF270 dispatch only** (main fit, contour branch, ports branch), restored in `finally`. Verified: with the toggle off DATA1/DATA2 weights are byte-identical; the σ-sensitivity heatmap scaling now also sources `_nf270_conc_scales` (was a hardcoded legacy 0.3%). The shared `calc_FIM` default `workflow_family` was deliberately **left as `DATA1`** (changing it risks DATA1/DATA2 regressions; the toggle covers DATA3).
+
+### 20.6 Verification
+
+DATA2 + smoke pytest 98 passed (separate loader path); placement/curation/toggle/mode unit checks; smoke runs of all new ports; a 3-agent audit whose sole confirmed bug (mode propagation) was fixed. MATLAB code unchanged throughout.

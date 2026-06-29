@@ -307,13 +307,14 @@ def pick_branches() -> set[str]:
     print("  f   FIM heatmap / sigma-sensitivity contour")
     print("  d   DoE next-experiment recommendations")
     print("  o   Objective-contour panels (DATA3/NF270 only — B-Lp and sigma-Lp)")
+    print("  x   MATLAB ports (DATA3/NF270 — calc_contour_2d/3d_py; opt. DoE / σ-sensitivity heatmaps)  [opt-in]")
     print("  l   Lumped σ·Lp diagnostic (fit at fixed B grid)  [Phase C, in progress]")
-    print("  all all of the above")
+    print("  all all of the above (except 'x', which is opt-in)")
     raw = _prompt("Branches", "all").strip().lower()
     if raw in ("all", "*", ""):
         return {"m", "c", "r", "p", "f", "d", "o", "l"}
     parts = [p.strip() for p in raw.replace(",", " ").split() if p.strip()]
-    valid = {"m", "c", "r", "p", "f", "d", "o", "l"}
+    valid = {"m", "c", "r", "p", "f", "d", "o", "x", "l"}
     chosen = {p for p in parts if p in valid}
     return chosen or {"m", "c"}
 
@@ -453,7 +454,10 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
         ucb.NF270_MASS_LITMUS_TEST_ACTIVE = True
         print(f"  trunk:      mass-litmus test (sigma=0, closed-form Lp regression)")
     try:
-        results = ucb.materialize_all(
+        # DATA3 workflow: force the DATA3 error spec (cF 2% / cV 3%) for the whole
+        # NF270 fit, restored afterward so DATA1/DATA2 runs are never affected.
+        results = ucb.run_with_data3_spec(
+            ucb.materialize_all,
             campaign="NF270", save_dir=save_dir, data_root=NF270_ROOT,
             only=subset, extra_opts=extra_opts,
         )
@@ -500,12 +504,45 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
                 grid_density = max(8, int(grid_raw))
             except ValueError:
                 grid_density = 20
-            ucb.run_nf270_contour_branch(
+            ucb.run_with_data3_spec(
+                ucb.run_nf270_contour_branch,
                 subset,
                 save_dir=save_dir.parent / "contour_panels",
                 grid_density=grid_density,
                 nfe=nfe,
                 data_root=NF270_ROOT,
+            )
+
+    # MATLAB-port branch — Python ports of the legacy MATLAB toolchain
+    # (calc_contour_2d_py / calc_contour_3d_py and, optionally, doe_heatmap_py /
+    # heatmap_sigma_sensitivity_py), all evaluated with the DATA3 model + error
+    # spec. Output: paper_artifacts/nf270/matlab_ports/<run_id>/ with the same
+    # contourdata-x_*-y_*.csv / contour3ddata.csv filenames the MATLAB writes.
+    if "x" in branches:
+        if not hasattr(ucb, "run_nf270_matlab_ports"):
+            print("\n[matlab-ports] library is missing run_nf270_matlab_ports; skipping.")
+        else:
+            grid_raw = _prompt(
+                "MATLAB-port contour grid density (8 fast | 20 medium | 50 paper)", "20"
+            )
+            try:
+                gd = max(4, int(grid_raw))
+            except ValueError:
+                gd = 20
+            do_3d = _prompt_yes_no("Include 3D contour (B x Lp x sigma)?", "y")
+            do_doe = _prompt_yes_no("Include DoE optimality heatmap (heavy MBDoE sweep)?", "n")
+            do_sig = _prompt_yes_no("Include sigma-sensitivity heatmap (heavy)?", "n")
+            ucb.run_with_data3_spec(
+                ucb.run_nf270_matlab_ports,
+                subset,
+                save_dir=save_dir.parent / "matlab_ports",
+                grid_density=gd,
+                nfe=nfe,
+                data_root=NF270_ROOT,
+                do_2d=True,
+                do_3d=do_3d,
+                do_doe=do_doe,
+                do_sigma_heatmap=do_sig,
             )
 
 
