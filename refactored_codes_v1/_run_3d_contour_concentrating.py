@@ -48,17 +48,26 @@ sys.path.insert(0, str(REPO_ROOT / "refactored_codes_v1"))
 os.chdir(REPO_ROOT)
 
 
-# Defaults overridable on the command line
+# Defaults overridable on the command line.
+# ALL 11 DATA3 NF270 single-salt sheets (the only scope we work in now).
 SHEETS_DEFAULT = [
-    "MC2.05.07.24_NaCl",
-    "MC2.05.07.24_CaCl2",
-    "MC2.05.21.24_LaCl3",
+    "MC2.05.07.24_NaCl", "MC3.07.22.24_SNaCl", "MC4.07.11.24_SNaCl",
+    "MC5.07.23.24_NaCl", "MC5.07.23.24_SNaCl", "MC5.07.23.24_S2NaCl",
+    "MC2.05.07.24_CaCl2", "MC3.07.11.24_SCaCl2", "MC3.07.12.24_S2CaCl2",
+    "MC2.05.21.24_LaCl3", "MC4.07.11.24_SLaCl3",
 ]
 GRID_LP = 30
 GRID_B  = 30
 GRID_SIGMA = 10
 NFE = 80
 N_WORKERS = 8
+
+# Measurement-error weighting (Lilonfe et al., ChemRxiv 2026): retentate cF = 2%
+# relative, NO absolute floor.  Set EXPLICITLY in every worker so the 3D grids are
+# byte-consistent with the canonical fits and the DATA1 σ×Lp/B×σ panels, regardless
+# of any module-level drift.  (The legacy 0.3% weight gave WSSE ~44× too tight on cF.)
+CF_RESIDUAL_SCALE_FRACTION = 0.02
+CF_RESIDUAL_FLOOR_MM = None
 
 
 # Per-worker globals — set by _worker_init in each subprocess
@@ -68,14 +77,24 @@ _BASE_THETA = None   # warm-start theta (provides S0, S — fixed across the swe
 
 
 def _load_warm_start_theta(run_id):
-    """Pull the converged θ from paper_artifacts/.../warm_start_fits/summary.json.
+    """Centering θ* for the grid sweep.
 
-    We need every theta key the kernel reads — Lp/B/sigma are overridden per
-    grid cell, but S0 (initial membrane state) and S (steady-state membrane
-    parameter) MUST be present in the dict or model_construct_inter raises
-    KeyError('S0').  These are held fixed at the warm-start value across the
-    grid sweep so the only varying axes are (Lp, B, sigma).
+    Prefer the CANONICAL per-form fit `bform_study/<run_id>/result_single.json` so the 3-D
+    grid is centered on the SAME Lp*/B*/σ* as the σ×B-at-fixed-Lp slices, the AIC analysis,
+    and the per-form campaign.  This matters: warm_start_fits/summary.json diverges badly
+    on several sheets (e.g. CaCl₂ warm_start B=0.51 vs canonical 5.71), which would center
+    the contour — and its fit-relative B range — on the wrong basin.  Fall back to
+    warm_start_fits only if the per-form fit is missing.  S0/S (held fixed across the sweep)
+    are present in both.
     """
+    result = (REPO_ROOT / "UnifiedFramework" / "DATA3" / "results" / "paper_artifacts"
+              / "nf270" / "bform_study" / run_id / "result_single.json")
+    if result.exists():
+        r = json.load(open(result))
+        if isinstance(r, dict) and "parameters" in r:
+            p = dict(r["parameters"])
+            if all(k in p for k in ("Lp", "B", "sigma", "S0", "S")):
+                return p
     summary_path = (REPO_ROOT / "UnifiedFramework" / "DATA3" / "results"
                     / "paper_artifacts" / "nf270" / "warm_start_fits"
                     / "summary.json")
@@ -83,7 +102,7 @@ def _load_warm_start_theta(run_id):
     for entry in summ:
         if entry.get("run_id") == run_id:
             return dict(entry["warm_start_theta_fit"])
-    raise KeyError(f"{run_id} not found in {summary_path}")
+    raise KeyError(f"{run_id}: no result_single.json and not in {summary_path}")
 
 
 def _worker_init(run_id, base_theta):
@@ -94,6 +113,9 @@ def _worker_init(run_id, base_theta):
     """
     global _DATA_STRU, _RUN_ID, _BASE_THETA
     import refactored_ucb_library as _lib
+    # Pure-2% no-floor retentate weighting, set explicitly per worker (see header).
+    _lib.NF270_CF_RESIDUAL_SCALE_FRACTION = CF_RESIDUAL_SCALE_FRACTION
+    _lib.NF270_CF_RESIDUAL_FLOOR_MM = CF_RESIDUAL_FLOOR_MM
     family = _lib.NF270_RUN_REGISTRY[run_id]
     workbook_path = _lib.NF270_DEFAULT_ROOT / family["workbook"]
     sheet_name = family["sheet"]
@@ -156,8 +178,14 @@ def sweep_sheet(run_id, *, grid_lp, grid_b, grid_sigma, nfe, n_workers):
         )
     B_lower, B_upper = _lib.NF270_B_BOUNDS_PER_SALT[salt]
 
-    Lp_grid    = np.linspace(0.5, 50.0, grid_lp)
-    B_grid     = np.linspace(1e-6, B_upper, grid_b)
+    # DATA1 calc_contour_2d convention: fit-RELATIVE axis ranges, so the well-identified
+    # Lp* is resolved sharply.  The old fixed 0.5–50 / 0–B_upper grid snapped Lp* to a
+    # coarse node (e.g. NaCl true 9.95 → grid 11.11) and spent most nodes on irrelevant
+    # high Lp.  Lp ∈ [0.1·Lp*, 2·Lp*], B ∈ [0.1·|B*|, 3·|B*|], σ ∈ [0,1].
+    base_theta = _load_warm_start_theta(run_id)
+    Lp_fit = float(base_theta["Lp"]); B_abs = max(abs(float(base_theta["B"])), 1e-3)
+    Lp_grid    = np.linspace(max(0.2, 0.1 * Lp_fit), 2.0 * Lp_fit, grid_lp)
+    B_grid     = np.linspace(max(1e-6, 0.1 * B_abs), 3.0 * B_abs, grid_b)
     sigma_grid = np.linspace(0.0, 1.0, grid_sigma)
 
     cells = [(Lp, B, sg, nfe)
@@ -170,7 +198,6 @@ def sweep_sheet(run_id, *, grid_lp, grid_b, grid_sigma, nfe, n_workers):
                 / "paper_artifacts" / "nf270" / "contour3d" / run_id)
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    base_theta = _load_warm_start_theta(run_id)
     print(f"\n=== {run_id} ===")
     print(f"  salt: {salt}    B upper: {B_upper}")
     print(f"  base theta from warm-start: Lp={base_theta['Lp']:.3f}  "
@@ -228,6 +255,9 @@ def sweep_sheet(run_id, *, grid_lp, grid_b, grid_sigma, nfe, n_workers):
         "Lp_range":       [float(Lp_grid[0]), float(Lp_grid[-1])],
         "B_range":        [float(B_grid[0]),  float(B_grid[-1])],
         "sigma_range":    [float(sigma_grid[0]), float(sigma_grid[-1])],
+        "cf_residual_scale_fraction": CF_RESIDUAL_SCALE_FRACTION,
+        "cf_residual_floor_mM":       CF_RESIDUAL_FLOOR_MM,
+        "weighting":      "retentate cF = 2% relative, NO floor (Lilonfe et al.); permeate cV 3%; mass 0.01 g",
     }
     with open(save_dir / "_meta.json", "w") as f:
         json.dump(meta, f, indent=2)

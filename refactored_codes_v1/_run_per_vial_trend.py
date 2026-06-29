@@ -34,6 +34,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SHEETS = [("GOOD", "MC3.07.22.24_SNaCl"),
           ("OKAY", "MC2.05.07.24_NaCl"),
+          ("CaCl2", "MC2.05.07.24_CaCl2"),
           ("POOR", "MC2.05.21.24_LaCl3")]
 WINDOW = 3
 
@@ -98,7 +99,7 @@ def plot_sheet(r):
     ax0b.plot(cfs, [p["B"] for p in pts], "s--", color="#1f77b4", label="B")
     ax0b.set_ylabel("B (μm/s)", color="#1f77b4")
     ax0.set_title(f"{r['role']} {rid}\nper-window θ trend  "
-                  f"(corr cF·σ={r['corr_cf_sigma']}, cF·B={r['corr_cf_B']})", fontsize=9)
+                  f"(corr cF·σ={r['corr_cf_sigma']:+.2f}, cF·B={r['corr_cf_B']:+.2f})", fontsize=9)
     # (b) Lp vs cF
     ax[1].plot(cfs, [p["Lp"] for p in pts], "^-", color="#2ca02c")
     ax[1].set_xlabel("window mean terminal cF (mM)"); ax[1].set_ylabel("Lp")
@@ -126,7 +127,7 @@ def plot_sheet(r):
 
 
 if __name__ == "__main__":
-    with Pool(3) as pool:
+    with Pool(len(SHEETS)) as pool:
         results = pool.map(run, SHEETS)
     with open(OUT / "per_vial_trend_summary.json", "w") as fh:
         json.dump(results, fh, indent=2, default=float)

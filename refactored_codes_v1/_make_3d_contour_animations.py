@@ -129,9 +129,11 @@ def animate_sheet(run_id, *, frame_ms=400):
         print(f"  SKIP {run_id} — no grid3d.csv")
         return []
 
-    # Skip stale (small) CSVs that are leftover from failed runs
-    if csv.stat().st_size < 700_000:
-        print(f"  SKIP {run_id} — stale CSV ({csv.stat().st_size:,} bytes, likely pre-fix junk)")
+    # Skip stale (tiny) CSVs from failed/smoke runs.  Threshold lowered to 100 KB so the
+    # 2026-06-18 pure-2% regen grids (15×12×10 ≈ 180 KB) are NOT mistaken for junk; a
+    # 3×3×3 smoke test is ~2 KB so it's still excluded.
+    if csv.stat().st_size < 100_000:
+        print(f"  SKIP {run_id} — stale CSV ({csv.stat().st_size:,} bytes, likely smoke/junk)")
         return []
 
     df = pd.read_csv(csv)
@@ -183,7 +185,7 @@ def main():
             if not d.is_dir():
                 continue
             csv = d / "grid3d.csv"
-            if csv.exists() and csv.stat().st_size >= 700_000:
+            if csv.exists() and csv.stat().st_size >= 100_000:
                 sheets.append(d.name)
 
     print(f"Sheets with valid 3D data ({len(sheets)}):  {sheets}")
