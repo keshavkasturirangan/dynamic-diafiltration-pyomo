@@ -65,14 +65,19 @@ UnifiedFramework/DATA3/results/paper_artifacts/nf270/campaign_figures [0-9].zip
 ~$*.pptx
 ~$*.ppt
 
-# Generated DATA3 B-form campaign artifacts (reproducible outputs: contours,
-# result_*.json, gifs, master-curve/Taylor/Peclet figures). Decks embed the
-# figures they need, so these large machine-generated trees stay out of git.
-UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/
+# DATA3 B-form campaign: keep the FIGURES that get saved into the decks, but drop
+# the bulk machine-generated DATA (per-iteration result_*.json, contour grids,
+# raw series). So ignore only the data files under bform_study — not .png/.gif.
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/**/*.json
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/**/*.jsonl
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/**/*.csv
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/*.json
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/*.csv
 
 # Transient parallel-worker markers dropped by the campaign runners
 **/WORKER_DONE
 *.skip
+*.cur
 
 # QA slide-render scratch (regenerated on demand from the .pptx via LibreOffice)
 refactored_codes_v1/_collab_update_build/*.jpg
