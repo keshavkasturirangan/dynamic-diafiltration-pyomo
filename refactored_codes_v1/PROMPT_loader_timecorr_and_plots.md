@@ -304,6 +304,51 @@ coincides with the fit; LR confidence regions drawn; the flat-σ non-identifiabi
 
 ---
 
+## Task 10 — Dimensional-consistency (units) audit + unit-change sensitivity test
+
+**Objective.** Verify the whole DATA3 model + analysis pipeline is **dimensionally consistent**
+(no silent unit mismatches), document the unit of every variable/parameter/constant, and add a
+small **sensitivity test** that re-expresses inputs in different units (with the matching
+conversion) to confirm the physics is invariant.
+
+**Part A — units audit.**
+1. Build a **units table** for every model quantity: mass (g), `S0` (g/s), `S` (g/hr),
+   concentrations `cF/cV/cD/cIn/cH` (mM), `Jw` (state which — LMH from `Lp·ΔP` vs velocity cm/s),
+   `Lp` (L·m⁻²·h⁻¹·bar⁻¹), `ΔP` (bar), `Δπ` (bar, van 't Hoff `ni·R·T·Δc`), `B`, `σ` (–),
+   `D` (cm²/s), the mass-transfer coeff `k` (cm/s), `Pe` (–), area `Am`, density `rho`, time
+   (min vs s), and the conductivity domain (mS/cm, µS/cm; M vs mM in Shedlovsky/MSA).
+2. Check each equation **term-by-term**, paying special attention to the cross-unit interfaces
+   that are easy to get wrong:
+   - **`Jw` consistency:** it appears as a velocity in `exp(Jw/k)`, in `Am·rho·Jw` (a mass rate),
+     and in `Pe = Jw·L/Dm`. Confirm `Jw` is converted to the *same* velocity units everywhere
+     (`Lp·ΔP` yields LMH — flag any spot that uses LMH where cm/s is required).
+   - **`B` has two conventions:** single uses `Js = B·(cIn−cH)`; the B(c) forms use
+     `Js = Jw·B·(cIn−cH)` → **different units for `B`**. Confirm the apparent-µm/s conversion
+     (`×Jw·1e4`) is applied consistently and the contour/overlay axes use one convention.
+   - **`ΔP` vs `Δπ`** pressure units in `Jw = Lp(ΔP − σ·Δπ)` (van 't Hoff mM→pressure; bar vs Pa).
+   - **`S0` (g/s) vs `S` (g/hr)** — the `/3600`; confirm the time-scaling `(TF−TI)/Tauf` is
+     dimensionless and the time axis (min vs s) is consistent.
+   - **Conductivity:** Shedlovsky/MSA input concentration units (M vs mM), outputs (mS/cm vs
+     µS/cm), and the EC25 temperature compensation.
+3. Document findings; fix any genuine mismatch (guard DATA3-only if it touches the shared model;
+   never silently change DATA1/DATA2 numerics — flag those).
+
+**Part B — unit-change sensitivity test.**
+- For a representative DATA3 sheet: run the fit, then **re-run with one input in different units +
+  the correct conversion** (e.g. `ΔP` in Pa with `Lp` converted; or concentrations in M not mM;
+  or `Jw`/area in SI). The fitted `Lp/B/σ` (back in consistent units) and the WSSE **must be
+  invariant.** Any change exposes a hidden hard-coded unit assumption (a bug).
+- Add a **dimensional scaling check**: multiply an input by a known factor and confirm the outputs
+  scale exactly as dimensional analysis predicts.
+- Optionally wire 1–2 of these as **pytest invariants** (DATA3-guarded) so unit regressions are
+  caught automatically.
+
+**Acceptance.** A units table + term-by-term consistency report committed (e.g. a `UNITS.md` or a
+section in `Architecture.md`); the unit-change test passes (results invariant under correct
+conversion) for ≥1 DATA3 sheet; any mismatch found is documented and (if DATA3-only) fixed.
+
+---
+
 ## Verification checklist (run at the end)
 - `pytest` DATA1 + DATA2 smoke/paper-comparison green (DATA1/DATA2 untouched).
 - Per-sheet concentration-range table (Task 4) emitted as CSV + markdown for each DATA3 sheet.
@@ -319,6 +364,8 @@ coincides with the fit; LR confidence regions drawn; the flat-σ non-identifiabi
 - Profile-likelihood WSSE contour surfaces (Task 9) generated per experiment × B-form × channel
   with non-axis coefficients re-optimized per node; LR confidence regions drawn; flat-σ confirmed
   rigorously vs the Task-8 slice.
+- Units audit (Task 10): units table + term-by-term consistency report committed; unit-change
+  sensitivity test passes (fit + WSSE invariant under correct conversion) for ≥1 DATA3 sheet.
 - A DATA3 sheet loads with the time correction on via config; metadata recorded.
 - All regenerated/new figures rendered to PNG and visually inspected (legend clear of data,
   DATA2 colors/markers).
