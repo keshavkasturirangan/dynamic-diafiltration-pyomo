@@ -60,3 +60,19 @@ UnifiedFramework/DATA3/results/paper_artifacts/nf270/paper_styling_preview/
 UnifiedFramework/DATA3/results/paper_artifacts/nf270/regime_gated_fits*
 # Finder-style duplicates of nf270/campaign_figures.zip (e.g. "… 7.zip", "… 8.zip")
 UnifiedFramework/DATA3/results/paper_artifacts/nf270/campaign_figures [0-9].zip
+
+# PowerPoint/Word lock files (open-document temporaries)
+~$*.pptx
+~$*.ppt
+
+# Generated DATA3 B-form campaign artifacts (reproducible outputs: contours,
+# result_*.json, gifs, master-curve/Taylor/Peclet figures). Decks embed the
+# figures they need, so these large machine-generated trees stay out of git.
+UnifiedFramework/DATA3/results/paper_artifacts/nf270/bform_study/
+
+# Transient parallel-worker markers dropped by the campaign runners
+**/WORKER_DONE
+*.skip
+
+# QA slide-render scratch (regenerated on demand from the .pptx via LibreOffice)
+refactored_codes_v1/_collab_update_build/*.jpg
