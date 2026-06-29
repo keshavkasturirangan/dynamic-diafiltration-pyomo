@@ -1,0 +1,6 @@
+family,case_id,entry_point,fixture_args,metric,tolerance,baseline_path,notes
+DATA2,structural_270511.123_Lag,model_construct_inter,"{""mode"":""Lag"",""B_form"":1}",fingerprint,exact,baselines/regression_references.json,migrated from refactored_codes_v1/tests
+DATA2,structural_270511.423_Overflow,model_construct_inter,"{""mode"":""Overflow"",""B_form"":1}",fingerprint,exact,baselines/regression_references.json,migrated from refactored_codes_v1/tests
+DATA1,structural_501.11_DATA_skipped,model_construct_inter,"{""mode"":""DATA"",""B_form"":""single""}",fingerprint,exact,baselines/regression_references.json,skipped — pre-existing DATA1 model-build bug
+DATA1,structural_511.12_DATA_skipped,model_construct_inter,"{""mode"":""DATA"",""B_form"":""single""}",fingerprint,exact,baselines/regression_references.json,skipped — pre-existing DATA1 model-build bug
+DATA3,smoke_MC2_05_07_24_NaCl,loadxlsx,"{""sheet"":""MC2.05.07.24_NaCl""}",present,,,,DATA3 smoke loader check (no tolerance until baseline captured)

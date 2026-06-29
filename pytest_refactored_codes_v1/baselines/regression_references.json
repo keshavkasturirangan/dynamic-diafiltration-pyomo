@@ -1,0 +1,363 @@
+{
+  "data1__501.11__single": {
+    "skip_reason": "pre-existing DATA1 model-build bug (con_boundary[2] resolves to False)"
+  },
+  "data1__511.12__single": {
+    "skip_reason": "pre-existing DATA1 model-build bug (con_boundary[2] resolves to False)"
+  },
+  "data2__270511.123__Lag_with_time_correction": {
+    "B_form": "1",
+    "build_fingerprint": {
+      "con_component_names": [
+        "b_form",
+        "cF_linking",
+        "cH_linking",
+        "cVmV_linking",
+        "con_boundary",
+        "eqn_H",
+        "eqn_Js",
+        "eqn_Js_exp",
+        "eqn_Jw",
+        "eqn_S",
+        "eqn_cIn",
+        "eqn_cV",
+        "mF_linking",
+        "mV_linking",
+        "ode_cF",
+        "ode_cH",
+        "ode_cVmV",
+        "ode_mF",
+        "ode_mV"
+      ],
+      "n_atomic_cons": 326,
+      "n_atomic_vars": 265,
+      "n_con_components": 19,
+      "n_var_components": 15,
+      "var_component_names": [
+        "B",
+        "Js",
+        "Jw",
+        "Lp",
+        "S",
+        "beta_0",
+        "beta_1",
+        "cF",
+        "cH",
+        "cIn",
+        "cV",
+        "cVmV",
+        "mF",
+        "mV",
+        "sigma"
+      ]
+    },
+    "capture_time_s": 0.0,
+    "captured_at": "2026-05-24 16:34:08",
+    "loader_fingerprint": {
+      "config_scalars": {
+        "Am": 4.1,
+        "B0": 16.85468687,
+        "C_D": 128.5309872,
+        "C_F0": 16.24262844,
+        "Lp0": 11.84370879,
+        "M_F0": 10.09,
+        "M_O": -0.67,
+        "Temp": 298.0,
+        "delP": 4.071640142,
+        "n": 13.0,
+        "n_A": 3.0,
+        "n_extra": 3.0,
+        "n_h": 1.0,
+        "n_v0": 3.0,
+        "nc": 1.0,
+        "ni": 2.0,
+        "nr": 0.0,
+        "rho": 1.0,
+        "sigma0": 0.380724777
+      },
+      "n_vials": 13,
+      "per_vial_shape": [
+        {
+          "cF_exp_len": 8,
+          "cV_avg_len": 8,
+          "mass_len": 8,
+          "time_len": 8,
+          "vial": 1
+        },
+        {
+          "cF_exp_len": 25,
+          "cV_avg_len": 25,
+          "mass_len": 25,
+          "time_len": 25,
+          "vial": 2
+        },
+        {
+          "cF_exp_len": 4,
+          "cV_avg_len": 4,
+          "mass_len": 4,
+          "time_len": 4,
+          "vial": 3
+        },
+        {
+          "cF_exp_len": 38,
+          "cV_avg_len": 38,
+          "mass_len": 38,
+          "time_len": 38,
+          "vial": 4
+        },
+        {
+          "cF_exp_len": 45,
+          "cV_avg_len": 45,
+          "mass_len": 45,
+          "time_len": 45,
+          "vial": 5
+        },
+        {
+          "cF_exp_len": 48,
+          "cV_avg_len": 48,
+          "mass_len": 48,
+          "time_len": 48,
+          "vial": 6
+        },
+        {
+          "cF_exp_len": 53,
+          "cV_avg_len": 53,
+          "mass_len": 53,
+          "time_len": 53,
+          "vial": 7
+        },
+        {
+          "cF_exp_len": 55,
+          "cV_avg_len": 55,
+          "mass_len": 55,
+          "time_len": 55,
+          "vial": 8
+        },
+        {
+          "cF_exp_len": 55,
+          "cV_avg_len": 55,
+          "mass_len": 55,
+          "time_len": 55,
+          "vial": 9
+        },
+        {
+          "cF_exp_len": 54,
+          "cV_avg_len": 54,
+          "mass_len": 54,
+          "time_len": 54,
+          "vial": 10
+        },
+        {
+          "cF_exp_len": 57,
+          "cV_avg_len": 57,
+          "mass_len": 57,
+          "time_len": 57,
+          "vial": 11
+        },
+        {
+          "cF_exp_len": 56,
+          "cV_avg_len": 56,
+          "mass_len": 56,
+          "time_len": 56,
+          "vial": 12
+        },
+        {
+          "cF_exp_len": 61,
+          "cV_avg_len": 61,
+          "mass_len": 61,
+          "time_len": 61,
+          "vial": 13
+        }
+      ]
+    },
+    "mode": "Lag",
+    "seed_theta": {
+      "Lp": 11,
+      "S": 0.0,
+      "S0": 0,
+      "beta_0": 1,
+      "beta_1": 0.01,
+      "beta_c": 15,
+      "sigma": 1.0
+    },
+    "workflow_family": "DATA2"
+  },
+  "data2__270511.423__Overflow_with_time_correction": {
+    "B_form": "1",
+    "build_fingerprint": {
+      "con_component_names": [
+        "b_form",
+        "cF_linking",
+        "cH_linking",
+        "cVmV_linking",
+        "con_boundary",
+        "eqn_H",
+        "eqn_Js",
+        "eqn_Js_exp",
+        "eqn_Jw",
+        "eqn_S",
+        "eqn_cIn",
+        "eqn_cV",
+        "mF_linking",
+        "mV_linking",
+        "ode_cF",
+        "ode_cH",
+        "ode_cVmV",
+        "ode_mF",
+        "ode_mV"
+      ],
+      "n_atomic_cons": 326,
+      "n_atomic_vars": 266,
+      "n_con_components": 19,
+      "n_var_components": 16,
+      "var_component_names": [
+        "B",
+        "Js",
+        "Jw",
+        "Lp",
+        "S",
+        "S0",
+        "beta_0",
+        "beta_1",
+        "cF",
+        "cH",
+        "cIn",
+        "cV",
+        "cVmV",
+        "mF",
+        "mV",
+        "sigma"
+      ]
+    },
+    "capture_time_s": 0.03,
+    "captured_at": "2026-05-24 16:34:08",
+    "loader_fingerprint": {
+      "config_scalars": {
+        "Am": 4.1,
+        "B0": 18.62266108,
+        "C_D": 118.0742894,
+        "C_F0": 18.15032459,
+        "Lp0": 8.399388457,
+        "M_F0": 10.31,
+        "M_O": 2.21,
+        "Temp": 298.0,
+        "delP": 4.053730351,
+        "n": 13.0,
+        "n_A": 1.0,
+        "n_extra": 3.0,
+        "n_h": 2.0,
+        "n_v0": 4.0,
+        "nc": 1.0,
+        "ni": 2.0,
+        "nr": 0.0,
+        "rho": 1.0,
+        "sigma0": 0.289471053
+      },
+      "n_vials": 13,
+      "per_vial_shape": [
+        {
+          "cF_exp_len": 5,
+          "cV_avg_len": 5,
+          "mass_len": 5,
+          "time_len": 5,
+          "vial": 1
+        },
+        {
+          "cF_exp_len": 7,
+          "cV_avg_len": 7,
+          "mass_len": 7,
+          "time_len": 7,
+          "vial": 2
+        },
+        {
+          "cF_exp_len": 42,
+          "cV_avg_len": 42,
+          "mass_len": 42,
+          "time_len": 42,
+          "vial": 3
+        },
+        {
+          "cF_exp_len": 59,
+          "cV_avg_len": 59,
+          "mass_len": 59,
+          "time_len": 59,
+          "vial": 4
+        },
+        {
+          "cF_exp_len": 62,
+          "cV_avg_len": 62,
+          "mass_len": 62,
+          "time_len": 62,
+          "vial": 5
+        },
+        {
+          "cF_exp_len": 65,
+          "cV_avg_len": 65,
+          "mass_len": 65,
+          "time_len": 65,
+          "vial": 6
+        },
+        {
+          "cF_exp_len": 70,
+          "cV_avg_len": 70,
+          "mass_len": 70,
+          "time_len": 70,
+          "vial": 7
+        },
+        {
+          "cF_exp_len": 72,
+          "cV_avg_len": 72,
+          "mass_len": 72,
+          "time_len": 72,
+          "vial": 8
+        },
+        {
+          "cF_exp_len": 73,
+          "cV_avg_len": 73,
+          "mass_len": 73,
+          "time_len": 73,
+          "vial": 9
+        },
+        {
+          "cF_exp_len": 77,
+          "cV_avg_len": 77,
+          "mass_len": 77,
+          "time_len": 77,
+          "vial": 10
+        },
+        {
+          "cF_exp_len": 71,
+          "cV_avg_len": 71,
+          "mass_len": 71,
+          "time_len": 71,
+          "vial": 11
+        },
+        {
+          "cF_exp_len": 74,
+          "cV_avg_len": 74,
+          "mass_len": 74,
+          "time_len": 74,
+          "vial": 12
+        },
+        {
+          "cF_exp_len": 75,
+          "cV_avg_len": 75,
+          "mass_len": 75,
+          "time_len": 75,
+          "vial": 13
+        }
+      ]
+    },
+    "mode": "Overflow",
+    "seed_theta": {
+      "Lp": 11,
+      "S": 0.0,
+      "S0": -0.1756665334051245,
+      "beta_0": 1,
+      "beta_1": 0.01,
+      "beta_c": 15,
+      "sigma": 1.0
+    },
+    "workflow_family": "DATA2"
+  }
+}

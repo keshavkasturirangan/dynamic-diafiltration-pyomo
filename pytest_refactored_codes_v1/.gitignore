@@ -1,0 +1,16 @@
+# Per-session test outputs — rotated by conftest, never committed.
+_runs/*
+!_runs/.gitkeep
+
+# Python bytecode and caches.
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest internals.
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Matplotlib font cache if a developer runs without MPLCONFIGDIR=/tmp/mplconfig.
+matplotlib/
