@@ -91,9 +91,9 @@ permeate each get their own figure** for the concentration/conductivity quantiti
    loader / `data_stru`).
 5. **Conductivity-probe signal vs time — permeate.**
 6. **Conductivity-derived concentration vs time — retentate** — convert the probe conductivity to
-   concentration via `conductivity_paper.py` (**invert** `variant_shedlovsky` per point with a
-   root-find such as `scipy.optimize.bisect`, using the salt-specific parameters).
-7. **Conductivity-derived concentration vs time — permeate** (same inversion).
+   concentration via the **selectable converter (Task 11)** — Shedlovsky / MSA / DATA2 model — each
+   inverted per point with a root-find such as `scipy.optimize.bisect`, using salt-specific params.
+7. **Conductivity-derived concentration vs time — permeate** (same conversion).
 8. **Applied pressure (ΔP) vs time.**
 
 Note in code how the conductivity-derived concentrations (plots 6 & 7) compare to the loader's
@@ -140,30 +140,36 @@ polarization direction (concentrating: `c_in > c_F`; diluting: `c_in < c_F`).
 
 Extend the existing per-response **WSSE contour** analysis (σ×B log-WSSE surfaces at fixed Lₚ —
 the same method and visual style as the current mass / retentate / permeate contours) to the
-**new response channels** from Task 3. Produce one contour per channel:
+**new response channels** from Task 3, **each as its own contour** (retentate and permeate split,
+mirroring the Task-3 8-plot layout). One contour per channel — **7 channels**:
 - **Mass per vial** (as today).
-- **ICP retentate + permeate concentration.**
-- **Conductivity-probe signal** (retentate + permeate) — WSSE computed **in conductivity space**:
-  map the model concentration → predicted conductivity via
-  `conductivity_paper.variant_shedlovsky(...)` and compare to the measured probe trace.
-- **Conductivity-derived concentration** (retentate + permeate) — WSSE computed **in
-  concentration space**: invert the probe conductivity → concentration (Task 3 inversion) and
-  compare to the model concentration.
+- **ICP retentate concentration.**
+- **ICP permeate concentration.**
+- **Conductivity-probe — retentate** — WSSE in **conductivity space**: map the model concentration
+  → predicted conductivity (via the selectable converter, Task 11) and compare to the measured
+  retentate probe trace.
+- **Conductivity-probe — permeate** — same, permeate side.
+- **Conductivity-derived concentration — retentate** — WSSE in **concentration space**: invert the
+  retentate probe conductivity → concentration (selectable converter, Task 11) and compare to the
+  model concentration.
+- **Conductivity-derived concentration — permeate** — same, permeate side.
+
+(ΔP is excluded — control input, not a fitted response.)
 
 Implementation:
 - **Reuse the existing contour machinery** — `_run_Bsigma_fixedLp.py`, `calc_contour_2d_py` /
   `calc_contour_3d_py`, `calc_FIM`, and the per-response WSSE objective branches in
   `refactored_ucb_library.py` — plus the established contour styling (the "v7" look with the
   optimum-marker box, cf. `_replot_Bsigma_titled.py` / `_rerender_contours_with_optimum_box.py`).
-- The conductivity channels add **two new residual definitions** (conductivity-space and
-  concentration-space); wire them in as additional per-response objective channels without
-  altering the existing mass/retentate/permeate channels.
-- **ΔP (applied pressure) is a control input, not a fitted response — no WSSE contour for it.**
+- The conductivity channels add **four new residual definitions** (conductivity-space and
+  concentration-space, each split retentate / permeate); wire them in as additional per-response
+  objective channels without altering the existing mass/retentate/permeate channels. The
+  conductivity↔concentration mapping must go through the **selectable converter (Task 11)**.
 
-**Acceptance.** A log-WSSE σ×B contour rendered per response channel for a representative DATA3
-sheet, in the same style as the existing contours, with the optimum marker shown; confirm the
-per-channel identifiability pattern (narrow valley in B, ~flat in σ) is consistent with the
-established single-experiment finding.
+**Acceptance.** A log-WSSE σ×B contour rendered for each of the 7 response channels for a
+representative DATA3 sheet, in the same style as the existing contours, with the optimum marker
+shown; confirm the per-channel identifiability pattern (narrow valley in B, ~flat in σ) is
+consistent with the established single-experiment finding.
 
 ---
 
@@ -354,6 +360,36 @@ conversion) for ≥1 DATA3 sheet; any mismatch found is documented and (if DATA3
 
 ---
 
+## Task 11 — Selectable conductivity ↔ concentration converter (Shedlovsky / MSA / DATA2)
+
+**Objective.** A single reusable converter between **conductivity and concentration** with a
+**selectable backend model**, so the conductivity-derived quantities (Tasks 3, 5, 8, 9) can be
+computed under — and compared across — three models:
+- **`"shedlovsky"`** — invert `conductivity_paper.variant_shedlovsky(...)` (specific conductivity,
+  mS/cm) per point via a root-find (`scipy.optimize.bisect`), salt-specific parameters.
+- **`"msa"`** — invert `conductivity_paper.msa_transport(...)` (mean spherical approximation;
+  multi-salt capable) per point.
+- **`"data2"`** — the conductivity↔concentration model used in the **DATA2 workflow**. Locate it in
+  the DATA2 `.mat` loader / DATA2 reproduction code (and the DATA2 paper) and port/wrap it here;
+  do **not** modify the DATA2 workflow itself.
+
+**API.** e.g. `concentration_to_conductivity(c, salt, T, *, method=...)` and the inverse
+`conductivity_to_concentration(cond, salt, T, *, method=...)`, with
+`method ∈ {"shedlovsky","msa","data2"}`; forward and inverse must round-trip within tolerance.
+
+**Where used.** Route **every** conductivity↔concentration mapping through this function — the
+conductivity-derived plots (Task 3, plots 6–7), the conductivity-space and concentration-space
+WSSE channels (Tasks 5 / 8 / 9), and any loader conversion that should be model-agnostic. Make the
+default method configurable per run (e.g. `data_config['cond_model']`); guard so DATA1/DATA2
+behavior is unchanged unless a method is explicitly selected.
+
+**Acceptance.** For one DATA3 sheet, the three backends each produce a conductivity→concentration
+curve; overlay them (plus the loader's existing conversion) to show agreement/disagreement;
+round-trip (`c → cond → c`) is consistent for each method; the conductivity-derived figures and
+contours regenerate under any chosen method via a single switch.
+
+---
+
 ## Verification checklist (run at the end)
 - `pytest` DATA1 + DATA2 smoke/paper-comparison green (DATA1/DATA2 untouched).
 - Per-sheet concentration-range table (Task 4) emitted as CSV + markdown for each DATA3 sheet.
@@ -371,6 +407,8 @@ conversion) for ≥1 DATA3 sheet; any mismatch found is documented and (if DATA3
   rigorously vs the Task-8 slice.
 - Units audit (Task 10): units table + term-by-term consistency report committed; unit-change
   sensitivity test passes (fit + WSSE invariant under correct conversion) for ≥1 DATA3 sheet.
+- Selectable conductivity↔concentration converter (Task 11) with Shedlovsky / MSA / DATA2 backends;
+  round-trip consistent; conductivity-derived plots & contours regenerable under any method.
 - A DATA3 sheet loads with the time correction on via config; metadata recorded.
 - All regenerated/new figures rendered to PNG and visually inspected (legend clear of data,
   DATA2 colors/markers).
