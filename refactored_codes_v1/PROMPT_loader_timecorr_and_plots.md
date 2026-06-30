@@ -78,33 +78,38 @@ PNG that the legend sits outside/clear of the data and colors/markers match DATA
 
 ---
 
-## Task 3 — New per-experiment prediction-fit figure set (5 quantities)
+## Task 3 — New per-experiment prediction-fit figure set (8 plots)
 
-For each experiment (per sheet/run), produce a set of time-series figures comparing
-model/prediction to data, reusing `DATA2_STYLE` and the Task-2 legend handling:
+For each experiment (per sheet/run), produce **8 separate time-series figures** comparing
+model/prediction to data, reusing `DATA2_STYLE` and the Task-2 legend handling. **Retentate and
+permeate each get their own figure** for the concentration/conductivity quantities:
 
 1. **Mass per vial vs time** — keep the existing plot as-is (it's good).
-2. **ICP concentrations vs time** — retentate and permeate ICP points (separate figure).
-3. **Conductivity-probe signal vs time** — raw probe trace for retentate and permeate
-   (separate figure). Find the raw conductivity time series in the loader/`data_stru`.
-4. **Conductivity-derived concentration vs time** — convert the probe conductivity to
-   concentration using `conductivity_paper.py` (**invert** `variant_shedlovsky` per point with a
-   root-find such as `scipy.optimize.bisect`, using the salt-specific parameters), plotted for
-   retentate and permeate (separate figure). Note in code how this compares to the loader's
-   existing conductivity→concentration conversion.
-5. **Applied pressure (ΔP) vs time** — separate figure.
+2. **ICP retentate concentration vs time.**
+3. **ICP permeate concentration vs time.**
+4. **Conductivity-probe signal vs time — retentate** (raw probe trace; find the series in the
+   loader / `data_stru`).
+5. **Conductivity-probe signal vs time — permeate.**
+6. **Conductivity-derived concentration vs time — retentate** — convert the probe conductivity to
+   concentration via `conductivity_paper.py` (**invert** `variant_shedlovsky` per point with a
+   root-find such as `scipy.optimize.bisect`, using the salt-specific parameters).
+7. **Conductivity-derived concentration vs time — permeate** (same inversion).
+8. **Applied pressure (ΔP) vs time.**
+
+Note in code how the conductivity-derived concentrations (plots 6 & 7) compare to the loader's
+existing conductivity→concentration conversion.
 
 Implementation notes:
 - Build this as a new generator (e.g. `_make_prediction_panels.py`) or extend
   `_make_predictions.py`; keep it driven by the same run registry used elsewhere.
-- One figure per quantity per experiment (separate files), saved under the predictions output
-  dir; **also** emit a combined multi-panel overview per experiment if cheap.
+- **8 separate figure files per experiment** (one per plot above), saved under the predictions
+  output dir; **also** emit a combined multi-panel overview per experiment if cheap.
 - Single-salt inversion is sufficient for the current DATA3 campaign; leave a clear hook for
   multi-salt via `msa_transport` if needed later.
 
-**Acceptance.** Render the 5 figures for one representative DATA3 sheet (e.g. a concentrating
-CaCl₂ run); verify each is readable, legend-clear, DATA2-styled, and that the
-conductivity-derived concentration tracks the ICP points sensibly.
+**Acceptance.** Render all **8 figures** for one representative DATA3 sheet (e.g. a concentrating
+CaCl₂ run); verify each is readable, legend-clear, DATA2-styled, and that the retentate/permeate
+conductivity-derived concentrations track their respective ICP points sensibly.
 
 ---
 
@@ -372,7 +377,6 @@ conversion) for ≥1 DATA3 sheet; any mismatch found is documented and (if DATA3
 - `Architecture.md` updated with the new time-correction config + plotting helpers.
 
 ## Assumptions baked in (change if wrong)
-- Task 3 figures are **separate files per quantity per experiment** (+ optional combined panel).
+- Task 3 produces **8 separate figure files per experiment** (retentate and permeate split for the
+  ICP, conductivity-probe, and conductivity-derived-concentration quantities) + optional combined panel.
 - Conductivity→concentration uses **single-salt** `variant_shedlovsky` inversion for now.
-- "Concentration vs time" plots cover both retentate and permeate on shared axes where it aids
-  comparison; split if it gets crowded.
