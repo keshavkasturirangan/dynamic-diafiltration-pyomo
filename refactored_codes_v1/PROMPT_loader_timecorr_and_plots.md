@@ -17,6 +17,9 @@ It is written to be read **one card at a time** — every task is self-contained
   2026-07-22 request, so the numbering maps 1:1 to that message.
 - Line numbers drift. **Skim the referenced file and confirm names/lines before
   editing.**
+- **This `.md` is the ONLY copy** — the `.docx`/`.pdf` exports were retired
+  2026-07-22. Edit here (LaTeX `$…$` math and `![](path.png)` images welcome);
+  need a Word/PDF to share? See **Sharing** at the very bottom.
 
 ---
 
@@ -806,3 +809,22 @@ a representative sheet (and batch for all sheets); figures land under
   dimensionless number" until the derivation says otherwise.
 - The BoE port (Task 22) generalizes the hard-coded Na/La pair to arbitrary
   (z_i, D_i) — the `.m` stays untouched.
+
+---
+
+## Sharing (export on demand)
+
+This file is the single source of truth — no `.docx`/`.pdf` copies are kept in
+the repo. To produce a shareable Word + PDF version when needed:
+
+```bash
+cd refactored_codes_v1 \
+  && pandoc PROMPT_loader_timecorr_and_plots.md -f markdown+task_lists+pipe_tables+emoji \
+       -t docx -o /tmp/PROMPT_loader_timecorr_and_plots.docx \
+  && /opt/homebrew/bin/soffice --headless --convert-to pdf --outdir /tmp \
+       /tmp/PROMPT_loader_timecorr_and_plots.docx
+```
+
+(`-f markdown`, not `gfm` — gfm ignores the dashboard table's column-width
+hints. `$…$` math becomes native Word equations; images come along if their
+relative paths resolve.) Don't commit the exports.
