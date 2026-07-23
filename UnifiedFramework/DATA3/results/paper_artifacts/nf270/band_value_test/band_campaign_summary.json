@@ -1,0 +1,277 @@
+[
+  {
+    "rid": "MC2.05.07.24_CaCl2",
+    "salt": "CaCl2",
+    "n_fitted": 10,
+    "cf_lo": [
+      4.362163664419438,
+      14.083086689816245
+    ],
+    "cf_hi": [
+      16.163910491557058,
+      23.750410804265666
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.0,
+    "lo_B": 6.508847136753812,
+    "hi_B": 15.0,
+    "B_drift": 8.491152863246189,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC2.05.07.24_NaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      7.060026820701889,
+      21.77099034756045
+    ],
+    "cf_hi": [
+      24.952936776076697,
+      35.721537433093104
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.5581165976431689,
+    "lo_B": 9.904893193143897,
+    "hi_B": 10.096504065516035,
+    "B_drift": 0.19161087237213792,
+    "recovers_interior_sigma": true,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC2.05.21.24_LaCl3",
+    "salt": "LaCl3",
+    "n_fitted": 10,
+    "cf_lo": [
+      1.6030058076110065,
+      5.211624918104728
+    ],
+    "cf_hi": [
+      6.125368649446512,
+      9.691411935830416
+    ],
+    "full_sigma": 0.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.0,
+    "lo_B": 0.45059826257551233,
+    "hi_B": 0.3058477745313758,
+    "B_drift": -0.14475048804413654,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC3.07.11.24_SCaCl2",
+    "salt": "CaCl2",
+    "n_fitted": 10,
+    "cf_lo": [
+      4.869995237905768,
+      15.23520071295243
+    ],
+    "cf_hi": [
+      17.546508885637106,
+      25.850935827327685
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.20366003772519845,
+    "lo_B": 7.1685108947009875,
+    "hi_B": 10.244435345400044,
+    "B_drift": 3.0759244506990564,
+    "recovers_interior_sigma": true,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC3.07.12.24_S2CaCl2",
+    "salt": "CaCl2",
+    "n_fitted": 10,
+    "cf_lo": [
+      6.523313401620599,
+      16.91290094882627
+    ],
+    "cf_hi": [
+      17.96913448768326,
+      21.739691118650804
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.0,
+    "lo_B": 14.5687889942804,
+    "hi_B": 11.914899540799743,
+    "B_drift": -2.653889453480657,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC3.07.22.24_SNaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      10.390076456190666,
+      22.861655754379086
+    ],
+    "cf_hi": [
+      27.527422844609127,
+      70.46192507200601
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 0.8289707095893658,
+    "lo_B": 12.856103373126485,
+    "hi_B": 18.208562422341156,
+    "B_drift": 5.352459049214671,
+    "recovers_interior_sigma": true,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC4.07.11.24_SLaCl3",
+    "salt": "LaCl3",
+    "n_fitted": 10,
+    "cf_lo": [
+      1.4466228364389155,
+      5.1649793793883525
+    ],
+    "cf_hi": [
+      6.162962581537945,
+      10.07807103893425
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 1.0,
+    "lo_B": 0.10885854183276895,
+    "hi_B": 0.2911649113978552,
+    "B_drift": 0.18230636956508628,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": true,
+      "hi": true
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC4.07.11.24_SNaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      11.093489731414408,
+      64.1823056377942
+    ],
+    "cf_hi": [
+      75.15912719919714,
+      110.06315448616125
+    ],
+    "full_sigma": 0.7167760741625692,
+    "lo_sigma": 0.7463759059089862,
+    "hi_sigma": 1.0,
+    "lo_B": 3.8939080936286636,
+    "hi_B": 10.43190738779756,
+    "B_drift": 6.5379992941688965,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC5.07.23.24_NaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      21.10743220848374,
+      66.61343272728256
+    ],
+    "cf_hi": [
+      76.37884647031373,
+      107.29049730904494
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 1.0,
+    "lo_B": 9.70448910584548,
+    "hi_B": 9.938886178065603,
+    "B_drift": 0.23439707222012274,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC5.07.23.24_S2NaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      16.128093381471267,
+      28.423828414723843
+    ],
+    "cf_hi": [
+      33.20981279204163,
+      69.76238685318184
+    ],
+    "full_sigma": 0.3790158939198645,
+    "lo_sigma": 0.19088886055915347,
+    "hi_sigma": 0.0,
+    "lo_B": 10.268760345028284,
+    "hi_B": 12.605737620492095,
+    "B_drift": 2.336977275463811,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  },
+  {
+    "rid": "MC5.07.23.24_SNaCl",
+    "salt": "NaCl",
+    "n_fitted": 10,
+    "cf_lo": [
+      19.631452198270004,
+      69.56101067458526
+    ],
+    "cf_hi": [
+      79.55508896067174,
+      109.32651350769817
+    ],
+    "full_sigma": 1.0,
+    "lo_sigma": 1.0,
+    "hi_sigma": 1.0,
+    "lo_B": 6.75218864770724,
+    "hi_B": 9.025147940574064,
+    "B_drift": 2.2729592928668234,
+    "recovers_interior_sigma": false,
+    "fim_singular": {
+      "lo": false,
+      "hi": false
+    },
+    "warnings": []
+  }
+]

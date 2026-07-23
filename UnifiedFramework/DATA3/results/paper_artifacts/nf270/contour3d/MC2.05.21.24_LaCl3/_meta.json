@@ -1,0 +1,26 @@
+{
+  "run_id": "MC2.05.21.24_LaCl3",
+  "salt": "LaCl3",
+  "B_upper": 10.0,
+  "grid_Lp": 30,
+  "grid_B": 30,
+  "grid_sigma": 10,
+  "total_cells": 9000,
+  "failed_cells": 0,
+  "wall_time_min": 63.467654319604236,
+  "ms_per_cell": 423.11769546402826,
+  "nfe": 80,
+  "n_workers": 8,
+  "Lp_range": [
+    0.5,
+    50.0
+  ],
+  "B_range": [
+    1e-06,
+    10.0
+  ],
+  "sigma_range": [
+    0.0,
+    1.0
+  ]
+}

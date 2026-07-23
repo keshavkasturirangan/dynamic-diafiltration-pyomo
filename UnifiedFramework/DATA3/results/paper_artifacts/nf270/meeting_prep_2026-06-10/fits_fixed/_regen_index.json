@@ -1,0 +1,90 @@
+{
+  "MC3.07.22.24_SNaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.22.24_SNaCl/mass-JAO_072224_NF270_MC3_SNaCl_NaCl_07.22.24_SNaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.22.24_SNaCl/concentration-JAO_072224_NF270_MC3_SNaCl_NaCl_07.22.24_SNaCl.png"
+    ]
+  },
+  "MC5.07.23.24_S2NaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_S2NaCl/mass-JAO_072324_NF270_MC5_NaClS2_NaCl_07.23.24_S2NaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_S2NaCl/concentration-JAO_072324_NF270_MC5_NaClS2_NaCl_07.23.24_S2NaCl.png"
+    ]
+  },
+  "MC2.05.07.24_NaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.07.24_NaCl/mass-JAO_050724_NF270_MC2_NaCl_NaCl_05.07.24_NaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.07.24_NaCl/concentration-JAO_050724_NF270_MC2_NaCl_NaCl_05.07.24_NaCl.png"
+    ]
+  },
+  "MC4.07.11.24_SNaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC4.07.11.24_SNaCl/mass-LL_071124_NF270_MC4_S_NaCl_07.11.24_SNaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC4.07.11.24_SNaCl/concentration-LL_071124_NF270_MC4_S_NaCl_07.11.24_SNaCl.png"
+    ]
+  },
+  "MC5.07.23.24_NaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_NaCl/mass-JAO_072324_NF270_MC5_NaCl_NaCl_07.23.24_NaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_NaCl/concentration-JAO_072324_NF270_MC5_NaCl_NaCl_07.23.24_NaCl.png"
+    ]
+  },
+  "MC5.07.23.24_SNaCl": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_SNaCl/mass-JAO_072324_NF270_MC5_SNaCl_NaCl_07.23.24_SNaCl.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC5.07.23.24_SNaCl/concentration-JAO_072324_NF270_MC5_SNaCl_NaCl_07.23.24_SNaCl.png"
+    ]
+  },
+  "MC2.05.07.24_CaCl2": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.07.24_CaCl2/mass-JAO_050724_NF270_MC2_CaCl2_CaCl2_05.07.24_CaCl2.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.07.24_CaCl2/concentration-JAO_050724_NF270_MC2_CaCl2_CaCl2_05.07.24_CaCl2.png"
+    ]
+  },
+  "MC3.07.11.24_SCaCl2": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.11.24_SCaCl2/mass-JAO_071124_NF270_MC3_SCaCl2_CaCl2_07.11.24_SCaCl2.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.11.24_SCaCl2/concentration-JAO_071124_NF270_MC3_SCaCl2_CaCl2_07.11.24_SCaCl2.png"
+    ]
+  },
+  "MC3.07.12.24_S2CaCl2": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.12.24_S2CaCl2/mass-JAO_071224_NF270_MC3_S2CaCl2_CaCl2_07.12.24_S2CaCl2.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC3.07.12.24_S2CaCl2/concentration-JAO_071224_NF270_MC3_S2CaCl2_CaCl2_07.12.24_S2CaCl2.png"
+    ]
+  },
+  "MC2.05.21.24_LaCl3": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.21.24_LaCl3/mass-JAO_052124_NF270_MC2_LaCl3_LaCl3_05.21.24_LaCl3.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC2.05.21.24_LaCl3/concentration-JAO_052124_NF270_MC2_LaCl3_LaCl3_05.21.24_LaCl3.png"
+    ]
+  },
+  "MC4.07.11.24_SLaCl3": {
+    "ok": true,
+    "n_v0": 2,
+    "plots": [
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC4.07.11.24_SLaCl3/mass-LL_071124_NF270_MC_4_LaCl3_07.11.24_SLaCl3.png",
+      "/Users/kkasturi/GitHub/keshav-dev-dynamic-diafiltration-pyomo/UnifiedFramework/DATA3/results/paper_artifacts/nf270/meeting_prep_2026-06-10/fits_fixed/MC4.07.11.24_SLaCl3/concentration-LL_071124_NF270_MC_4_LaCl3_07.11.24_SLaCl3.png"
+    ]
+  }
+}

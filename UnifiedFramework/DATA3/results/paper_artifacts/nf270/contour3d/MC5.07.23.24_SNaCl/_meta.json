@@ -1,0 +1,29 @@
+{
+  "run_id": "MC5.07.23.24_SNaCl",
+  "salt": "NaCl",
+  "B_upper": 30.0,
+  "grid_Lp": 15,
+  "grid_B": 12,
+  "grid_sigma": 10,
+  "total_cells": 1800,
+  "failed_cells": 0,
+  "wall_time_min": 7.520374218622844,
+  "ms_per_cell": 250.67914062076147,
+  "nfe": 80,
+  "n_workers": 8,
+  "Lp_range": [
+    0.8862686058234002,
+    17.725372116468
+  ],
+  "B_range": [
+    0.8194675274505974,
+    24.58402582351792
+  ],
+  "sigma_range": [
+    0.0,
+    1.0
+  ],
+  "cf_residual_scale_fraction": 0.02,
+  "cf_residual_floor_mM": null,
+  "weighting": "retentate cF = 2% relative, NO floor (Lilonfe et al.); permeate cV 3%; mass 0.01 g"
+}

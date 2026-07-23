@@ -1,0 +1,26 @@
+{
+  "run_id": "MC2.05.07.24_CaCl2",
+  "salt": "CaCl2",
+  "B_upper": 15.0,
+  "grid_Lp": 30,
+  "grid_B": 30,
+  "grid_sigma": 10,
+  "total_cells": 9000,
+  "failed_cells": 0,
+  "wall_time_min": 57.6275754292806,
+  "ms_per_cell": 384.18383619520404,
+  "nfe": 80,
+  "n_workers": 8,
+  "Lp_range": [
+    0.5,
+    50.0
+  ],
+  "B_range": [
+    1e-06,
+    15.0
+  ],
+  "sigma_range": [
+    0.0,
+    1.0
+  ]
+}

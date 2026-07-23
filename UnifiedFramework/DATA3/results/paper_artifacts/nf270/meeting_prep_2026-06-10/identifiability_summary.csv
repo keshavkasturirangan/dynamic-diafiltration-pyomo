@@ -1,0 +1,12 @@
+run_id,salt,Lp,B,sigma,WSSE_total,stage,note
+MC2.05.07.24_NaCl,NaCl,9.95338861793553,9.732247231930808,1.0,6878.0393031247295,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC3.07.22.24_SNaCl,NaCl,8.21586191893076,14.679122435486025,0.4505778684894416,418103.46853051934,Stage 1A,Path A — concentrating + interior σ
+MC4.07.11.24_SNaCl,NaCl,7.785955233445886,2.0235914766214718,0.0,10239.734111313594,Stage 1B,Path B — diluting (σ ≈ 0 wall)
+MC5.07.23.24_NaCl,NaCl,10.023010951593406,3.698282804252679,1.0,6171.141275314334,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC5.07.23.24_SNaCl,NaCl,9.445208230135885,3.0651658744362815,1.0,5080.356274500246,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC5.07.23.24_S2NaCl,NaCl,7.380618293492061,10.144693973991615,0.0,16609.505966798697,Stage 1B,Path B — diluting (σ ≈ 0 wall)
+MC2.05.07.24_CaCl2,CaCl2,4.000431116566463,0.5093721041000184,1.0,7370.297513519836,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC3.07.11.24_SCaCl2,CaCl2,5.533218350671817,9.109847049454086,1.0,4332.836656194106,Stage 2,"concentrating, σ-axis not identifiable"
+MC3.07.12.24_S2CaCl2,CaCl2,4.63008100740254,30.0,1.0,9227.254471486745,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC2.05.21.24_LaCl3,LaCl3,2.491932263197265,0.3133500045845733,1.0,18248.377349445203,Stage 3,not estimable (σ pegged at 1 + large residual)
+MC4.07.11.24_SLaCl3,LaCl3,2.7758166376792954,0.171510512400045,1.0,21775.39495717087,Stage 3,not estimable (σ pegged at 1 + large residual)
