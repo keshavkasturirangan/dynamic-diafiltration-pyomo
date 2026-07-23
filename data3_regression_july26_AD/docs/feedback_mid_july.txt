@@ -1,0 +1,24 @@
+Here is feedback from the meeting with collaborators.
+
+1. In the report, the formulation of the nonlinear regression problem is unclear. We should more precisely state what are the feature (inputs) and measurements (outputs) of the two regression formulations: original and transformed ("raw" measurements).
+
+2. Similarly, how does the regression formulation change when we perform the AR1 measurement error correction? Is the regression problem different, or is it the same regression problem mathematically, but we are just correcting the confidence region size? This needs to be more clear in the report.
+
+3. The NaCl datasets especially benefit from two refinements: (a) We should clip the beginning of the diluting experiments; (b) we should filter out noise in the conductivity signal, which is likely due to bubbles in the experimental system.
+
+4. We need to correct the conductivity measurements to 25C. The conductivity model is valid at 25C. The experiments include recorded temperature. The code for Shammah's conductivity manuscript includes this correction.
+
+5. We need to follow up with Laurianne to see if she already computed CP in here data files. We might be confusing bulk measurements and her CP calculations.
+
+6. The derivation thus far assumes that chi does not change sign. In fact, it can change sign. We should redo the derivation to allow for this.
+
+7. All of the analysis assumes that D/l is known. What if we treat it as another fitted parameter.
+
+8. The copolymer data are much more noisy than Laurianne recalls. We need to investigate and compare this to her data.
+
+
+In addition to this feedback, I think we should do a significant audit and reorganization of the code base. Specifically:
+a. Find redundant code
+b. Streamline functions to support multiple options
+c. Develop meaningful unit tests
+d. Remove any hardcode phase references from the codebase. This is legacy from the development.

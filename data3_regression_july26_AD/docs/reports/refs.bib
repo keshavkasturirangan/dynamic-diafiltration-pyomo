@@ -1,0 +1,206 @@
+% ============================================================
+% Bibliography for docs/reports/main.tex
+% Box paths are relative to the shared-folder root
+% "Diafiltration Modeling and Experiments (Phillip and Dowling groups)/";
+% repo paths are relative to data3_regression/ (matching the convention
+% already used in Table tab:sources / tab:nacldata of main.tex).
+%
+% NOTE: paths are set with \texttt{} (underscores escaped as \_), NOT
+% \path{} -- \path{} from url.sty silently drops literal spaces under this
+% document's package combination (url+hyperref), verified with a minimal
+% reproduction; \texttt{} matches the convention already used for paths
+% elsewhere in main.tex and renders both spaces and underscores correctly.
+% ============================================================
+
+% ------------------------------------------------------------
+% Journal papers / preprints (references/)
+% ------------------------------------------------------------
+
+@article{ouimet2022data1,
+  author  = {Ouimet, Jonathan A. and Liu, Xinhong and Brown, David J. and Eugene, Elvis A. and Popps, Tylar and Muetzel, Zachary W. and Dowling, Alexander W. and Phillip, William A.},
+  title   = {{DATA}: {D}iafiltration {A}pparatus for high-{T}hroughput {A}nalysis},
+  journal = {Journal of Membrane Science},
+  year    = {2022},
+  volume  = {641},
+  pages   = {119743},
+  doi     = {10.1016/j.memsci.2021.119743},
+  note    = {repo: \texttt{references/ouimet\_2022\_jmembranesci.pdf}},
+}
+
+@article{liu2025data2,
+  author  = {Liu, Xinhong and Estrada, Laurianne and Ouimet, Jonathan A. and McClure, Matthew and Latulippe, David R. and Phillip, William A. and Dowling, Alexander W.},
+  title   = {Characterizing Transport Properties of Surface Charged Nanofiltration Membranes via Model-Based Data Analytics},
+  journal = {Industrial \& Engineering Chemistry Research},
+  year    = {2025},
+  volume  = {64},
+  pages   = {12111--12130},
+  note    = {repo: \texttt{references/liu\_2025\_iecr.pdf}},
+}
+
+@unpublished{lilonfe2025softsensors,
+  author = {Lilonfe, Shammah and Estrada, Laurianne and Singh, Pratham and Ouimet, Jonathan A. and Phillip, William A. and Dowling, Alexander W.},
+  title  = {Soft Sensors Enable Real-Time Ion Concentration Measurements},
+  year   = {2026},
+  note   = {Submitted to \emph{Journal of Membrane Science}, submission no.\ MEMSCI-S-26-01544-2; code: \texttt{github.com/dowlinglab/salts-conductivity-modelling}; earlier {SSRN} preprint 6661382, repo: \texttt{references/lilonfe\_2025\_ssrn.pdf}},
+}
+
+@unpublished{estrada2026spacerarm,
+  author = {Estrada, Laurianne and Ouimet, Jonathan A. and Dugas and Mcculloch and Nguy and Phillip, William A.},
+  title  = {The Influence of Spacer Arm Identity on Salt Transport in Charged Nanofiltration Membranes},
+  year   = {2026},
+  note   = {Manuscript in preparation; Supporting Information: \texttt{data/copolymer/Spacer\_arm\_SI.docx} (staged locally, not for redistribution)},
+}
+
+@article{liu2024ink,
+  author  = {Liu, Xinhong and Ouimet, Jonathan A. and Hoffman, John R. and Xu, Jialing and Phillip, William A. and Dowling, Alexander W.},
+  title   = {Optimization of Reactive Ink Formulation for Controlled Additive Manufacturing of Copolymer Membrane Functionalization},
+  journal = {ACS Applied Materials \& Interfaces},
+  year    = {2024},
+  volume  = {16},
+  pages   = {59216--59233},
+  note    = {repo: \texttt{references/liu\_2024\_acsami.pdf}},
+}
+
+% ------------------------------------------------------------
+% Group theory documents / manuscript drafts (Table tab:sources keys
+% in brackets, plus additional Manuscript/Analyses drafts)
+% ------------------------------------------------------------
+
+@unpublished{donnan11notes,
+  author = {Estrada, Laurianne},
+  title  = {Scanned Donnan equilibrium notes: {1:1} salt},
+  note   = {[S]; repo: \texttt{prior\_analysis/Donnan 1-1 salt equations.jpg}},
+}
+
+@unpublished{donnan21notes,
+  author = {Estrada, Laurianne},
+  title  = {Scanned Donnan equilibrium notes: {2:1} salt},
+  note   = {[S]; repo: \texttt{prior\_analysis/Donnan 2-1 salt equations.jpg}},
+}
+
+@unpublished{donnan31notes,
+  author = {Estrada, Laurianne},
+  title  = {Scanned Donnan equilibrium notes: {3:1} salt},
+  note   = {[S]; repo: \texttt{prior\_analysis/Donnan 3-1 salt equations.jpg}},
+}
+
+@misc{billmatlab,
+  author = {{Bill}},
+  title  = {Preliminary {NaCl} concentration regression ({MATLAB})},
+  note   = {[M]; repo: \texttt{prior\_analysis/B\_\allowbreak{}regression\_\allowbreak{}concentration\_\allowbreak{}NAClanal.m}},
+}
+
+@unpublished{siDocx,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Supplementary Information (two-salt extended {N}ernst--{P}lanck model)},
+  note   = {[SI]; Box: \texttt{.../Manuscript/Supplementary Information.docx}},
+}
+
+@unpublished{donnanThermoDoc,
+  author = {Ouimet, Jonathan A.},
+  title  = {Thermodynamics, {M}embrane {P}hase -- {D}onnan},
+  note   = {[Dn]; Box: \texttt{.../Manuscript/JAO/Thermodynamics, MembranePhase - Donnan.docx}},
+}
+
+@unpublished{transportDoc,
+  author = {Ouimet, Jonathan A.},
+  title  = {Transport, {M}embrane {P}hase -- {D}iffusion, {C}onvection, {E}lectromigration},
+  note   = {[Tr]; Box: \texttt{.../Manuscript/JAO/Transport, MembranePhase - Diffusion, Convection, Electromagration.docx}},
+}
+
+@unpublished{boeDoc,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Back of the Envelope Calculations for {SI}},
+  note   = {[BoE]; Box: \texttt{.../Manuscript/Back of the envelope calculations for SI.docx}},
+}
+
+@misc{multisaltMatlab,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Multi-salt Donnan equilibrium solver ({MATLAB})},
+  note   = {[MS]; Box: \texttt{.../Analyses/MATLAB codes/Donnan\_Multiple\_Salts.m}},
+}
+
+@unpublished{manuscriptOutline,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Active manuscript outline},
+  note   = {Box: \texttt{.../Manuscript/Outline.docx}},
+}
+
+@unpublished{processModelDraft,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Diafiltration process model (manuscript draft, v10)},
+  note   = {Box: \texttt{.../Manuscript/Diafiltration\_Process\_Model\_v10.pdf}},
+}
+
+@unpublished{multicompDonnanTheory,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Theory -- Multicomponent {D}onnan Exclusion},
+  note   = {Box: \texttt{.../Analyses/Theory - Multicomponent Donnan Exclusion.docx}},
+}
+
+% ------------------------------------------------------------
+% Datasets (Table tab:nacldata)
+% ------------------------------------------------------------
+
+@dataset{boeAnalysisWorkbook,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {{BoE} Analysis workbook: processed single-salt diafiltration data (sheets \texttt{NF270\_MC2 05.07.24\_NaCl}, \texttt{NF270\_MC5 05.27.26\_NaCl}, \texttt{NF270\_MC5 05.27.26\_NaCl (2)})},
+  year   = {2026},
+  note   = {Box: \texttt{.../Analyses/BoE Analysis.xlsx}; repo twin: \texttt{data/Rejection\_Analysis.xlsx}},
+}
+
+@dataset{rawCampaignMC2,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Raw diafiltration campaign data, membrane cut {MC2}},
+  year   = {2024},
+  note   = {Box: \texttt{.../Diafiltration Campaign and Raw Data/NF270\_MC2.xlsx}},
+}
+
+@dataset{rawCampaignMC3,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Raw diafiltration campaign data, membrane cut {MC3}},
+  year   = {2024},
+  note   = {Box: \texttt{.../Diafiltration Campaign and Raw Data/NF270\_MC3.xlsx}},
+}
+
+@dataset{rawCampaignMC4,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Raw diafiltration campaign data, membrane cut {MC4}},
+  year   = {2024},
+  note   = {Box: \texttt{.../Diafiltration Campaign and Raw Data/NF270\_MC4.xlsx}},
+}
+
+@dataset{rawCampaignMC5,
+  author = {{Dowling Lab and W.A.T.E.R. Lab}},
+  title  = {Raw diafiltration campaign data, membrane cut {MC5}},
+  year   = {2024},
+  note   = {Box: \texttt{.../Diafiltration Campaign and Raw Data/NF270\_MC5.xlsx}},
+}
+
+% ------------------------------------------------------------
+% Presentations
+% ------------------------------------------------------------
+
+@misc{data3presentation2026,
+  author = {{Dowling Lab}},
+  title  = {{DATA3} Single-Salt Analysis, v2},
+  year   = {2026},
+  month  = may,
+  note   = {2026-05-13; Box: \texttt{.../Presentations/Dowling Lab Updates/DATA3\_single\_salt\_analysis\_v2.pptx}},
+}
+
+@misc{iconPoster2026,
+  author = {{Dowling Lab}},
+  title  = {{ICON} poster, final v2},
+  year   = {2026},
+  month  = jan,
+  note   = {2026-01-28; Box: \texttt{.../Presentations/Dowling Lab Updates/ICON\_poster\_final\_v2.pdf}},
+}
+
+@misc{phillipLabUpdate2026,
+  author = {{W.A.T.E.R. Lab}},
+  title  = {Multicomponent calculations, {3.18.26} update},
+  year   = {2026},
+  month  = mar,
+  note   = {Box: \texttt{.../Presentations/Phillip Lab Updates/Multicomponent calculations 3.18.26.pptx}},
+}

@@ -1,0 +1,27 @@
+# Conda environment for the DATA3 multicomponent-diafiltration regression analysis.
+#
+# Create:   conda env create -f environment.yml
+# Activate: conda activate data3-regression
+# Update:   conda env update -f environment.yml --prune
+#
+# Covers Step 2 (scipy regression) through Steps 3-5 (Pyomo/ParmEst + Ipopt).
+# See README.md for full setup notes. HSL linear solvers (MA27/MA97) are
+# optional and licensed separately; conda-forge Ipopt ships with MUMPS, which
+# is sufficient for this project.
+name: data3-regression
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  # --- core scientific stack (Step 2: scipy regression) ---
+  - numpy
+  - scipy
+  - pandas
+  - openpyxl        # read the .xlsx data workbooks
+  - matplotlib
+  # --- optimization / parameter estimation (Steps 3-5) ---
+  - pyomo>=6.7      # parmest ships in pyomo.contrib.parmest
+  - ipopt           # NLP solver (with MUMPS)
+  # --- interactive work & tooling ---
+  - jupyterlab
+  - pip
