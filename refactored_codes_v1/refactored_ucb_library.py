@@ -421,6 +421,17 @@ NF270_B_BOUNDS_PER_SALT = {
 }
 NF270_B_BOUNDS_DEFAULT = (1e-6, 50.0)
 
+# When truthy, the POLYNOMIAL B(c) forms use an UNBOUNDED realized B Var in the
+# forward-simulation (sim_opt) path, matching what the sat/donnan forms already
+# do (positivity comes from the defining constraint; a hard [1e-6,50] box makes
+# the square DAE locally infeasible off the optimum). This is needed ONLY for the
+# square coefficient-slice contours (β_k × σ at fixed Lp), where coefficients are
+# pinned at off-optimum grid values whose implied B(cIn) can briefly leave the
+# box. Default False → the bound is kept → every existing fit/sim is byte-
+# identical (at any feasible solution B is already inside the box, so removing the
+# box changes nothing there). Only the contour driver flips this on.
+NF270_BFORM_SLICE_UNBOUNDED_B = False
+
 
 # Adds the continuous permeate-probe conductivity (Shedlovsky-inverted to mM)
 # as a new residual channel in the WSSE objective.  NF270 sheets carry per-vial
@@ -547,6 +558,33 @@ CONDUCTIVITY_TEMP_COEFF_DEFAULT = 0.024
 # (cV_avg ~67-80 s before vial midpoint, avg flow ~5 mg/s → V_tube ≈ 0.3 g).
 # Formula: t_corr = (t_open + t_close)/2 - V_tube / (dm/dt)_avg
 NF270_TUBE_VOLUME_G = 0.3
+
+
+# ── Campaign-level permeate time-correction convention (Task 1) ─────────────
+# The single ICP (permeate) measurement is a per-vial SCALAR with no recorded
+# sample time, so before the fit can compare it to the model permeate
+# concentration it must be ANCHORED onto the vial's shared per-vial time axis.
+# This used to be hard-coded in the Excel loader; it is now one reusable,
+# config-driven routine (`apply_campaign_time_correction`) so any campaign can
+# enable it declaratively. Three policies:
+#   "vial_close"   – DATA2 convention (DEFAULT): plant the ICP at the vial-close
+#                    index (cV_avg[-1]); compared against the model cV at
+#                    tau.last(). Mass / retentate / permeate stay on ONE shared
+#                    time axis (no tube-transit displacement). This reproduces
+#                    the historical behavior byte-for-byte.
+#   "tube_transit" – the retired V_tube dead-volume model: plant the ICP at the
+#                    interior membrane-event index from `_nf270_corrected_cv_index`
+#                    (t_corr = (t_open+t_close)/2 − V_tube/(dm/dt)). Opt-in only.
+#   "none"         – do not anchor any ICP scalar (leave cV_avg all-NaN).
+# Resolution order (most specific wins): an explicit `convention=` argument →
+# `data_config['permeate_time_correction_convention']` (per-run override) →
+# CAMPAIGN_TIME_CORRECTION[workflow_family] → NF270_TIME_CORRECTION_CONVENTION.
+# DATA1/DATA2 load from `.mat` and never reach this routine, so their numerics
+# are byte-identical regardless of these values.
+NF270_TIME_CORRECTION_CONVENTION = "vial_close"
+CAMPAIGN_TIME_CORRECTION = {
+    "DATA3": "vial_close",   # DATA3/NF270 Excel sheets: DATA2 vial-close convention
+}
 
 
 def _ec25_compensate(cond_at_T_uS_per_cm, T_celsius, salt_name):
@@ -742,6 +780,128 @@ def _nf270_corrected_cv_index(vial_time, vial_mass, V_tube_g=NF270_TUBE_VOLUME_G
     # a NaN-padded length-N array, so the fit/plot can interpolate the
     # simulated cV at the corrected timestamp.
     return int(np.argmin(np.abs(t - t_corr)))
+
+
+def _permeate_anchor_index(convention, vial_time, vial_mass):
+    """Index on a vial's shared time axis where the single ICP permeate scalar
+    is planted, for the given time-correction `convention`.
+
+    Returns None when no scalar should be anchored (empty vial, or
+    convention == "none").  This is the one place the placement policy lives,
+    so the loader and the standalone `apply_campaign_time_correction` agree.
+    """
+    vt = np.asarray(vial_time, dtype=float).reshape(-1)
+    if vt.size == 0:
+        return None
+    conv = str(convention or "vial_close").lower()
+    if conv == "none":
+        return None
+    if conv == "tube_transit":
+        # retired V_tube dead-volume model (membrane-event interior index)
+        idx = _nf270_corrected_cv_index(vial_time, vial_mass)
+        return int(idx) if idx is not None else int(vt.size - 1)
+    # "vial_close" (DATA2 convention) and any unknown value fall back to the
+    # vial-close (last) index — keeping the historical behavior.
+    return int(vt.size - 1)
+
+
+def apply_campaign_time_correction(data_stru, convention=None, *,
+                                   workflow_family="DATA3"):
+    """Reusable, campaign-level permeate time-correction (Task 1).
+
+    Consolidates the DATA2 vial-close logic — historically hard-coded inside the
+    Excel loader — into ONE config-driven routine, so any campaign can enable it
+    declaratively (DATA3 on now; others later) with no per-run hand-patching.
+
+    For every vial it re-anchors the single ICP permeate scalar onto the shared
+    per-vial time axis according to `convention`:
+      * "vial_close"   – plant at the vial-close index (cV_avg[-1]); compared by
+                         the fit against the model cV at tau.last().  All three
+                         streams (mass / retentate / permeate) stay on one shared
+                         time axis.  DEFAULT — reproduces the historical arrays.
+      * "tube_transit" – plant at the interior membrane-event index from
+                         `_nf270_corrected_cv_index` (the retired V_tube model).
+      * "none"         – leave cV_avg all-NaN (no anchoring).
+
+    Resolution order for the convention (most specific wins):
+        explicit `convention` arg
+      → data_config['permeate_time_correction_convention']
+      → CAMPAIGN_TIME_CORRECTION[workflow_family]
+      → NF270_TIME_CORRECTION_CONVENTION
+      → "vial_close".
+
+    The applied policy (method, anchor, streams, shared-axis flag, source) is
+    recorded on ``data_stru['permeate_time_correction']`` and a boolean on
+    ``data_stru['permeate_time_corrected']`` (True only for the displacing
+    tube-transit policy).  Idempotent: re-running with the same convention
+    reproduces the same arrays.
+
+    Operates in place and returns ``data_stru``.  It is a metadata-only no-op for
+    any data_stru whose rows carry no per-vial ``cV_avg`` array (e.g. the
+    DATA1/DATA2 ``.mat`` structures), so those campaigns are unaffected.
+    """
+    if not isinstance(data_stru, dict):
+        return data_stru
+    cfg = data_stru.get("data_config", {}) or {}
+    conv = (convention
+            or cfg.get("permeate_time_correction_convention")
+            or CAMPAIGN_TIME_CORRECTION.get(str(workflow_family).upper())
+            or NF270_TIME_CORRECTION_CONVENTION
+            or "vial_close")
+    conv = str(conv).lower()
+
+    rows = data_stru.get("data_raw") or []
+    anchors = []
+    for row in rows:
+        if not isinstance(row, dict) or "cV_avg" not in row:
+            continue
+        original = row.get("cV_avg")
+        cv = np.asarray(original, dtype=float).reshape(-1)
+        if cv.size == 0:
+            anchors.append(None)
+            continue
+        finite = np.where(np.isfinite(cv))[0]
+        if finite.size == 0:
+            anchors.append(None)
+            continue
+        # the single ICP value (last finite entry, regardless of where it sits)
+        scalar = float(cv[finite[-1]])
+        idx = _permeate_anchor_index(conv, row.get("time"), row.get("mass"))
+        new = np.full(cv.size, np.nan, dtype=float)
+        if idx is not None and 0 <= idx < new.size:
+            new[idx] = scalar
+        # preserve the original container type (list vs ndarray)
+        row["cV_avg"] = new.tolist() if isinstance(original, list) else new
+        anchors.append(idx)
+
+    note = {
+        "vial_close": (
+            "DATA2 convention: the single permeate ICP value is anchored at "
+            "vial close and compared against the model cV at tau.last(). All "
+            "streams share one time axis; no tube-transit (V_tube) displacement."
+        ),
+        "tube_transit": (
+            "Retired V_tube dead-volume model: the single permeate ICP value is "
+            "displaced to the interior membrane-event index "
+            "t_corr = (t_open + t_close)/2 - V_tube/(dm/dt)_avg."
+        ),
+        "none": "No ICP anchoring applied; cV_avg left all-NaN.",
+    }.get(conv, "")
+    data_stru["permeate_time_correction"] = {
+        "method": conv,
+        "convention": conv,
+        "anchor": ("vial_close_index" if conv == "vial_close"
+                   else ("membrane_event_index" if conv == "tube_transit"
+                         else "none")),
+        "streams": ["mass", "retentate", "permeate"],
+        "shared_time_axis": True,
+        "source": "apply_campaign_time_correction",
+        "workflow_family": str(workflow_family).upper(),
+        "note": note,
+    }
+    # True only when the policy DISPLACES the permeate off the shared axis.
+    data_stru["permeate_time_corrected"] = (conv == "tube_transit")
+    return data_stru
 
 
 def _row_temperature_series(row, *candidate_keys):
@@ -1847,8 +2007,14 @@ def model_construct_inter(data_stru, mode, theta=None, sim_opt=False, B_form='si
                 if B_form > 1:
                     m.beta_2 = Param(initialize=param_in['beta_2'],mutable=True)
                 if B_form > 2:
-                    m.beta_3 = Param(initialize=param_in['beta_3'],mutable=True) 
-                m.B = Var(m.n_vial, m.tau, bounds=(1e-6,50))
+                    m.beta_3 = Param(initialize=param_in['beta_3'],mutable=True)
+                # Bounded box by default; unbounded for the square coefficient-
+                # slice contours (NF270_BFORM_SLICE_UNBOUNDED_B), matching the
+                # sat/donnan forms so off-optimum coefficient pins stay feasible.
+                if NF270_BFORM_SLICE_UNBOUNDED_B:
+                    m.B = Var(m.n_vial, m.tau)
+                else:
+                    m.B = Var(m.n_vial, m.tau, bounds=(1e-6,50))
         m.sigma = Param(initialize=param_in['sigma'],mutable=True)
 
     else: 
@@ -4833,6 +4999,13 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
     )
 
     # ------ Build per-vial data_raw with MASS RESET PER VIAL ------------
+    # Campaign-level permeate time-correction convention (Task 1). This Excel
+    # loader is the DATA3/NF270 path, so the default comes from the DATA3
+    # campaign config; `apply_campaign_time_correction` below re-applies the
+    # resolved convention, honors any per-run data_config override, and stamps
+    # the audit metadata.
+    _tc_convention = CAMPAIGN_TIME_CORRECTION.get(
+        "DATA3", NF270_TIME_CORRECTION_CONVENTION)
     data_raw = []
     for idx, (a, b) in enumerate(segments, start=1):
         seg_mass_cum = mass_all_cum[a:b]
@@ -4850,18 +5023,20 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         else:
             seg_mass = seg_mass_cum
         cV_scalar = icp_per_vial.get(idx, np.nan)
-        # Permeate placement (DATA2 convention): the single ICP measurement is a
-        # per-vial scalar with no recorded sample time, so anchor it at vial
-        # close. The fit objective then compares it against the model permeate
-        # concentration at tau.last() (see the cV residual branch in
-        # model_construct_inter). All three streams (mass, retentate, permeate)
-        # stay on ONE shared time axis — we deliberately do NOT displace the
-        # permeate to an interior membrane-event index (the retired V_tube
-        # tube-transit model), which would desynchronise it from mass/retentate.
+        # Permeate placement: anchor the single ICP scalar onto the shared
+        # per-vial time axis via the campaign time-correction convention
+        # (default "vial_close" — the DATA2 convention: plant it at the
+        # vial-close index, compared by the fit against the model cV at
+        # tau.last(); all three streams stay on ONE shared time axis, no
+        # tube-transit V_tube displacement). The placement policy lives in
+        # `_permeate_anchor_index` so the loader and the standalone
+        # `apply_campaign_time_correction` routine cannot drift.
         vial_time = time_all[a:b]
         cV_avg_arr = np.full(len(vial_time), np.nan, dtype=float)
-        if np.isfinite(cV_scalar) and len(vial_time) > 0:
-            cV_avg_arr[-1] = float(cV_scalar)
+        if np.isfinite(cV_scalar):
+            _anchor_idx = _permeate_anchor_index(_tc_convention, vial_time, seg_mass)
+            if _anchor_idx is not None:
+                cV_avg_arr[_anchor_idx] = float(cV_scalar)
         row = {
             "number":          idx,
             "time":            vial_time,
@@ -4974,6 +5149,13 @@ def _load_legacy_data_stru_from_excel(path: Path, selector: object = None) -> di
         "sheet_name": sheet_name,
     }
     data_stru = _normalize_conductivity_measurements(data_stru)
+    # Apply the campaign-level permeate time correction via the single reusable
+    # routine (Task 1). This re-anchors each vial's ICP scalar per the resolved
+    # convention (default "vial_close" — byte-identical to the historical
+    # placement) and stamps data_stru["permeate_time_correction"] metadata. A
+    # per-run override may be set via data_config['permeate_time_correction_convention'].
+    data_stru = apply_campaign_time_correction(
+        data_stru, convention=_tc_convention, workflow_family="DATA3")
     if data_stru.get("data_raw"):
         try:
             first_cf = np.asarray(data_stru["data_raw"][0].get("cF_exp", []), dtype=float).reshape(-1)
@@ -14484,6 +14666,383 @@ def _forward_shedlovsky_mM_to_uS_per_cm(c_mM, salt_name, temp_C=25.0):
     T_K = float(temp_C) + 273.15
     sigma_mS_cm = np.asarray(_cp.variant_shedlovsky(c_M, T_K, **kw), dtype=float)
     return sigma_mS_cm * 1000.0   # → µS/cm
+
+
+# DATA2 paper conductivity↔concentration calibration (calibration A):
+#   conc[mM] = a * cond[µS/cm] + b.  Source: run_data2_calibration_plots
+#   (conductivity_calibration1.csv fit).  Calibration B = (0.008372, -0.8735).
+DATA2_CONDUCTIVITY_CALIBRATION = (0.008813, -0.6949)
+
+
+def concentration_to_conductivity(c_mM, salt, T=25.0, *, method="shedlovsky"):
+    """Concentration (mM) → specific conductivity (µS/cm), 25 °C-anchored.
+
+    Selectable-backend converter (Task 11):
+      - ``"shedlovsky"`` : ``conductivity_paper.variant_shedlovsky`` (single-salt).
+      - ``"msa"``        : ``conductivity_paper.msa_transport`` (augmented params;
+                           requires ``_msa_augment_salt_params()`` to have run,
+                           which it does at import).
+      - ``"data2"``      : DATA2 paper linear calibration inverted,
+                           ``cond = (conc − b)/a`` with ``DATA2_CONDUCTIVITY_CALIBRATION``.
+    Scalar in → float out; NaN-safe per point.
+    """
+    import io as _io2, contextlib as _cl2
+    m = str(method).lower()
+    c = np.atleast_1d(np.asarray(c_mM, dtype=float))
+    if m in ("shedlovsky", "variant_shedlovsky", "shed"):
+        out = np.asarray(_forward_shedlovsky_mM_to_uS_per_cm(c, salt, temp_C=T), dtype=float)
+    elif m == "data2":
+        a, b = DATA2_CONDUCTIVITY_CALIBRATION
+        out = (c - b) / a
+    elif m == "msa":
+        sp = CONDUCTIVITY_SALT_PARAMS_25C.get(str(salt), {})
+        req = ("z_1", "z_2", "diameter_cation_m", "diameter_anion_m",
+               "diff_coeff_cation_m2_s", "diff_coeff_anion_m2_s", "eta_pa_s",
+               "epsilon", "lambda_0_cation_S_m2_mol", "lambda_0_anion_S_m2_mol")
+        if any(k not in sp for k in req):
+            raise ValueError(f"MSA params missing for salt {salt!r}; run _msa_augment_salt_params().")
+        cp = _load_conductivity_paper()
+        val = [int(sp["z_1"]), int(sp["z_2"])]
+        dia = [float(sp["diameter_cation_m"]), float(sp["diameter_anion_m"])]
+        dif = [float(sp["diff_coeff_cation_m2_s"]), float(sp["diff_coeff_anion_m2_s"])]
+        eta = float(sp["eta_pa_s"]); eps = float(sp["epsilon"])
+        lam = [float(sp["lambda_0_cation_S_m2_mol"]), float(sp["lambda_0_anion_S_m2_mol"])]
+        T_K = float(T) + 273.15
+        out = np.full(c.size, np.nan)
+        with _cl2.redirect_stdout(_io2.StringIO()):
+            for i, cc in enumerate(c):
+                if not np.isfinite(cc) or cc <= 0:
+                    continue
+                try:
+                    out[i] = float(cp.msa_transport(val, dia, dif, T_K, eta, eps, lam, [float(cc)])[0]) * 1000.0
+                except Exception:
+                    out[i] = np.nan
+    else:
+        raise NotImplementedError(f"conductivity backend {method!r} not ported.")
+    if np.isscalar(c_mM) or np.ndim(c_mM) == 0:
+        return float(out.reshape(-1)[0])
+    return out
+
+
+def conductivity_to_concentration(cond_uS, salt, T=25.0, *, method="shedlovsky"):
+    """Specific conductivity (µS/cm) → concentration (mM), per-point inverse.
+
+    Selectable-backend wrapper around the already-coded inversion (Task 11),
+    reusing ``_conductivity_to_concentration_series`` (which inverts the
+    ``conductivity_paper`` forward curve by bisection). ``method="shedlovsky"``
+    is the default single-salt path. Robust: any point past the Shedlovsky fold
+    (high concentration → non-monotone forward) is returned as NaN rather than
+    raising, so a whole probe trace inverts cleanly. Scalar in → float out.
+    """
+    m = str(method).lower()
+    if m in ("variant_shedlovsky", "shed"):
+        m = "shedlovsky"
+    if m == "data2":
+        a, b = DATA2_CONDUCTIVITY_CALIBRATION
+        arr = a * np.atleast_1d(np.asarray(cond_uS, dtype=float)) + b
+        if np.isscalar(cond_uS) or np.ndim(cond_uS) == 0:
+            return float(arr.reshape(-1)[0])
+        return arr
+    if m not in ("shedlovsky", "msa"):
+        raise NotImplementedError(f"conductivity backend {method!r} not ported.")
+    params = dict(CONDUCTIVITY_SALT_PARAMS_25C.get(str(salt), {}))
+    arr_in = np.atleast_1d(np.asarray(cond_uS, dtype=float))
+    T_K = float(T) + 273.15
+
+    def _invert(signal):
+        return np.asarray(_conductivity_to_concentration_series(
+            cond_signal=list(signal), temp_K=T_K, salt_name=str(salt),
+            model=m, model_params=params, output_units="mM"), dtype=float)
+
+    try:
+        arr = _invert(arr_in)                      # fast path: one forward build
+    except Exception:
+        arr = np.full(arr_in.size, np.nan, dtype=float)
+        for i, y in enumerate(arr_in):             # robust path: per-point + NaN
+            if not np.isfinite(y):
+                continue
+            try:
+                arr[i] = float(_invert([float(y)]).reshape(-1)[0])
+            except Exception:
+                arr[i] = np.nan
+    if np.isscalar(cond_uS) or np.ndim(cond_uS) == 0:
+        return float(arr.reshape(-1)[0])
+    return arr
+
+
+def plot_meas_vs_pred_conductivity(data_stru, sim_stru, *,
+                                   methods=("shedlovsky", "msa", "data2"),
+                                   salt=None, save_dir=None, save_path=None,
+                                   LOUD=False, show=False, title=None):
+    """Measurement-vs-prediction time series for a DATA3/NF270 conductivity-backed
+    sheet, in the DATA2 plotting convention, with conductivity↔concentration
+    compared across THREE backends (variant Shedlovsky / MSA / DATA2 linear).
+
+    Panels (2×3; the 6th is a reading guide):
+      1 Mass per vial (per-vial reset; measured all vials, model i≥n_v0−1)
+      2 Retentate conductivity  measured probe (µS/cm) vs model cF→µS (3 backends)
+      3 Permeate  conductivity  measured probe (µS/cm) vs model cH→µS (3 backends)
+      4 Retentate concentration probe→mM (3 backends) + retentate ICP ★ + model cF
+      5 Permeate  concentration probe→mM (3 backends) + vial ICP (vial-close) + model cH/cV
+
+    DATA2 time correction is reused from this library (NOT re-implemented):
+      * shared origin ``t_delay = _data1_time_origin(data_stru)``;
+      * model drawn only for the collection vials ``i >= n_v0-1`` (the startup
+        holdup vial is not predicted — its mass is dead volume, not collected);
+      * per-vial mass reset; permeate ICP anchored at vial close, with the model
+        ``cV`` interpolated onto those vial-close times.
+
+    DATA2 colours (from ``plot_sim_comparison``): mass red dots / blue line;
+    retentate magenta / green line; permeate-vial cyan / red line + red ▲. The 3
+    backends are distinguished by LINE STYLE (— Shedlovsky, -- MSA, ·· DATA2).
+
+    Parameters
+    ----------
+    data_stru : dict   loaded sheet (``loadxlsx`` / ``loadmat``).
+    sim_stru  : list | dict   forward-sim result from
+        ``solve_model(..., sim_opt=True)`` (0-based vial index; keys time, cF, cH,
+        cV, mV).
+    methods : tuple   subset/order of ("shedlovsky", "msa", "data2").
+    salt : str        salt name; defaults to ``data_config['namec']``.
+    save_dir / save_path : output PNG location (``save_path`` wins).
+
+    Returns the matplotlib ``Figure``.
+    """
+    import matplotlib.pyplot as plt
+    cfg = data_stru.get("data_config", {})
+    salt = salt or str(cfg.get("namec", "")).strip()
+    n_v0 = int(cfg.get("n_v0", 1))
+    t_delay = _data1_time_origin(data_stru)          # DATA2 shared origin (reused)
+    n = int(cfg.get("n", len(data_stru.get("data_raw", []))))
+
+    def _sim(i):
+        try:
+            return sim_stru[i]
+        except Exception:
+            return None
+
+    _LS = {"shedlovsky": "-", "msa": "--", "data2": ":"}
+    _LAB = {"shedlovsky": "Shedlovsky", "msa": "MSA", "data2": "DATA2 linear"}
+    C_RET, C_RET_P, C_PERM, C_PERM_P = "m", "g", "c", "r"   # DATA2 stream colours
+
+    def _mser(key):   # model trajectory, collection vials only (i >= n_v0-1)
+        t, y = [], []
+        for i in range(n):
+            if i < n_v0 - 1:
+                continue
+            s = _sim(i)
+            if not isinstance(s, dict):
+                continue
+            t += list(np.asarray(s.get("time", []), dtype=float))
+            y += list(np.asarray(s.get(key, []), dtype=float))
+        return np.array(t), np.array(y)
+    smt, cF = _mser("cF"); _, cH = _mser("cH"); _, cV = _mser("cV")
+    smin = (smt - t_delay) / 60.0 if smt.size else smt
+
+    mt, ret_uS, perm_uS, picp_t, picp = [], [], [], [], []
+    for i, row in enumerate(data_stru.get("data_raw", [])):
+        if i < n_v0 - 1:
+            continue
+        tt = np.asarray(row.get("time", []), dtype=float).reshape(-1)
+        if not tt.size:
+            continue
+        rc = np.asarray(row.get("cF_exp_conductivity", []), dtype=float).reshape(-1)
+        pc = np.asarray(row.get("cV_perm_cond", []), dtype=float).reshape(-1)
+        mt += list(tt)
+        ret_uS += list(rc if rc.size == tt.size else np.full(tt.size, np.nan))
+        perm_uS += list(pc if pc.size == tt.size else np.full(tt.size, np.nan))
+        cv = np.asarray(row.get("cV_avg", []), dtype=float).reshape(-1)
+        fin = np.where(np.isfinite(cv))[0]
+        if fin.size:
+            picp_t.append(tt[fin[-1]]); picp.append(cv[fin[-1]])
+    mt = np.array(mt); ret_uS = np.array(ret_uS); perm_uS = np.array(perm_uS)
+    picp_t = np.array(picp_t); picp = np.array(picp)
+    mmin = (mt - t_delay) / 60.0 if mt.size else mt
+    cV_close = (np.interp((picp_t - t_delay) / 60.0, smin, cV)
+                if (picp.size and smt.size) else np.array([]))
+
+    fig, ax = plt.subplots(2, 3, figsize=(19, 10)); A = ax.flatten()
+
+    # 1 — mass, per-vial reset; measured all vials, model only i >= n_v0-1
+    for i, row in enumerate(data_stru.get("data_raw", [])):
+        tt = np.asarray(row.get("time", []), dtype=float).reshape(-1)
+        mm = np.asarray(row.get("mass", []), dtype=float).reshape(-1)
+        if tt.size and mm.size:
+            A[0].plot((tt - t_delay) / 60.0, mm, "r.", ms=4)
+        s = _sim(i)
+        if i >= n_v0 - 1 and isinstance(s, dict):
+            sti = np.asarray(s.get("time", []), dtype=float)
+            mvi = np.asarray(s.get("mV", []), dtype=float)
+            if sti.size and mvi.size:
+                A[0].plot((sti - t_delay) / 60.0, mvi - mvi[0], "b-", lw=2.5, alpha=0.6)
+    A[0].plot([], [], "r.", ms=4, label="Measurements")
+    A[0].plot([], [], "b-", lw=2.5, alpha=0.6, label="Predictions")
+    A[0].set_title("1. Mass per vial (per-vial reset)"); A[0].set_ylabel("Mass [g]")
+
+    # 2 — retentate conductivity: probe (magenta) vs model cF→µS (green, 3 styles)
+    if ret_uS.size:
+        A[1].plot(mmin, ret_uS, ".", color=C_RET, ms=2.5, alpha=0.4, label="Retentate probe (meas.)")
+    for mth in methods:
+        A[1].plot(smin, concentration_to_conductivity(cF, salt, method=mth),
+                  color=C_RET_P, ls=_LS.get(mth, "-"), lw=1.8, label=f"Pred.→{_LAB.get(mth, mth)}")
+    A[1].set_title("2. Retentate conductivity"); A[1].set_ylabel("Conductivity [µS/cm]")
+
+    # 3 — permeate conductivity: probe (cyan) vs model cH→µS (red, 3 styles)
+    if perm_uS.size:
+        A[2].plot(mmin, perm_uS, ".", color=C_PERM, ms=2.5, alpha=0.4, label="Permeate probe (meas.)")
+    for mth in methods:
+        A[2].plot(smin, concentration_to_conductivity(cH, salt, method=mth),
+                  color=C_PERM_P, ls=_LS.get(mth, "-"), lw=1.8, label=f"Pred.→{_LAB.get(mth, mth)}")
+    A[2].set_title("3. Permeate conductivity"); A[2].set_ylabel("Conductivity [µS/cm]")
+
+    # 4 — retentate concentration: probe→mM (magenta, 3 styles) + ICP ★ + model cF (green)
+    for mth in methods:
+        if ret_uS.size:
+            A[3].plot(mmin, conductivity_to_concentration(ret_uS, salt, method=mth),
+                      color=C_RET, ls=_LS.get(mth, "-"), lw=1.4, alpha=0.85,
+                      label=f"Probe→{_LAB.get(mth, mth)}")
+    if smt.size:
+        A[3].plot(smin, cF, color=C_RET_P, ls="-", lw=3, alpha=0.7, label="Retentate (Prediction)")
+    t_end = smt[-1] if smt.size else t_delay
+    for tt, key, lab in [(t_delay, "cF_feed_icp_mM", "feed ICP"),
+                         (t_end, "cF_retentate_icp_mM", "retentate ICP"),
+                         (t_end, "cF_final_meas", "final-tube ICP")]:
+        v = cfg.get(key)
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            v = float("nan")
+        if np.isfinite(v):
+            A[3].plot((tt - t_delay) / 60.0, v, "k*", ms=15, mec="k", mfc="yellow", zorder=6)
+            A[3].annotate(lab, ((tt - t_delay) / 60.0, v), fontsize=8, xytext=(4, 4),
+                          textcoords="offset points")
+    A[3].set_title("4. Retentate concentration (probe-derived vs ICP vs model)")
+    A[3].set_ylabel("Concentration [mM]")
+
+    # 5 — permeate concentration: probe→mM (cyan, 3 styles) + vial ICP (cs) + model cH (red) + cV (r^)
+    for mth in methods:
+        if perm_uS.size:
+            A[4].plot(mmin, conductivity_to_concentration(perm_uS, salt, method=mth),
+                      color=C_PERM, ls=_LS.get(mth, "-"), lw=1.4, alpha=0.85,
+                      label=f"Probe→{_LAB.get(mth, mth)}")
+    if smt.size:
+        A[4].plot(smin, cH, color=C_PERM_P, ls="-", lw=3, alpha=0.6, label="Permeate (Prediction)")
+    if picp.size:
+        A[4].plot((picp_t - t_delay) / 60.0, picp, "cs", ms=9, mec="k", mew=0.5, zorder=6,
+                  label="Vial ICP (Meas., vial-close)")
+        if cV_close.size:
+            A[4].plot((picp_t - t_delay) / 60.0, cV_close, "r^", ms=8, alpha=0.7, zorder=6,
+                      label="Vial (Prediction)")
+    A[4].set_title("5. Permeate concentration (probe-derived vs ICP vs model)")
+    A[4].set_ylabel("Concentration [mM]")
+
+    for a in A[:5]:
+        a.set_xlabel("Time [min]"); a.grid(alpha=0.3)
+        a.legend(fontsize=7, loc="best"); a.tick_params(direction="in")
+
+    A[5].axis("off")
+    a_cal, b_cal = DATA2_CONDUCTIVITY_CALIBRATION
+    A[5].text(0.0, 0.99,
+              f"{data_stru.get('dataset', '')}  ({salt})\n\n"
+              "DATA2 plotting convention:\n"
+              "  mass: red dots (meas.), blue line (pred.)\n"
+              "  retentate: magenta (meas.), green line (pred. c$_F$)\n"
+              "  permeate/vial: cyan sq. = ICP (meas.), red line (pred. c$_H$),\n"
+              "     red ▲ = model c$_V$ at vial close\n\n"
+              "3 conductivity↔conc. backends by LINE STYLE:\n"
+              "  —— Shedlovsky   – – MSA   ·· DATA2 linear\n"
+              f"     (DATA2: conc = {a_cal:.6g}·σ {b_cal:+.4g})\n\n"
+              "★ = retentate ICP grab samples (independent).\n\n"
+              "DATA2 time correction (reused from library): shared origin\n"
+              f"t−t_delay; model only for collection vials i≥{n_v0-1} (startup\n"
+              "holdup skipped); per-vial mass reset; permeate ICP & model c$_V$\n"
+              "compared at vial close.",
+              transform=A[5].transAxes, va="top", ha="left", fontsize=10, color="0.15")
+
+    fig.suptitle(title or (f"{data_stru.get('dataset', '')} — measurement vs. prediction "
+                 f"({salt}) — conductivity/concentration via Shedlovsky · MSA · DATA2"),
+                 fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+
+    if save_path is None and save_dir is not None:
+        save_dir = Path(save_dir); save_dir.mkdir(parents=True, exist_ok=True)
+        _ds = str(data_stru.get("dataset", "")).strip()
+        _sh = str(data_stru.get("sheet_name", "")).strip()
+        slug = _sanitize_filename_component("_".join(p for p in (_ds, _sh) if p) or "sheet")
+        save_path = save_dir / f"{slug}_meas_vs_pred.png"
+    if save_path is not None:
+        fig.savefig(str(save_path), dpi=140, bbox_inches="tight")
+        if LOUD:
+            print(f"[meas-vs-pred] wrote {save_path}", flush=True)
+    if show:
+        plt.show()
+    return fig
+
+
+def run_nf270_meas_vs_pred(run_ids, *, save_dir, nfe=120, data_root=None,
+                           methods=("shedlovsky", "msa", "data2"),
+                           B_form="single", multistart=False):
+    """DATA3/NF270 measurement-vs-prediction conductivity/concentration branch.
+
+    Thin dispatcher (mirrors :func:`run_nf270_contour_branch`) the runfile can
+    invoke without knowing the per-sheet layout.  For each sheet in ``run_ids``
+    (a subset of ``NF270_RUN_REGISTRY``; ``None``/``"all"`` = every sheet):
+    load the workbook, fit the transport model (single-B by default),
+    forward-simulate at the fit, and render
+    :func:`plot_meas_vs_pred_conductivity` (the 5-panel DATA2-styled
+    measurement-vs-prediction figure with the three conductivity↔concentration
+    backends, all on the DATA2 time-corrected axis).  Sheets that carry no
+    conductivity probe trace are skipped.  Returns one dict per figure written.
+    """
+    import io as _io3, contextlib as _cl3
+    save_dir = Path(save_dir); save_dir.mkdir(parents=True, exist_ok=True)
+    root = Path(data_root) if data_root is not None else NF270_DEFAULT_ROOT
+    if run_ids is None or run_ids == "all":
+        resolved = tuple(NF270_RUN_REGISTRY.keys())
+    else:
+        resolved = tuple(str(r) for r in run_ids)
+    resolved = tuple(r for r in resolved if r in NF270_RUN_REGISTRY)
+    if not resolved:
+        print("\n[meas-vs-pred] no NF270 sheets in the selection; nothing to do.")
+        return []
+    print(f"\n[meas-vs-pred] branch: {len(resolved)} sheet(s), backends={tuple(methods)}")
+    print(f"[meas-vs-pred] save_dir = {save_dir}")
+
+    outputs = []
+    for run_id in resolved:
+        fam = NF270_RUN_REGISTRY[run_id]
+        try:
+            ds = loadxlsx(root / fam["workbook"], sheet=fam["sheet"])["data_stru"]
+        except Exception as e:
+            print(f"  [skip] {run_id}: load failed ({str(e)[:60]})", flush=True)
+            continue
+        rows = ds.get("data_raw", []) or []
+        if not any(("cF_exp_conductivity" in r) or ("cV_perm_cond" in r) for r in rows):
+            print(f"  [skip] {run_id}: no conductivity probe trace", flush=True)
+            continue
+        try:
+            with _cl3.redirect_stdout(_io3.StringIO()):
+                fit, _, _ = solve_model(ds, ds["mode"], sim_opt=False, B_form=B_form,
+                                        workflow_family="DATA3", nfe=nfe,
+                                        multistart=multistart, LOUD=False)
+                if not isinstance(fit, dict):
+                    raise RuntimeError("fit returned no feasible solution")
+                _, sim, _ = solve_model(ds, ds["mode"], theta=fit["parameters"],
+                                        sim_opt=True, B_form=B_form,
+                                        workflow_family="DATA3", nfe=nfe, LOUD=False)
+        except Exception as e:
+            print(f"  [skip] {run_id}: fit/sim failed ({str(e)[:60]})", flush=True)
+            continue
+        try:
+            plot_meas_vs_pred_conductivity(ds, sim, methods=methods,
+                                           save_dir=save_dir, LOUD=True)
+            slug = _sanitize_filename_component("_".join(
+                p for p in (str(ds.get("dataset", "")), str(ds.get("sheet_name", ""))) if p) or run_id)
+            outputs.append({"run_id": run_id, "path": str(save_dir / f"{slug}_meas_vs_pred.png")})
+        except Exception as e:
+            print(f"  [warn] {run_id}: plot failed ({str(e)[:60]})", flush=True)
+    print(f"[meas-vs-pred] wrote {len(outputs)} figure(s)")
+    return outputs
 
 
 def calc_ind_objectives_py(

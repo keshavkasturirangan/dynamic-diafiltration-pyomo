@@ -179,6 +179,35 @@ offset in the raw balance column. This is how sheets like
 (tare zeroed against ~9.85 g of container weight), feed into the
 objective without contamination.
 
+### Permeate time-correction convention — config-driven (Task 1)
+
+The single ICP (permeate) measurement is a per-vial **scalar** with no recorded
+sample time, so before the fit can compare it to the model permeate
+concentration it must be **anchored** onto the vial's shared per-vial time axis.
+This was historically hard-coded in the Excel loader; it is now one reusable,
+config-driven routine: **`apply_campaign_time_correction(data_stru,
+convention=..., workflow_family=...)`** (`refactored_ucb_library.py`). The loader
+calls it automatically on every DATA3/NF270 load and stamps the audit metadata.
+
+| Convention | Anchor index | Effect | `permeate_time_corrected` |
+|---|---|---|---|
+| `"vial_close"` *(default)* | last index (`cV_avg[-1]`) | DATA2 convention: compared against the model `cV` at `tau.last()`; mass/retentate/permeate stay on **one shared time axis**. Byte-identical to the historical placement. | `False` |
+| `"tube_transit"` | interior membrane-event index from `_nf270_corrected_cv_index` | retired `V_tube` dead-volume model: `t_corr = (t_open+t_close)/2 − V_tube/(dm/dt)`. Opt-in only. | `True` |
+| `"none"` | — | leave `cV_avg` all-NaN (no anchoring) | `False` |
+
+**Resolution order** (most specific wins): explicit `convention=` arg →
+`data_config['permeate_time_correction_convention']` (per-run override) →
+`CAMPAIGN_TIME_CORRECTION[workflow_family]` → `NF270_TIME_CORRECTION_CONVENTION`
+→ `"vial_close"`. The placement policy itself lives in one helper,
+`_permeate_anchor_index`, so the loader build-loop and the standalone routine
+cannot drift. The applied policy (method, anchor, streams, shared-axis flag,
+source) is recorded on `data_stru['permeate_time_correction']`.
+
+**DATA1/DATA2 are unaffected:** they load from `.mat` (already time-corrected
+upstream by `load_data.m`) and never reach this routine; it is additionally a
+metadata-only no-op for any `data_stru` whose rows carry no per-vial `cV_avg`
+array. So enabling/changing the DATA3 convention can never demote DATA1/DATA2.
+
 ### Hold-up split — DATA3 only
 
 NF270 operators start the data logger before any permeate has reached

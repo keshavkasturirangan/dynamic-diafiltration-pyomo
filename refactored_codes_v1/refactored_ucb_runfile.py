@@ -307,14 +307,16 @@ def pick_branches() -> set[str]:
     print("  f   FIM heatmap / sigma-sensitivity contour")
     print("  d   DoE next-experiment recommendations")
     print("  o   Objective-contour panels (DATA3/NF270 only — B-Lp and sigma-Lp)")
+    print("  v   Measurement-vs-prediction: mass + retentate/permeate conductivity & concentration")
+    print("      (3 backends Shedlovsky/MSA/DATA2, DATA2 time correction)  [DATA3/NF270 only]")
     print("  x   MATLAB ports (DATA3/NF270 — calc_contour_2d/3d_py; opt. DoE / σ-sensitivity heatmaps)  [opt-in]")
     print("  l   Lumped σ·Lp diagnostic (fit at fixed B grid)  [Phase C, in progress]")
     print("  all all of the above (except 'x', which is opt-in)")
     raw = _prompt("Branches", "all").strip().lower()
     if raw in ("all", "*", ""):
-        return {"m", "c", "r", "p", "f", "d", "o", "l"}
+        return {"m", "c", "r", "p", "f", "d", "o", "l", "v"}
     parts = [p.strip() for p in raw.replace(",", " ").split() if p.strip()]
-    valid = {"m", "c", "r", "p", "f", "d", "o", "x", "l"}
+    valid = {"m", "c", "r", "p", "f", "d", "o", "x", "l", "v"}
     chosen = {p for p in parts if p in valid}
     return chosen or {"m", "c"}
 
@@ -509,6 +511,24 @@ def _dispatch_nf270(subset, trunk: dict, branches: set[str]) -> None:
                 subset,
                 save_dir=save_dir.parent / "contour_panels",
                 grid_density=grid_density,
+                nfe=nfe,
+                data_root=NF270_ROOT,
+            )
+
+    # Measurement-vs-prediction branch — DATA2-styled mass + retentate/permeate
+    # conductivity & concentration time series, with the three conductivity<->
+    # concentration backends (variant Shedlovsky / MSA / DATA2 linear) overlaid,
+    # all on the DATA2 time-corrected axis (shared t_delay origin, startup-holdup
+    # vial not predicted, per-vial mass reset, permeate ICP at vial close). One
+    # 5-panel figure per sheet under paper_artifacts/nf270/meas_vs_pred/.
+    if "v" in branches:
+        if not hasattr(ucb, "run_nf270_meas_vs_pred"):
+            print("\n[meas-vs-pred] library is missing run_nf270_meas_vs_pred; skipping.")
+        else:
+            ucb.run_with_data3_spec(
+                ucb.run_nf270_meas_vs_pred,
+                subset,
+                save_dir=save_dir.parent / "meas_vs_pred",
                 nfe=nfe,
                 data_root=NF270_ROOT,
             )
